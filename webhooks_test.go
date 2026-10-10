@@ -81,7 +81,7 @@ func TestWebhookSecretsAndSettingsReplacement(t *testing.T) {
 		t.Fatal("secret exposed to UI")
 	}
 	var blob []byte
-	if err = s.db.QueryRow("SELECT secret FROM webhook_config").Scan(&blob); err != nil {
+	if err = s.db.QueryRow("SELECT secret FROM webhook_destinations").Scan(&blob); err != nil {
 		t.Fatal(err)
 	}
 	if bytes.Contains(blob, []byte("endpoint-secret")) || bytes.Contains(blob, []byte("token-secret")) {
@@ -187,7 +187,7 @@ func TestWebhookDoesNotFollowRedirectsOrRetryPermanentFailures(t *testing.T) {
 func TestWebhookMigrationFromVersionOne(t *testing.T) {
 	s := historyFixture(t)
 	path := s.path
-	if _, err := s.db.Exec("DROP TABLE webhook_config; DROP TABLE deliveries; PRAGMA user_version=1"); err != nil {
+	if _, err := s.db.Exec("DROP TABLE webhook_config; DROP TABLE webhook_destinations; DROP TABLE deliveries; PRAGMA user_version=1"); err != nil {
 		t.Fatal(err)
 	}
 	target := fixtureTarget()

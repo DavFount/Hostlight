@@ -21,16 +21,22 @@ import (
 )
 
 type WebhookSettings struct {
-	Enabled         bool   `json:"enabled"`
-	Configured      bool   `json:"configured"`
-	URL             string `json:"url"`
-	Bearer          string `json:"bearer"`
-	SigningKey      string `json:"signingKey"`
-	AllowHTTP       bool   `json:"allowHTTP"`
-	ClearBearer     bool   `json:"clearBearer"`
-	ClearSigningKey bool   `json:"clearSigningKey"`
-	HasBearer       bool   `json:"hasBearer"`
-	HasSigningKey   bool   `json:"hasSigningKey"`
+	Error           string   `json:"error,omitempty"`
+	ID              string   `json:"id"`
+	Name            string   `json:"name"`
+	Scope           string   `json:"scope"`
+	Groups          []string `json:"groups"`
+	MonitorIDs      []string `json:"monitorIds"`
+	Enabled         bool     `json:"enabled"`
+	Configured      bool     `json:"configured"`
+	URL             string   `json:"url"`
+	Bearer          string   `json:"bearer"`
+	SigningKey      string   `json:"signingKey"`
+	AllowHTTP       bool     `json:"allowHTTP"`
+	ClearBearer     bool     `json:"clearBearer"`
+	ClearSigningKey bool     `json:"clearSigningKey"`
+	HasBearer       bool     `json:"hasBearer"`
+	HasSigningKey   bool     `json:"hasSigningKey"`
 }
 type webhookSecret struct {
 	URL        string
@@ -48,14 +54,16 @@ type WebhookEvent struct {
 	DurationSeconds int64  `json:"durationSeconds"`
 }
 type WebhookDelivery struct {
-	Name     string `json:"name"`
-	Host     string `json:"host"`
-	ID       string `json:"id"`
-	Event    string `json:"event"`
-	Created  string `json:"created"`
-	Attempts int    `json:"attempts"`
-	Status   string `json:"status"`
-	Result   string `json:"result"`
+	DestinationID   string `json:"destinationId"`
+	DestinationName string `json:"destinationName"`
+	Name            string `json:"name"`
+	Host            string `json:"host"`
+	ID              string `json:"id"`
+	Event           string `json:"event"`
+	Created         string `json:"created"`
+	Attempts        int    `json:"attempts"`
+	Status          string `json:"status"`
+	Result          string `json:"result"`
 }
 
 func validateWebhook(s webhookSecret) error {
@@ -80,23 +88,30 @@ func decodeWebhook(blob []byte) (webhookSecret, error) {
 	return secret, validateWebhook(secret)
 }
 func (a *App) GetWebhookSettings() (WebhookSettings, error) {
-	var out WebhookSettings
+	return a.getWebhookDestination("legacy")
+}
+func (a *App) getWebhookDestination(id string) (WebhookSettings, error) {
+	out := WebhookSettings{Groups: []string{}, MonitorIDs: []string{}}
 	if a.history == nil {
 		return out, fmt.Errorf("Alert storage is unavailable")
 	}
 	var blob []byte
-	err := a.history.db.QueryRow("SELECT enabled,secret FROM webhook_config WHERE id=1").Scan(&out.Enabled, &blob)
+	var groups, monitors string
+	err := a.history.db.QueryRow("SELECT id,name,enabled,scope,groups_json,monitors_json,secret FROM webhook_destinations WHERE id=?", id).Scan(&out.ID, &out.Name, &out.Enabled, &out.Scope, &groups, &monitors, &blob)
 	if err == sql.ErrNoRows {
 		return out, nil
 	}
 	if err != nil {
 		return out, err
 	}
+	out.Configured = true
+	if json.Unmarshal([]byte(groups), &out.Groups) != nil || json.Unmarshal([]byte(monitors), &out.MonitorIDs) != nil {
+		return out, fmt.Errorf("Webhook routing settings could not be read")
+	}
 	s, err := decodeWebhook(blob)
 	if err != nil {
 		return out, err
 	}
-	out.Configured = true
 	out.AllowHTTP = s.AllowHTTP
 	out.HasBearer = s.Bearer != ""
 	out.HasSigningKey = s.SigningKey != ""
@@ -104,8 +119,97 @@ func (a *App) GetWebhookSettings() (WebhookSettings, error) {
 	return out, nil
 }
 func (a *App) SaveWebhookSettings(input WebhookSettings) error {
+	input.ID = "legacy"
+	input.Name = "Default webhook"
+	input.Scope = "global"
+	return a.SaveWebhookDestination(input)
+}
+func (a *App) GetWebhookDestinations() ([]WebhookSettings, error) {
+	items := []WebhookSettings{}
+	if a.history == nil {
+		return items, fmt.Errorf("Alert storage is unavailable")
+	}
+	rows, err := a.history.db.Query("SELECT id FROM webhook_destinations ORDER BY name,id")
+	if err != nil {
+		return items, err
+	}
+	ids := []string{}
+	for rows.Next() {
+		var id string
+		if err = rows.Scan(&id); err != nil {
+			rows.Close()
+			return items, err
+		}
+		ids = append(ids, id)
+	}
+	err = rows.Err()
+	rows.Close()
+	if err != nil {
+		return items, err
+	}
+	for _, id := range ids {
+		out, e := a.getWebhookDestination(id)
+		if e != nil {
+			out.Error = e.Error()
+		}
+		items = append(items, out)
+	}
+	return items, nil
+}
+func validateRouting(input *WebhookSettings) error {
+	input.Name = strings.TrimSpace(input.Name)
+	if input.Name == "" || len(input.Name) > 120 {
+		return fmt.Errorf("Enter a destination name of 1–120 characters")
+	}
+	if input.Scope != "global" && input.Scope != "selected" {
+		return fmt.Errorf("Choose all monitors or selected groups and monitors")
+	}
+	normalize := func(values []string, trim bool) ([]string, error) {
+		out := []string{}
+		seen := map[string]bool{}
+		if len(values) > 10000 {
+			return nil, fmt.Errorf("Too many routing selections")
+		}
+		for _, v := range values {
+			if trim {
+				v = strings.TrimSpace(v)
+			}
+			if len(v) > 256 {
+				return nil, fmt.Errorf("Routing selection is too long")
+			}
+			if !seen[v] {
+				seen[v] = true
+				out = append(out, v)
+			}
+		}
+		return out, nil
+	}
+	var err error
+	if input.Groups, err = normalize(input.Groups, false); err != nil {
+		return err
+	}
+	if input.MonitorIDs, err = normalize(input.MonitorIDs, true); err != nil {
+		return err
+	}
+	for _, id := range input.MonitorIDs {
+		if id == "" {
+			return fmt.Errorf("Invalid monitor selection")
+		}
+	}
+	if input.Scope == "global" {
+		input.Groups = []string{}
+		input.MonitorIDs = []string{}
+	} else if len(input.Groups)+len(input.MonitorIDs) == 0 {
+		return fmt.Errorf("Select at least one group or monitor")
+	}
+	return nil
+}
+func (a *App) SaveWebhookDestination(input WebhookSettings) error {
 	if a.history == nil {
 		return fmt.Errorf("Alert storage is unavailable")
+	}
+	if err := validateRouting(&input); err != nil {
+		return err
 	}
 	tx, err := a.history.db.Begin()
 	if err != nil {
@@ -114,7 +218,14 @@ func (a *App) SaveWebhookSettings(input WebhookSettings) error {
 	defer tx.Rollback()
 	var old []byte
 	var secret webhookSecret
-	err = tx.QueryRow("SELECT secret FROM webhook_config WHERE id=1").Scan(&old)
+	creating := input.ID == ""
+	if creating {
+		input.ID = uuid.NewString()
+	}
+	err = tx.QueryRow("SELECT secret FROM webhook_destinations WHERE id=?", input.ID).Scan(&old)
+	if err == sql.ErrNoRows && !creating && input.ID != "legacy" {
+		return fmt.Errorf("Webhook destination no longer exists")
+	}
 	if err != nil && err != sql.ErrNoRows {
 		return err
 	}
@@ -122,6 +233,15 @@ func (a *App) SaveWebhookSettings(input WebhookSettings) error {
 		secret, err = decodeWebhook(old)
 		if err != nil && input.URL == "" {
 			return err
+		}
+	}
+	if len(old) == 0 {
+		var count int
+		if err = tx.QueryRow("SELECT count(*) FROM webhook_destinations").Scan(&count); err != nil {
+			return err
+		}
+		if count >= 50 {
+			return fmt.Errorf("A maximum of 50 webhook destinations is supported")
 		}
 	}
 	if input.URL != "" {
@@ -148,44 +268,18 @@ func (a *App) SaveWebhookSettings(input WebhookSettings) error {
 	if err != nil {
 		return err
 	}
-	if _, err = tx.Exec("INSERT INTO webhook_config(id,enabled,secret) VALUES(1,?,?) ON CONFLICT(id) DO UPDATE SET enabled=excluded.enabled,secret=excluded.secret", input.Enabled, blob); err != nil {
+	groups, _ := json.Marshal(input.Groups)
+	monitors, _ := json.Marshal(input.MonitorIDs)
+	if _, err = tx.Exec("INSERT INTO webhook_destinations(id,name,enabled,scope,groups_json,monitors_json,secret) VALUES(?,?,?,?,?,?,?) ON CONFLICT(id) DO UPDATE SET name=excluded.name,enabled=excluded.enabled,scope=excluded.scope,groups_json=excluded.groups_json,monitors_json=excluded.monitors_json,secret=excluded.secret", input.ID, input.Name, input.Enabled, input.Scope, string(groups), string(monitors), blob); err != nil {
 		return err
 	}
 	// Reconfiguration cancels unsent deliveries; never route old alerts to a new destination.
-	if _, err = tx.Exec("UPDATE deliveries SET status='cancelled',result='Cancelled by alert settings change' WHERE status='pending'"); err != nil {
+	if _, err = tx.Exec("UPDATE deliveries SET status='cancelled',result='Cancelled by alert settings change' WHERE status='pending' AND destination_id=?", input.ID); err != nil {
 		return err
 	}
 	return tx.Commit()
 }
-func enqueueWebhook(ctx context.Context, tx *sql.Tx, t Target, event string, incidentID int64, at time.Time, duration int64) error {
-	if duration < 0 {
-		duration = 0
-	}
-	var blob []byte
-	err := tx.QueryRowContext(ctx, "SELECT secret FROM webhook_config WHERE id=1 AND enabled=1").Scan(&blob)
-	if err == sql.ErrNoRows {
-		return nil
-	}
-	if err != nil {
-		return err
-	}
-	// Bound the durable queue. Explicitly fail rather than silently discard alerts.
-	var count int
-	if err = tx.QueryRowContext(ctx, "SELECT count(*) FROM deliveries WHERE status='pending'").Scan(&count); err != nil {
-		return err
-	}
-	if count >= 10000 {
-		return fmt.Errorf("Webhook queue is full; disable alerts or restore delivery")
-	}
-	id := uuid.NewString()
-	payload, err := json.Marshal(WebhookEvent{1, id, event, at.UTC().Format(time.RFC3339Nano), incidentID, t, duration})
-	if err != nil {
-		return err
-	}
-	_, err = tx.ExecContext(ctx, "INSERT INTO deliveries(id,incident_id,event,payload,secret,created,next_attempt) VALUES(?,?,?,?,?,?,?)", id, incidentID, event, payload, blob, at.UnixMilli(), at.UnixMilli())
-	return err
-}
-func (a *App) TestWebhook() error {
+func (a *App) DeleteWebhookDestination(id string) error {
 	if a.history == nil {
 		return fmt.Errorf("Alert storage is unavailable")
 	}
@@ -194,12 +288,118 @@ func (a *App) TestWebhook() error {
 		return err
 	}
 	defer tx.Rollback()
-	// Tests use the same durable queue and retry policy as alerts, and require enabled settings.
-	var enabled bool
-	if err = tx.QueryRow("SELECT enabled FROM webhook_config WHERE id=1").Scan(&enabled); err != nil || !enabled {
-		return fmt.Errorf("Save and enable the webhook before sending a test")
+	if _, err = tx.Exec("DELETE FROM webhook_destinations WHERE id=?", id); err != nil {
+		return err
 	}
-	if err = enqueueWebhook(context.Background(), tx, Target{Name: "Hostlight test", State: "test"}, "test", 0, time.Now(), 0); err != nil {
+	if _, err = tx.Exec("UPDATE deliveries SET status='cancelled',result='Webhook destination removed' WHERE status='pending' AND destination_id=?", id); err != nil {
+		return err
+	}
+	return tx.Commit()
+}
+
+// Matching uses an OR across groups and individual monitor IDs, once per destination.
+func webhookMatches(scope string, groups, monitors []string, t Target) bool {
+	if scope == "global" {
+		return true
+	}
+	if scope != "selected" {
+		return false
+	}
+	for _, group := range groups {
+		if group == t.Group {
+			return true
+		}
+	}
+	for _, id := range monitors {
+		if id == t.ID {
+			return true
+		}
+	}
+	return false
+}
+func enqueueWebhook(ctx context.Context, tx *sql.Tx, t Target, event string, incidentID int64, at time.Time, duration int64) error {
+	return enqueueWebhookDestinations(ctx, tx, t, event, incidentID, at, duration, "")
+}
+func enqueueWebhookDestinations(ctx context.Context, tx *sql.Tx, t Target, event string, incidentID int64, at time.Time, duration int64, onlyID string) error {
+	if duration < 0 {
+		duration = 0
+	}
+	type destination struct {
+		id, name, scope  string
+		groups, monitors []string
+		blob             []byte
+	}
+	rows, err := tx.QueryContext(ctx, "SELECT id,name,scope,groups_json,monitors_json,secret FROM webhook_destinations WHERE enabled=1 ORDER BY id")
+	if err != nil {
+		return err
+	}
+	selected := []destination{}
+	for rows.Next() {
+		var d destination
+		var groups, monitors string
+		if err = rows.Scan(&d.id, &d.name, &d.scope, &groups, &monitors, &d.blob); err != nil {
+			rows.Close()
+			return err
+		}
+		if json.Unmarshal([]byte(groups), &d.groups) != nil || json.Unmarshal([]byte(monitors), &d.monitors) != nil {
+			rows.Close()
+			return fmt.Errorf("Webhook routing settings could not be read")
+		}
+		if (onlyID == "" && event != "test" && webhookMatches(d.scope, d.groups, d.monitors, t)) || (onlyID != "" && onlyID == d.id) {
+			selected = append(selected, d)
+		}
+	}
+	err = rows.Err()
+	rows.Close()
+	if err != nil {
+		return err
+	}
+	if onlyID != "" && len(selected) == 0 {
+		return fmt.Errorf("Save and enable this webhook destination before sending a test")
+	}
+	var count int
+	if err = tx.QueryRowContext(ctx, "SELECT count(*) FROM deliveries WHERE status='pending'").Scan(&count); err != nil {
+		return err
+	}
+	for _, d := range selected {
+		if event == "up" {
+			var alerted int
+			if err = tx.QueryRowContext(ctx, "SELECT count(*) FROM deliveries WHERE incident_id=? AND event='down' AND status!='cancelled' AND destination_id=? AND secret=?", incidentID, d.id, d.blob).Scan(&alerted); err != nil {
+				return err
+			}
+			if alerted == 0 {
+				continue
+			}
+		}
+		if count >= 10000 {
+			return fmt.Errorf("Webhook queue is full; disable alerts or restore delivery")
+		}
+		count++
+		id := uuid.NewString()
+		payload, e := json.Marshal(WebhookEvent{1, id, event, at.UTC().Format(time.RFC3339Nano), incidentID, t, duration})
+		if e != nil {
+			return e
+		}
+		if _, err = tx.ExecContext(ctx, "INSERT INTO deliveries(id,incident_id,event,payload,secret,created,next_attempt,destination_id,destination_name) VALUES(?,?,?,?,?,?,?,?,?)", id, incidentID, event, payload, d.blob, at.UnixMilli(), at.UnixMilli(), d.id, d.name); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+func (a *App) TestWebhook() error { return a.TestWebhookDestination("legacy") }
+func (a *App) TestWebhookDestination(id string) error {
+	if a.history == nil {
+		return fmt.Errorf("Alert storage is unavailable")
+	}
+	if id == "" {
+		return fmt.Errorf("Choose a saved destination")
+	}
+	tx, err := a.history.db.Begin()
+	if err != nil {
+		return err
+	}
+	defer tx.Rollback()
+	if err = enqueueWebhookDestinations(context.Background(), tx, Target{Name: "Hostlight test", State: "test"}, "test", 0, time.Now(), 0, id); err != nil {
 		return err
 	}
 	return tx.Commit()
@@ -209,7 +409,7 @@ func (a *App) GetWebhookDeliveries() ([]WebhookDelivery, error) {
 	if a.history == nil {
 		return items, fmt.Errorf("Alert storage is unavailable")
 	}
-	rows, err := a.history.db.Query("SELECT id,event,created,attempts,status,result,payload FROM deliveries ORDER BY created DESC,rowid DESC LIMIT 100")
+	rows, err := a.history.db.Query("SELECT id,event,created,attempts,status,result,payload,destination_id,destination_name FROM deliveries ORDER BY created DESC,rowid DESC LIMIT 100")
 	if err != nil {
 		return items, err
 	}
@@ -218,7 +418,7 @@ func (a *App) GetWebhookDeliveries() ([]WebhookDelivery, error) {
 		var d WebhookDelivery
 		var at int64
 		var payload []byte
-		if err = rows.Scan(&d.ID, &d.Event, &at, &d.Attempts, &d.Status, &d.Result, &payload); err != nil {
+		if err = rows.Scan(&d.ID, &d.Event, &at, &d.Attempts, &d.Status, &d.Result, &payload, &d.DestinationID, &d.DestinationName); err != nil {
 			return items, err
 		}
 		d.Created = time.UnixMilli(at).UTC().Format(time.RFC3339Nano)
@@ -290,8 +490,8 @@ func (s *incidentStore) deliverOne(ctx context.Context, client *http.Client, now
 	var payload, blob []byte
 	var attempts int
 	var created int64
-	// FIFO ordering preserves outage-before-recovery, including across retry/restart.
-	err := s.db.QueryRowContext(ctx, "SELECT id,payload,secret,attempts,created FROM deliveries WHERE status='pending' ORDER BY created,rowid LIMIT 1").Scan(&id, &payload, &blob, &attempts, &created)
+	// FIFO within each destination; a retrying destination never blocks another.
+	err := s.db.QueryRowContext(ctx, `SELECT d.id,d.payload,d.secret,d.attempts,d.created FROM deliveries d WHERE d.status='pending' AND d.next_attempt<=? AND NOT EXISTS (SELECT 1 FROM deliveries earlier WHERE earlier.destination_id=d.destination_id AND earlier.status='pending' AND (earlier.created<d.created OR (earlier.created=d.created AND earlier.rowid<d.rowid))) ORDER BY d.next_attempt,d.created,d.rowid LIMIT 1`, now.UnixMilli()).Scan(&id, &payload, &blob, &attempts, &created)
 	if err == sql.ErrNoRows {
 		return false, nil
 	}

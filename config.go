@@ -12,6 +12,7 @@ import (
 // Configuration contains definitions only. Live results are never restored as evidence.
 type configuration struct {
 	Version int           `json:"version"`
+	NextID  uint64        `json:"nextId,omitempty"`
 	Targets []savedTarget `json:"targets"`
 }
 type savedTarget struct {
@@ -26,7 +27,7 @@ func (a *App) persistLocked() error {
 	if a.configPath == "" {
 		return nil
 	} // In-memory fixtures.
-	cfg := configuration{Version: 1, Targets: make([]savedTarget, 0, len(a.targets))}
+	cfg := configuration{Version: 1, NextID: a.next, Targets: make([]savedTarget, 0, len(a.targets))}
 	for _, m := range a.targets {
 		t := m.target
 		paused := t.State == "paused"
@@ -91,6 +92,9 @@ func (a *App) loadConfiguration() {
 		return
 	}
 	// Validate the entire file before restoring any monitors.
+	if cfg.NextID > a.next {
+		a.next = cfg.NextID
+	}
 	seen := map[string]bool{}
 	for _, s := range cfg.Targets {
 		id, e := strconv.ParseUint(s.Target.ID, 10, 64)

@@ -82,9 +82,26 @@ incidents are marked interrupted on the next start.
 
 Open **Webhook alerts**, enter your JSON receiver's HTTPS endpoint, enable alerts,
 and save. **Send test using saved settings** queues a real test request; its outcome
-appears in delivery history. This first version supports one destination for all
-monitors, with optional bearer authentication and HMAC signing. Slack, Discord,
+appears in delivery history. Add up to 50 named destinations, each with optional
+bearer authentication and HMAC signing. Slack, Discord,
 and Teams-specific payload formats are not implemented yet.
+
+For each destination choose **All monitors (global)** or **Selected groups and/or
+individual monitors**. You can select multiple groups, multiple individual
+monitors, or both. Selections are combined: a destination sends once when either
+the group or monitor matches, even if both match. Global and scoped destinations
+are additive, not overrides. Separate destinations remain independent, even if
+you enter the same URL in both; only selection overlap within a destination is
+deduplicated.
+
+Group rules automatically include future monitors in that group. Groups are
+matched by their exact name; renaming or moving a monitor's group does not rename
+the routing rule. **Ungrouped** selects monitors without a group. Individual
+assignments use stable monitor IDs rather than hostnames; renaming a monitor
+preserves its assignment, while deleting it does not transfer that assignment to
+a replacement. Removed selections remain visible in the editor for cleanup.
+The previous single webhook migrates automatically to **Default webhook** with
+global scope; saved credentials and pending deliveries are preserved.
 
 - A confirmed `up` → `down` transition queues an outage event; the corresponding
   recovery queues an `up` event. Existing monitor thresholds apply.
@@ -96,9 +113,11 @@ and Teams-specific payload formats are not implemented yet.
   cannot save webhook settings yet. See [Microsoft's DPAPI documentation](https://learn.microsoft.com/en-us/windows/win32/api/dpapi/nf-dpapi-cryptprotectdata).
 - HTTPS verifies certificates. HTTP requires explicit permission and should only
   be used on trusted internal networks. Redirects are never followed.
-- Saving settings cancels pending deliveries, including when disabling alerts.
+- Saving settings cancels pending deliveries for that destination only, including when disabling alerts.
   Requests already in flight may complete. A recovery is only queued for an outage
   alerted under the same saved settings; old outages never switch destinations.
+  Removing a destination cancels its pending deliveries and retains its delivery
+  history. Tests target the selected saved destination regardless of scope.
 
 The incident change and its delivery are committed in one SQLite transaction.
 A separate worker sends one request at a time with a 10-second timeout. Network/TLS
@@ -106,7 +125,9 @@ failures, HTTP 408, 429, and 5xx retry with exponential backoff (starting at fiv
 seconds), jitter, and bounded `Retry-After` support (up to one hour). Other non-2xx
 responses are terminal. Delivery stops after eight attempts or 24 hours. Pending
 requests resume after restart; Hostlight must be open to send them. FIFO delivery
-preserves outage/recovery order, so a retry delays later alerts.
+preserves outage/recovery order within each destination. A destination awaiting
+retry does not block another destination's due events; a single worker still sends
+one HTTP request at a time.
 
 Delivery is **at least once**, not exactly once. Receivers must deduplicate the
 stable `id` / `X-Hostlight-Event-ID` when a response is lost. JSON schema version 1
@@ -115,7 +136,7 @@ contains `schemaVersion`, `id`, `event` (`down`, `up`, or `test`), UTC `time`,
 on recovery). With a signing key, `X-Hostlight-Signature` is `sha256=` followed by
 the hex HMAC-SHA256 of the exact request body.
 
-The screen shows the latest 100 deliveries without response bodies or endpoint
+The screen shows the latest 100 deliveries, including destination and monitor names, without response bodies or endpoint
 details. Completed delivery records are retained for 30 days, bounded to about
 10,000, except outage markers needed for active incidents. The pending queue is
 limited to 10,000. Storage errors/overflow are visible in the app; the in-memory

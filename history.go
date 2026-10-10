@@ -70,7 +70,7 @@ func openIncidentStore(path string, now time.Time) (*incidentStore, error) {
 	if err = db.QueryRow("PRAGMA user_version").Scan(&version); err != nil {
 		return fail(err)
 	}
-	if version > 2 {
+	if version > 3 {
 		return fail(fmt.Errorf("History database version is newer than this application supports"))
 	}
 	if version == 0 {
@@ -103,6 +103,18 @@ func openIncidentStore(path string, now time.Time) (*incidentStore, error) {
  created INTEGER NOT NULL, next_attempt INTEGER NOT NULL, attempts INTEGER NOT NULL DEFAULT 0, status TEXT NOT NULL DEFAULT 'pending', result TEXT NOT NULL DEFAULT 'Waiting to send');
  CREATE INDEX delivery_due ON deliveries(status,next_attempt);
  PRAGMA user_version=2; COMMIT;`); err != nil {
+			return fail(err)
+		}
+	}
+	if version < 3 {
+		if _, err = db.Exec(`BEGIN;
+ CREATE TABLE webhook_destinations(id TEXT PRIMARY KEY,name TEXT NOT NULL,enabled INTEGER NOT NULL,scope TEXT NOT NULL,groups_json TEXT NOT NULL,monitors_json TEXT NOT NULL,secret BLOB NOT NULL);
+ INSERT INTO webhook_destinations SELECT 'legacy','Default webhook',enabled,'global','[]','[]',secret FROM webhook_config;
+ ALTER TABLE deliveries ADD COLUMN destination_id TEXT NOT NULL DEFAULT 'legacy';
+ ALTER TABLE deliveries ADD COLUMN destination_name TEXT NOT NULL DEFAULT 'Default webhook';
+ CREATE INDEX delivery_destination ON deliveries(destination_id,status,created);
+ DELETE FROM webhook_config;
+ PRAGMA user_version=3; COMMIT;`); err != nil {
 			return fail(err)
 		}
 	}
@@ -184,14 +196,8 @@ func (s *incidentStore) apply(e historyEvent) error {
 			return err
 		}
 		if err == nil {
-			var alerted int
-			if err = tx.QueryRowContext(ctx, "SELECT count(*) FROM deliveries WHERE incident_id=? AND event='down' AND status!='cancelled' AND secret=(SELECT secret FROM webhook_config WHERE id=1 AND enabled=1)", id).Scan(&alerted); err != nil {
+			if err = enqueueWebhook(ctx, tx, t, "up", id, e.at, (at-opened)/1000); err != nil {
 				return err
-			}
-			if alerted > 0 {
-				if err = enqueueWebhook(ctx, tx, t, "up", id, e.at, (at-opened)/1000); err != nil {
-					return err
-				}
 			}
 		}
 		if _, err = tx.ExecContext(ctx, "UPDATE incidents SET status='resolved', last_seen=?, ended=?, reason=reason || ' · Recovery threshold reached' WHERE target_id=? AND status='open'", at, at, t.ID); err != nil {

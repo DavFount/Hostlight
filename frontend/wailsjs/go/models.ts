@@ -165,6 +165,8 @@ export namespace main {
 	
 	
 	export class WebhookDelivery {
+	    destinationId: string;
+	    destinationName: string;
 	    name: string;
 	    host: string;
 	    id: string;
@@ -180,6 +182,8 @@ export namespace main {
 	
 	    constructor(source: any = {}) {
 	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.destinationId = source["destinationId"];
+	        this.destinationName = source["destinationName"];
 	        this.name = source["name"];
 	        this.host = source["host"];
 	        this.id = source["id"];
@@ -191,6 +195,12 @@ export namespace main {
 	    }
 	}
 	export class WebhookSettings {
+	    error?: string;
+	    id: string;
+	    name: string;
+	    scope: string;
+	    groups: string[];
+	    monitorIds: string[];
 	    enabled: boolean;
 	    configured: boolean;
 	    url: string;
@@ -208,6 +218,12 @@ export namespace main {
 	
 	    constructor(source: any = {}) {
 	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.error = source["error"];
+	        this.id = source["id"];
+	        this.name = source["name"];
+	        this.scope = source["scope"];
+	        this.groups = source["groups"];
+	        this.monitorIds = source["monitorIds"];
 	        this.enabled = source["enabled"];
 	        this.configured = source["configured"];
 	        this.url = source["url"];

@@ -12,7 +12,7 @@ sample history and charts remain planned. This keeps configuration readable and 
 high-volume monitoring data. Existing settings must remain importable when storage evolves.
 
 Incident history implementation: `modernc.org/sqlite` supplies a pure-Go driver,
-with schema version 2 (including the webhook outbox), a background writer, paged queries, CSV export, and configurable
+with schema version 3 (including multi-destination webhook routing), a background writer, paged queries, CSV export, and configurable
 retention. Go 1.26 is now the minimum version. Outages are segmented at pauses,
 edits, deletion, errors, shutdown/restart, and long observation gaps; interrupted
 records end at the last observation. Writes are bounded and errors are visible.
@@ -185,14 +185,20 @@ restart gaps are represented as gaps rather than invented uptime or downtime.
 
 ## Milestone 4 — Webhook alerts
 
-Implementation update: the first generic destination is implemented for all monitors,
-with enable/disable, test delivery, bearer authentication, HMAC signing, and a recent
-delivery table. Schema v2 migrates v1 history without losing incidents. Secrets use
+Implementation update: up to 50 named generic destinations are implemented, with
+global scope or selected groups and/or individual monitors, enable/disable, test
+delivery, bearer authentication, HMAC signing, and a recent delivery table with
+destination names. Schema v3 preserves existing incidents, migrates the previous
+webhook as a global destination, and retains its pending queue. Secrets use
 current-user Windows DPAPI encrypted blobs rather than credential-store references;
 this deliberately makes the first implementation Windows-only and non-portable.
-Initial discovery is silent. Pending deliveries are cancelled on settings changes,
-and recovery alerts require an outage under that same configuration. Provider
-presets, per-group routing, transition selection, and cooldown rules remain future work.
+Initial discovery is silent. Pending deliveries are cancelled on settings changes
+for the affected destination only, and recovery alerts require an outage under
+that same configuration. Group/monitor matching is additive and deduplicated within
+each destination; retries preserve FIFO per destination without head-of-line
+blocking across destinations. Monitor ID high-water marks persist to prevent
+deleted identities being reused by replacements. Provider presets, transition
+selection, and cooldown rules remain future work.
 
 - [ ] Configure generic JSON endpoints, headers, transition selection, and test delivery.
 - [ ] Keep endpoint secrets in the OS credential store; persist only references.

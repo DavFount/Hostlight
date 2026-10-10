@@ -6,6 +6,8 @@ export function AddBulk(arg1:string,arg2:main.Target):Promise<number>;
 
 export function DeleteTarget(arg1:string):Promise<void>;
 
+export function DeleteWebhookDestination(arg1:string):Promise<void>;
+
 export function ExportIncidents(arg1:string,arg2:string,arg3:number):Promise<string>;
 
 export function GetConfigurationStatus():Promise<main.ConfigurationStatus>;
@@ -15,6 +17,8 @@ export function GetIncidents(arg1:string,arg2:string,arg3:number,arg4:number):Pr
 export function GetTargets():Promise<Array<main.Target>>;
 
 export function GetWebhookDeliveries():Promise<Array<main.WebhookDelivery>>;
+
+export function GetWebhookDestinations():Promise<Array<main.WebhookSettings>>;
 
 export function GetWebhookSettings():Promise<main.WebhookSettings>;
 
@@ -26,6 +30,8 @@ export function ResumeTarget(arg1:string):Promise<void>;
 
 export function SaveTarget(arg1:main.Target):Promise<void>;
 
+export function SaveWebhookDestination(arg1:main.WebhookSettings):Promise<void>;
+
 export function SaveWebhookSettings(arg1:main.WebhookSettings):Promise<void>;
 
 export function SetHistoryRetention(arg1:number):Promise<void>;
@@ -33,3 +39,5 @@ export function SetHistoryRetention(arg1:number):Promise<void>;
 export function SetTargetsPaused(arg1:Array<string>,arg2:boolean):Promise<void>;
 
 export function TestWebhook():Promise<void>;
+
+export function TestWebhookDestination(arg1:string):Promise<void>;
