@@ -75,7 +75,7 @@ HTTP is unencrypted. Do not put passwords or tokens in URLs, including query
 parameters: complete URLs are ordinary configuration metadata, saved in plain
 text and included in exports, incident records, and webhook target snapshots.
 Embedded URL credentials and fragments are rejected. Authentication, arbitrary
-headers/methods, redirect options, and TLS expiry policies are not implemented yet.
+headers/methods and redirect options are not implemented yet.
 
 Under **Additional response check**, optionally require:
 
@@ -106,8 +106,31 @@ Bulk add accepts one complete URL per line with shared expected-status settings.
 Backup duplicate matching normalizes URL host/scheme case, default ports, and an
 empty path to `/`; path/query case and content stay significant. Expected status
 does not create a distinct duplicate identity for the same URL. Configuration
-writes now use version 3; existing version-1/2 files remain readable. Older builds
-will refuse version 3 rather than silently discard response rules.
+writes now use version 4; existing version-1/2/3 files remain readable. Older builds
+will refuse version 4 rather than silently discard certificate policies.
+
+### HTTPS certificate expiry
+
+HTTPS cards and request previews show the last verified server certificate's expiry
+date. Metadata is refreshed on each completed TLS request and cleared when a check
+cannot verify a certificate; paused cards retain their last observation. It is not
+restored as fresh evidence after restart or exported in monitor backups.
+
+**Minimum certificate validity (days)** defaults to 0 (expiry policy off). Set
+1–365 days, such as 30, to require at least that many 24-hour periods remaining.
+Less than the configured minimum fails the check, even with HTTP 200; an exact
+minimum passes. This is a health policy, not a separate degraded state: the normal
+failure threshold establishes Unavailable, and normal scoped outage/recovery
+webhooks, snoozing, and initial-discovery rules apply. Renewal above the minimum
+can establish recovery after the success threshold.
+
+Certificate trust, hostname, and validity verification always remain enabled,
+including when the expiry policy is off. Untrusted or already-expired certificates
+fail and do not produce verified expiry metadata. This feature checks the leaf
+(server) certificate's future expiry, not intermediate/root future-expiry policies
+or a separate TLS-only probe. HTTP URLs cannot use a positive certificate minimum.
+Dates are stored/reported as UTC and displayed in local time; certificate metadata
+is the certificate seen on this connection, including any trusted inspection proxy.
 
 ## Incident history
 
@@ -268,7 +291,7 @@ Open **Monitor backups** to export monitor definitions to a versioned JSON backu
 or choose an exported backup to review before importing. This is a monitor-only
 backup, not a complete workspace or a copy of the internal `targets.json` format.
 
-Included: names, hosts/URLs, groups, ICMP/TCP/HTTP settings, expected HTTP status/body rules, timing/threshold rules, and source
+Included: names, hosts/URLs, groups, ICMP/TCP/HTTP settings, expected HTTP status/body rules, certificate minimum-validity policy, timing/threshold rules, and source
 pause preferences. Excluded: monitor IDs, live results, webhook destinations and
 credentials, maintenance windows, incident/delivery history, and appearance settings.
 The file still contains internal hostnames/IP addresses; store and share it accordingly.
@@ -294,9 +317,11 @@ temporary file and replacement; live configuration/database paths are protected.
 Limits: 1,000 monitors and 1 MiB per backup. Unsupported versions, unknown JSON
 fields, and trailing documents are rejected rather than guessed. Windows UTF-8
 BOM files are accepted. JSON files edited by hand must use the exported format
-(`format: hostlight-monitors`, `version: 3` for new exports). Version-1 ICMP/TCP
-and version-2 HTTP status backups are still accepted; response-body definitions
-require version 3. Older versions of Hostlight cannot import version-3 backups.
+(`format: hostlight-monitors`, `version: 4` for new exports). Version-1 ICMP/TCP,
+version-2 HTTP status, and version-3 body-rule backups are still accepted. Body
+rules require at least version 3; positive certificate policies require version 4.
+Verified certificate expiry observations are not exported. Older versions of
+Hostlight cannot import version-4 backups.
 Existing internal settings files are
 still loaded normally at application startup.
 

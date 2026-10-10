@@ -50,7 +50,7 @@ verify macOS/Linux support separately before claiming those platforms are suppor
 ## First release scope
 
 - ICMP and TCP probes with IPv4/IPv6 support.
-- HTTP/HTTPS GET probes with exact status and optional text/JSON matching, plus a non-saving request preview.
+- HTTP/HTTPS GET probes with exact status, optional text/JSON matching and certificate minimum validity, plus a non-saving request preview.
 - Target CRUD, aliases, groups, bulk input, and saved configuration.
 - Responsive status grid and searchable target list.
 - Configurable probe intervals, timeouts, and failure/recovery thresholds.
@@ -59,7 +59,7 @@ verify macOS/Linux support separately before claiming those platforms are suppor
 - SQLite incident history, recent latency/loss charts, and bounded retention.
 - Application settings, export/import, and a reproducible Windows build.
 
-Defer DNS probes, TLS expiry policies, degraded-state policies, MTR, dependency suppression,
+Defer DNS probes, certificate-chain expiry policies, degraded-state policies, MTR, dependency suppression,
 advanced dashboards, remote agents, and headless service operation until the core
 release is dependable. Tray integration is a separate platform feasibility task;
 it must not delay a working monitoring application.
@@ -278,7 +278,7 @@ Tests cover retries, restart recovery, timeouts, redaction, and terminal failure
 - [ ] Offer explicit portable mode with writable-path checks and clear credential behavior.
 - [ ] Add support information and a sanitized diagnostic export.
 
-Implementation update: **Monitor backups** provides a separate version-3 JSON
+Implementation update: **Monitor backups** provides a separate version-4 JSON
 allowlist for monitor definitions and pause preferences. Imports are add-only,
 skip duplicate host/check combinations, reject invalid batches, and default to
 paused. Explicit opt-in starts only source-active monitors. Preview tokens expire
@@ -288,7 +288,8 @@ credentials, webhook rules, maintenance windows, history, and appearance. Limits
 are 1,000 monitors and 1 MiB. Native dialogs select files; live storage paths are
 protected against export overwrite. Version-1 ICMP/TCP backups remain readable;
 version 2 carries HTTP expected-status settings and remains readable; version 3
-carries response-body rules. Full workspace portability remains future work.
+carries response-body rules and remains readable. Version 4 adds certificate minimum
+validity; live certificate observations are excluded. Full workspace portability remains future work.
 
 Acceptance: reopening restores the intended workspace; imports cannot silently
 replace configuration; exported configuration contains no secrets. Monitoring
@@ -325,14 +326,19 @@ Treat 200 targets as an initial benchmark, not a supported capacity claim until 
 - [x] Add version-3 settings/backups with version-1/2 read compatibility and legacy body-rule rejection.
 - [x] Test strict types, exact numeric comparison, missing fields, pointer escapes/arrays, body limits/timeouts, and round trips.
 - [ ] Manually verify text/JSON health changes and body-rule backup imports in the Windows desktop UI.
-- [ ] Add optional authentication and TLS expiry policies in later slices.
+- [x] Show verified leaf-certificate expiry in cards and request previews without restoring/exporting stale observations.
+- [x] Add optional 0–365-day HTTPS minimum-validity policy using normal health thresholds and alerts.
+- [x] Keep certificate trust/hostname/time validation enabled and test trusted local TLS, expiry boundaries, expired/untrusted certificates, and portability.
+- [x] Add version-4 settings/backups with version-1/2/3 read compatibility and legacy certificate-policy rejection.
+- [ ] Manually verify expiry-policy failure/recovery and certificate displays in the Windows desktop UI.
+- [ ] Add optional authentication and certificate-chain expiry policies in later slices.
 - [ ] Reuse/extend request diagnostics for webhook response inspection without exposing secrets.
 
 ## Later milestones
 
 Prioritize these using actual usage after the first release:
 
-1. Extend HTTP checks with authentication and optional redirect policies; add DNS expected-answer checks and TLS expiry.
+1. Extend HTTP checks with authentication and optional redirect policies; add DNS expected-answer checks and certificate-chain expiry diagnostics.
 2. Degraded-state latency/loss policies with rolling windows and hysteresis.
 3. Recurring and global/group maintenance, acknowledgments, and dependency suppression
    (per-monitor timed silences and one-time windows are already implemented).
@@ -348,7 +354,8 @@ separate product decision. Keep those possibilities from complicating v1.
 API-tooling direction: keep Hostlight focused on monitoring rather than building
 a general-purpose Postman/Insomnia replacement. HTTP/HTTPS status/latency checks
 with optional text/JSON assertions and a monitor-specific test-request preview are
-implemented. Sharing that workflow with webhook diagnostics and TLS expiry remain
+implemented, along with verified server-certificate expiry and minimum-validity
+policies. Sharing that workflow with webhook diagnostics remains
 planned. Request collections, scripting, environment
 management, and request chaining are not committed scope. The delivered HTTP
 slice extends the original first-release scope by explicit user direction.
@@ -356,7 +363,7 @@ slice extends the original first-release scope by explicit user direction.
 ## Verification strategy
 
 Latest completed implementation-slice checks (2026-10-10): `go test ./...`,
-`go vet ./...`, 55 frontend tests, frontend production/type-check build, and
+`go vet ./...`, 62 frontend tests, frontend production/type-check build, and
 `wails build` passed. This is a development verification record, not completion
 of milestone 6. The checklist reconciliation itself changes documentation only;
 it does not establish new manual desktop, standard-user, or load-test evidence.

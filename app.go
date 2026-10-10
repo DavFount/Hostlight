@@ -116,25 +116,27 @@ func (a *App) GetConfigurationStatus() ConfigurationStatus {
 }
 
 type Target struct {
-	ID             string  `json:"id"`
-	Name           string  `json:"name"`
-	Host           string  `json:"host"`
-	Type           string  `json:"type"`
-	Port           int     `json:"port"`
-	Group          string  `json:"group"`
-	Interval       int     `json:"interval"`
-	Timeout        int     `json:"timeout"`
-	Failures       int     `json:"failures"`
-	Recovery       int     `json:"recovery"`
-	State          string  `json:"state"`
-	Latency        float64 `json:"latency"`
-	Message        string  `json:"message"`
-	Checked        string  `json:"checked"`
-	ExpectedStatus int     `json:"expectedStatus,omitempty"`
-	BodyMode       string  `json:"bodyMode,omitempty"`
-	BodyExpected   string  `json:"bodyExpected,omitempty"`
-	JSONPointer    string  `json:"jsonPointer,omitempty"`
-	JSONType       string  `json:"jsonType,omitempty"`
+	ID                 string  `json:"id"`
+	Name               string  `json:"name"`
+	Host               string  `json:"host"`
+	Type               string  `json:"type"`
+	Port               int     `json:"port"`
+	Group              string  `json:"group"`
+	Interval           int     `json:"interval"`
+	Timeout            int     `json:"timeout"`
+	Failures           int     `json:"failures"`
+	Recovery           int     `json:"recovery"`
+	State              string  `json:"state"`
+	Latency            float64 `json:"latency"`
+	Message            string  `json:"message"`
+	Checked            string  `json:"checked"`
+	ExpectedStatus     int     `json:"expectedStatus,omitempty"`
+	BodyMode           string  `json:"bodyMode,omitempty"`
+	BodyExpected       string  `json:"bodyExpected,omitempty"`
+	JSONPointer        string  `json:"jsonPointer,omitempty"`
+	JSONType           string  `json:"jsonType,omitempty"`
+	TLSMinDays         int     `json:"tlsMinDays,omitempty"`
+	CertificateExpires string  `json:"certificateExpires,omitempty"`
 }
 type monitor struct {
 	target Target
@@ -142,6 +144,9 @@ type monitor struct {
 }
 
 func validate(t Target) error {
+	if t.Type != "http" && t.TLSMinDays != 0 {
+		return fmt.Errorf("Certificate expiry policies require an HTTPS monitor")
+	}
 	if t.Type != "http" && t.BodyMode != "" {
 		return fmt.Errorf("Response-body checks require an HTTP/HTTPS monitor")
 	}
@@ -193,6 +198,7 @@ func (a *App) saveTarget(t Target, resume bool) error {
 		t.BodyExpected = ""
 		t.JSONPointer = ""
 		t.JSONType = ""
+		t.TLSMinDays = 0
 	}
 	t = normalizeHTTPBodyFields(t)
 	if err := validate(t); err != nil {
@@ -218,6 +224,7 @@ func (a *App) saveTarget(t Target, resume bool) error {
 	t.Message = "Waiting for checks"
 	t.Checked = ""
 	t.Latency = 0
+	t.CertificateExpires = ""
 	if old != nil && old.target.State == "paused" && !resume {
 		t.State = "paused"
 		t.Message = "Monitoring paused"
@@ -285,10 +292,12 @@ func (a *App) run(ctx context.Context, m *monitor, t Target) {
 		var err error
 		var latency float64
 		var httpMessage string
+		var certificateExpires string
 		if t.Type == "http" {
 			result, probeErr := probeHTTP(ctx, t)
 			latency, err = result.Latency, probeErr
 			httpMessage = result.Message
+			certificateExpires = result.CertificateExpires
 		} else if t.Type == "icmp" {
 			latency, err = a.ping(ctx, t.Host, time.Duration(t.Timeout)*time.Second)
 		} else {
@@ -311,6 +320,7 @@ func (a *App) run(ctx context.Context, m *monitor, t Target) {
 		previous := m.target.State
 		m.target.Checked = time.Now().UTC().Format(time.RFC3339)
 		m.target.Latency = latency
+		m.target.CertificateExpires = certificateExpires
 		var dns *net.DNSError
 		var local *probeSetupError
 		localError := errors.As(err, &dns) || errors.As(err, &local)

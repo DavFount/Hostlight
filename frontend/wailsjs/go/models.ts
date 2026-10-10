@@ -42,6 +42,8 @@ export namespace main {
 	    bodyExpected?: string;
 	    jsonPointer?: string;
 	    jsonType?: string;
+	    tlsMinDays?: number;
+	    certificateExpires?: string;
 	
 	    static createFrom(source: any = {}) {
 	        return new Target(source);
@@ -68,6 +70,8 @@ export namespace main {
 	        this.bodyExpected = source["bodyExpected"];
 	        this.jsonPointer = source["jsonPointer"];
 	        this.jsonType = source["jsonType"];
+	        this.tlsMinDays = source["tlsMinDays"];
+	        this.certificateExpires = source["certificateExpires"];
 	    }
 	}
 	export class BulkRow {
@@ -126,6 +130,7 @@ export namespace main {
 	    latency: number;
 	    message: string;
 	    timing: string;
+	    certificateExpires?: string;
 	
 	    static createFrom(source: any = {}) {
 	        return new HTTPProbeResult(source);
@@ -138,6 +143,7 @@ export namespace main {
 	        this.latency = source["latency"];
 	        this.message = source["message"];
 	        this.timing = source["timing"];
+	        this.certificateExpires = source["certificateExpires"];
 	    }
 	}
 	export class Incident {
@@ -231,6 +237,7 @@ export namespace main {
 	    bodyExpected?: string;
 	    jsonPointer?: string;
 	    jsonType?: string;
+	    tlsMinDays?: number;
 	
 	    static createFrom(source: any = {}) {
 	        return new PortableMonitor(source);
@@ -253,6 +260,7 @@ export namespace main {
 	        this.bodyExpected = source["bodyExpected"];
 	        this.jsonPointer = source["jsonPointer"];
 	        this.jsonType = source["jsonType"];
+	        this.tlsMinDays = source["tlsMinDays"];
 	    }
 	}
 	export class MonitorImportRow {

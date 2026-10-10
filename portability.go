@@ -38,6 +38,7 @@ type PortableMonitor struct {
 	BodyExpected   string `json:"bodyExpected,omitempty"`
 	JSONPointer    string `json:"jsonPointer,omitempty"`
 	JSONType       string `json:"jsonType,omitempty"`
+	TLSMinDays     int    `json:"tlsMinDays,omitempty"`
 }
 type MonitorBackup struct {
 	Format     string            `json:"format"`
@@ -80,7 +81,7 @@ func portableMonitor(t Target) PortableMonitor {
 	if t.Type == "icmp" || t.Type == "http" {
 		t.Port = 0
 	}
-	return PortableMonitor{Name: t.Name, Host: t.Host, Type: t.Type, Port: t.Port, Group: t.Group, Interval: t.Interval, Timeout: t.Timeout, Failures: t.Failures, Recovery: t.Recovery, Paused: t.State == "paused", ExpectedStatus: t.ExpectedStatus, BodyMode: t.BodyMode, BodyExpected: t.BodyExpected, JSONPointer: t.JSONPointer, JSONType: t.JSONType}
+	return PortableMonitor{Name: t.Name, Host: t.Host, Type: t.Type, Port: t.Port, Group: t.Group, Interval: t.Interval, Timeout: t.Timeout, Failures: t.Failures, Recovery: t.Recovery, Paused: t.State == "paused", ExpectedStatus: t.ExpectedStatus, BodyMode: t.BodyMode, BodyExpected: t.BodyExpected, JSONPointer: t.JSONPointer, JSONType: t.JSONType, TLSMinDays: t.TLSMinDays}
 }
 func (p PortableMonitor) target() Target {
 	if p.Type == "http" && p.ExpectedStatus == 0 {
@@ -89,10 +90,10 @@ func (p PortableMonitor) target() Target {
 	if p.Type != "http" {
 		p.ExpectedStatus = 0
 	}
-	return normalizeHTTPBodyFields(Target{Name: strings.TrimSpace(p.Name), Host: strings.TrimSpace(p.Host), Type: p.Type, Port: p.Port, Group: strings.TrimSpace(p.Group), Interval: p.Interval, Timeout: p.Timeout, Failures: p.Failures, Recovery: p.Recovery, ExpectedStatus: p.ExpectedStatus, BodyMode: p.BodyMode, BodyExpected: p.BodyExpected, JSONPointer: p.JSONPointer, JSONType: p.JSONType})
+	return normalizeHTTPBodyFields(Target{Name: strings.TrimSpace(p.Name), Host: strings.TrimSpace(p.Host), Type: p.Type, Port: p.Port, Group: strings.TrimSpace(p.Group), Interval: p.Interval, Timeout: p.Timeout, Failures: p.Failures, Recovery: p.Recovery, ExpectedStatus: p.ExpectedStatus, BodyMode: p.BodyMode, BodyExpected: p.BodyExpected, JSONPointer: p.JSONPointer, JSONType: p.JSONType, TLSMinDays: p.TLSMinDays})
 }
 func (a *App) monitorBackupLocked() MonitorBackup {
-	backup := MonitorBackup{Format: "hostlight-monitors", Version: 3, ExportedAt: time.Now().UTC().Format(time.RFC3339), Monitors: []PortableMonitor{}}
+	backup := MonitorBackup{Format: "hostlight-monitors", Version: 4, ExportedAt: time.Now().UTC().Format(time.RFC3339), Monitors: []PortableMonitor{}}
 	ids := make([]string, 0, len(a.targets))
 	for id := range a.targets {
 		ids = append(ids, id)
@@ -135,8 +136,8 @@ func decodeMonitorBackup(data []byte) (MonitorBackup, error) {
 	if err := decoder.Decode(&extra); err != io.EOF {
 		return backup, fmt.Errorf("The backup contains unexpected data after the JSON document")
 	}
-	if backup.Format != "hostlight-monitors" || backup.Version < 1 || backup.Version > 3 {
-		return backup, fmt.Errorf("Choose a supported Hostlight monitor backup (format hostlight-monitors, version 1, 2, or 3)")
+	if backup.Format != "hostlight-monitors" || backup.Version < 1 || backup.Version > 4 {
+		return backup, fmt.Errorf("Choose a supported Hostlight monitor backup (format hostlight-monitors, versions 1–4)")
 	}
 	if len(backup.Monitors) == 0 || len(backup.Monitors) > maxMonitorImportCount {
 		return backup, fmt.Errorf("A backup must contain 1–1,000 monitors")
@@ -156,6 +157,8 @@ func (a *App) previewMonitorBackupLocked(backup MonitorBackup) MonitorImportPrev
 		var err error
 		if t.Type != "icmp" && t.Type != "tcp" && t.Type != "http" {
 			err = fmt.Errorf("Choose icmp, tcp, or http as the check type")
+		} else if t.TLSMinDays > 0 && backup.Version < 4 {
+			err = fmt.Errorf("Certificate expiry policies require backup version 4")
 		} else if t.BodyMode != "" && backup.Version < 3 {
 			err = fmt.Errorf("HTTP response-body rules require backup version 3")
 		} else if t.Type == "http" && (backup.Version < 2 || t.Port != 0) {

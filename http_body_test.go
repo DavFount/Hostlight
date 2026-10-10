@@ -199,8 +199,8 @@ func TestHTTPBodyConfigurationAndImport(t *testing.T) {
 	a.mu.Lock()
 	backup := a.monitorBackupLocked()
 	a.mu.Unlock()
-	if backup.Version != 3 {
-		t.Fatal("body rules require export version 3")
+	if backup.Version != 4 {
+		t.Fatal("expected current export version")
 	}
 	data, err := json.Marshal(backup)
 	if err != nil {

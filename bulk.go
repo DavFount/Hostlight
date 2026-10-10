@@ -50,6 +50,7 @@ func (a *App) previewBulkLocked(input string, defaults Target) []BulkRow {
 		t.Message = ""
 		t.Checked = ""
 		t.Latency = 0
+		t.CertificateExpires = ""
 		t.Group = strings.TrimSpace(t.Group)
 		if t.Type == "" {
 			t.Type = "icmp"
@@ -66,6 +67,7 @@ func (a *App) previewBulkLocked(input string, defaults Target) []BulkRow {
 			t.BodyExpected = ""
 			t.JSONPointer = ""
 			t.JSONType = ""
+			t.TLSMinDays = 0
 		}
 		name, host, hasName := strings.Cut(line, "|")
 		if !hasName {
@@ -161,6 +163,7 @@ func (a *App) SetTargetsPaused(ids []string, paused bool) error {
 			t.State = "unknown"
 			t.Message = "Waiting for fresh checks"
 			t.Checked = ""
+			t.CertificateExpires = ""
 			t.Latency = 0
 		}
 		ctx, cancel := context.WithCancel(a.ctx)

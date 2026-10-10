@@ -17,11 +17,12 @@ import (
 // HTTP checks deliberately send GET only: no credentials, cookies,
 // request bodies, arbitrary headers, response body storage, or redirect following.
 type HTTPProbeResult struct {
-	Success    bool    `json:"success"`
-	StatusCode int     `json:"statusCode"`
-	Latency    float64 `json:"latency"`
-	Message    string  `json:"message"`
-	Timing     string  `json:"timing"`
+	Success            bool    `json:"success"`
+	StatusCode         int     `json:"statusCode"`
+	Latency            float64 `json:"latency"`
+	Message            string  `json:"message"`
+	Timing             string  `json:"timing"`
+	CertificateExpires string  `json:"certificateExpires,omitempty"`
 }
 
 type httpCheckError struct {
@@ -75,10 +76,22 @@ func validateHTTPDefinition(t Target) error {
 	if status := expectedHTTPStatus(t); status < 100 || status > 599 {
 		return fmt.Errorf("Expected HTTP status must be 100–599")
 	}
+	if t.TLSMinDays < 0 || t.TLSMinDays > 365 {
+		return fmt.Errorf("Certificate minimum remaining validity must be 0–365 days (0 disables the expiry policy)")
+	}
+	if t.TLSMinDays > 0 && u.Scheme != "https" {
+		return fmt.Errorf("Certificate expiry policies require an https:// URL")
+	}
 	return validateHTTPBodyRule(t)
 }
 
 func probeHTTP(ctx context.Context, t Target) (HTTPProbeResult, error) {
+	return probeHTTPWithTransport(ctx, t, http.DefaultTransport.(*http.Transport).Clone())
+}
+
+// Separate transport injection lets tests trust local fixture certificates
+// without exposing an insecure certificate-validation bypass to the UI.
+func probeHTTPWithTransport(ctx context.Context, t Target, transport *http.Transport) (HTTPProbeResult, error) {
 	result := HTTPProbeResult{Timing: "time to response headers"}
 	if err := validateHTTPDefinition(t); err != nil {
 		return result, &probeSetupError{err.Error()}
@@ -90,7 +103,6 @@ func probeHTTP(ctx context.Context, t Target) (HTTPProbeResult, error) {
 		return result, &probeSetupError{"Could not create HTTP request"}
 	}
 	request.Header.Set("User-Agent", "Hostlight/1")
-	transport := http.DefaultTransport.(*http.Transport).Clone()
 	// Avoid accumulating a pool per monitor, and keep each check a fresh connection.
 	transport.DisableKeepAlives = true
 	transport.MaxResponseHeaderBytes = 64 << 10
@@ -107,7 +119,14 @@ func probeHTTP(ctx context.Context, t Target) (HTTPProbeResult, error) {
 		return result, &httpCheckError{err, result.Message}
 	}
 	defer response.Body.Close()
+	if response.TLS != nil && len(response.TLS.PeerCertificates) > 0 {
+		result.CertificateExpires = response.TLS.PeerCertificates[0].NotAfter.UTC().Format(time.RFC3339)
+	}
 	result.StatusCode = response.StatusCode
+	if err := checkCertificateValidity(t, result.CertificateExpires, time.Now()); err != nil {
+		result.Message = err.Error()
+		return result, err
+	}
 	result.Success = response.StatusCode == expectedHTTPStatus(t)
 	result.Message = fmt.Sprintf("HTTP %d · Expected status received", response.StatusCode)
 	if !result.Success {

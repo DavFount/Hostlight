@@ -27,7 +27,7 @@ func (a *App) persistLocked() error {
 	if a.configPath == "" {
 		return nil
 	} // In-memory fixtures.
-	cfg := configuration{Version: 3, NextID: a.next, Targets: make([]savedTarget, 0, len(a.targets))}
+	cfg := configuration{Version: 4, NextID: a.next, Targets: make([]savedTarget, 0, len(a.targets))}
 	for _, m := range a.targets {
 		t := m.target
 		paused := t.State == "paused"
@@ -35,6 +35,7 @@ func (a *App) persistLocked() error {
 		t.Message = ""
 		t.Checked = ""
 		t.Latency = 0
+		t.CertificateExpires = ""
 		cfg.Targets = append(cfg.Targets, savedTarget{t, paused})
 	}
 	data, err := json.MarshalIndent(cfg, "", "  ")
@@ -87,7 +88,7 @@ func (a *App) loadConfiguration() {
 		a.configError = "Saved targets could not be read. The original file has been preserved."
 		return
 	}
-	if cfg.Version < 1 || cfg.Version > 3 {
+	if cfg.Version < 1 || cfg.Version > 4 {
 		a.configError = "This configuration version is not supported. The original file has been preserved."
 		return
 	}
@@ -118,6 +119,7 @@ func (a *App) loadConfiguration() {
 		t.State = "unknown"
 		t.Message = "Waiting for fresh checks"
 		t.Checked = ""
+		t.CertificateExpires = ""
 		t.Latency = 0
 		if s.Paused {
 			t.State = "paused"
