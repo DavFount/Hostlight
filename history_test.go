@@ -71,7 +71,7 @@ func TestIncidentLifecycle(t *testing.T) {
 }
 
 func TestInterruptedDurationAndGaps(t *testing.T) {
-	for _, kind := range []string{"Monitoring paused", "Monitor removed", "Monitor settings changed", "Monitoring stopped when Hostlight closed", "result"} {
+	for _, kind := range []string{"Monitor removed", "Monitor settings changed", "Monitoring stopped when Hostlight closed", "result"} {
 		t.Run(kind, func(t *testing.T) {
 			s := historyFixture(t)
 			target := fixtureTarget()
@@ -165,7 +165,7 @@ func TestHistoryFiltersRetentionAndMigration(t *testing.T) {
 		t.Fatal("invalid date range accepted")
 	}
 	var version int
-	if err = s.db.QueryRow("PRAGMA user_version").Scan(&version); err != nil || version != 4 {
+	if err = s.db.QueryRow("PRAGMA user_version").Scan(&version); err != nil || version != 5 {
 		t.Fatal("schema version missing")
 	}
 	path := filepath.Join(t.TempDir(), "future.db")
@@ -241,7 +241,7 @@ func TestHistoryQueueFailureVisible(t *testing.T) {
 	a.recordHistoryLocked(fixtureTarget(), "result") // Must not send on the closed queue.
 }
 
-func TestAppPauseClosesIncident(t *testing.T) {
+func TestAppPausePreservesIncident(t *testing.T) {
 	a := storedApp(t, filepath.Join(t.TempDir(), "targets.json"))
 	target := fixtureTarget()
 	if err := a.SaveTarget(target); err != nil {
@@ -261,11 +261,11 @@ func TestAppPauseClosesIncident(t *testing.T) {
 		if err != nil {
 			t.Fatal(err)
 		}
-		if len(page.Items) == 1 && page.Items[0].Status == "interrupted" {
+		if len(page.Items) == 1 && page.Items[0].Status == "open" && strings.Contains(page.Items[0].Reason, "Monitoring paused") {
 			break
 		}
 		if time.Now().After(deadline) {
-			t.Fatalf("pause did not interrupt incident: %+v", page)
+			t.Fatalf("pause did not preserve incident: %+v", page)
 		}
 		time.Sleep(10 * time.Millisecond)
 	}

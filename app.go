@@ -245,31 +245,10 @@ func (a *App) DeleteTarget(id string) error {
 	return nil
 }
 func (a *App) PauseTarget(id string) error {
-	a.mu.Lock()
-	defer a.mu.Unlock()
-	if m, ok := a.targets[id]; ok {
-		old := m.target
-		m.target.State = "paused"
-		m.target.Message = "Monitoring paused"
-		if err := a.persistLocked(); err != nil {
-			m.target = old
-			return err
-		}
-		m.cancel()
-		a.recordHistoryLocked(old, "Monitoring paused")
-	}
-	return nil
+	return a.SetTargetsPaused([]string{id}, true)
 }
 func (a *App) ResumeTarget(id string) error {
-	a.mu.Lock()
-	m, ok := a.targets[id]
-	if !ok {
-		a.mu.Unlock()
-		return fmt.Errorf("Target no longer exists")
-	}
-	t := m.target
-	a.mu.Unlock()
-	return a.saveTarget(t, true)
+	return a.SetTargetsPaused([]string{id}, false)
 }
 func (a *App) run(ctx context.Context, m *monitor, t Target) {
 	rules := statusRules{failures: t.Failures, recovery: t.Recovery}

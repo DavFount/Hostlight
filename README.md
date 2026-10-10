@@ -53,7 +53,13 @@ Only one desktop instance runs at a time to keep monitoring and storage ownershi
 
 - An incident opens when the configured failure threshold establishes unavailable status.
 - Recovery closes it only after the configured success threshold is met.
-- Pause, deletion, settings changes, local check errors, and shutdown interrupt
+- Pausing stops probe traffic but preserves an open outage and its alert association.
+  Resuming gathers fresh threshold evidence: continued failure keeps the same outage
+  without another outage notification; confirmed recovery can send its recovery webhook.
+  The unobserved interval from the last check to resume is excluded from observed duration.
+  History labels open paused outages explicitly. This continuity applies within the
+  current application session; shutdown/restart still interrupts observation.
+- Deletion, settings changes, local check errors, and shutdown interrupt
   the incident at its last observation; they do not imply recovery.
 - A restart or long observation gap also interrupts the previous incident.
   A gap means no results for more than the greater of 30 seconds or twice the
@@ -105,8 +111,9 @@ global scope; saved credentials and pending deliveries are preserved.
 
 - A confirmed `up` → `down` transition queues an outage event; the corresponding
   recovery queues an `up` event. Existing monitor thresholds apply.
-- Initial discovery is silent, even if a monitor starts down. Pauses, edits,
-  removals, local check errors, observation gaps, and restarts are not recoveries.
+- Initial discovery is silent, even if a monitor starts down. Pausing is not recovery;
+  an existing outage remains eligible for recovery after resume. Edits, removals,
+  local check errors, observation gaps, and restarts interrupt rather than recover it.
 - URLs, tokens, and signing keys are encrypted using current-user Windows DPAPI
   before storage in SQLite. They are not returned to the webview. This is not a
   portable credential backup or Windows Credential Manager entry; other platforms
@@ -178,6 +185,17 @@ deliveries. Ended windows are retained internally for 30 days so delayed records
 and retries still respect the interval. Up to 50 active/upcoming windows per
 monitor and 10,000 total are supported. Reasons are ordinary operational metadata,
 not encrypted secrets; do not put passwords or tokens in them.
+
+Schema v5 adds paused-outage tracking and excluded observation time, preserving
+existing incident records and webhook delivery associations.
+
+Monitor cards show successful latency only; failed TCP attempts display a dash
+and explain the elapsed attempt time in the diagnostic text/tooltip. The existing
+webhook schema-v1 `target.latency` field remains the latest TCP attempt duration
+in milliseconds, including failed attempts; it is not proof of a remote reply.
+Use `target.message` and the transition event to interpret the result. A pending
+failure/recovery threshold can leave the established availability state unchanged
+even when the latest individual check has the opposite outcome.
 
 ## Monitor backups and import
 

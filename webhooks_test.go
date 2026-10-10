@@ -194,6 +194,9 @@ func TestWebhookMigrationFromVersionOne(t *testing.T) {
 	target.ID = "1"
 	target.State = "down"
 	applyHistory(t, s, target, "result", time.Now())
+	if _, err := s.db.Exec("ALTER TABLE incidents DROP COLUMN excluded_ms; ALTER TABLE incidents DROP COLUMN paused"); err != nil {
+		t.Fatal(err)
+	}
 	s.db.Close()
 	migrated, err := openIncidentStore(path, time.Now())
 	if err != nil {
@@ -328,10 +331,10 @@ func TestWebhookInterruptionsDoNotAlertRecovery(t *testing.T) {
 	if err := s.apply(historyEvent{target: target, kind: "result", at: now, previous: "up"}); err != nil {
 		t.Fatal(err)
 	}
-	applyHistory(t, s, target, "Monitoring paused", now.Add(time.Second))
+	applyHistory(t, s, target, "Monitor removed", now.Add(time.Second))
 	target.State = "up"
 	applyHistory(t, s, target, "result", now.Add(2*time.Second))
 	if deliveryCount(t, s) != 1 {
-		t.Fatal("pause produced recovery alert")
+		t.Fatal("deletion produced recovery alert")
 	}
 }

@@ -170,6 +170,7 @@ func (a *App) SetTargetsPaused(ids []string, paused bool) error {
 		}
 		if !paused {
 			current := a.targets[id]
+			a.recordHistoryLocked(current.target, "Monitoring resumed")
 			go a.run(contexts[id], current, current.target)
 		}
 	}

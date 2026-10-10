@@ -70,7 +70,7 @@ func openIncidentStore(path string, now time.Time) (*incidentStore, error) {
 	if err = db.QueryRow("PRAGMA user_version").Scan(&version); err != nil {
 		return fail(err)
 	}
-	if version > 4 {
+	if version > 5 {
 		return fail(fmt.Errorf("History database version is newer than this application supports"))
 	}
 	if version == 0 {
@@ -128,6 +128,14 @@ func openIncidentStore(path string, now time.Time) (*incidentStore, error) {
 			return fail(err)
 		}
 	}
+	if version < 5 {
+		if _, err = db.Exec(`BEGIN;
+ ALTER TABLE incidents ADD COLUMN excluded_ms INTEGER NOT NULL DEFAULT 0;
+ ALTER TABLE incidents ADD COLUMN paused INTEGER NOT NULL DEFAULT 0;
+ PRAGMA user_version=5; COMMIT;`); err != nil {
+			return fail(err)
+		}
+	}
 	// An unfinished prior session cannot establish outage duration while closed.
 	if _, err = db.Exec("UPDATE incidents SET status='interrupted', ended=last_seen, reason=reason || ' · Monitoring interrupted by application restart' WHERE status='open'"); err != nil {
 		return fail(err)
@@ -174,7 +182,30 @@ func (s *incidentStore) apply(e historyEvent) error {
 		return err
 	}
 	defer tx.Rollback()
+	if e.kind == "Monitoring paused" {
+		_, err = tx.ExecContext(ctx, "UPDATE incidents SET paused=1 WHERE target_id=? AND status='open'", t.ID)
+		if err != nil {
+			return err
+		}
+		return tx.Commit()
+	}
+	if e.kind == "Monitoring resumed" {
+		// Exclude the unobserved interval since the last check, retaining the
+		// incident identity and original alert destination association.
+		_, err = tx.ExecContext(ctx, "UPDATE incidents SET excluded_ms=excluded_ms+MAX(0,?-last_seen), last_seen=?, paused=0 WHERE target_id=? AND status='open' AND paused=1", at, at, t.ID)
+		if err != nil {
+			return err
+		}
+		return tx.Commit()
+	}
 	if e.kind == "result" {
+		var paused int
+		if err := tx.QueryRowContext(ctx, "SELECT count(*) FROM incidents WHERE target_id=? AND status='open' AND paused=1", t.ID).Scan(&paused); err != nil {
+			return err
+		}
+		if paused > 0 {
+			return tx.Commit()
+		}
 		gap := 2 * time.Duration(t.Interval+t.Timeout) * time.Second
 		if gap < 30*time.Second {
 			gap = 30 * time.Second
@@ -200,13 +231,13 @@ func (s *incidentStore) apply(e historyEvent) error {
 		return tx.Commit()
 	}
 	if e.kind == "result" && t.State == "up" {
-		var id, opened int64
-		err := tx.QueryRowContext(ctx, "SELECT id,opened FROM incidents WHERE target_id=? AND status='open'", t.ID).Scan(&id, &opened)
+		var id, opened, excluded int64
+		err := tx.QueryRowContext(ctx, "SELECT id,opened,excluded_ms FROM incidents WHERE target_id=? AND status='open'", t.ID).Scan(&id, &opened, &excluded)
 		if err != nil && err != sql.ErrNoRows {
 			return err
 		}
 		if err == nil {
-			if err = enqueueWebhook(ctx, tx, t, "up", id, e.at, (at-opened)/1000); err != nil {
+			if err = enqueueWebhook(ctx, tx, t, "up", id, e.at, (at-opened-excluded)/1000); err != nil {
 				return err
 			}
 		}
@@ -216,6 +247,11 @@ func (s *incidentStore) apply(e historyEvent) error {
 		return tx.Commit()
 	}
 	if e.kind == "result" && t.State != "error" {
+		// Fresh threshold evidence after resume is still observed time, even
+		// while the card remains unknown until the threshold is reached.
+		if _, err = tx.ExecContext(ctx, "UPDATE incidents SET last_seen=? WHERE target_id=? AND status='open'", at, t.ID); err != nil {
+			return err
+		}
 		return tx.Commit()
 	}
 	reason := e.kind
@@ -290,7 +326,7 @@ func (s *incidentStore) query(search, status string, days, offset, limit int) (H
 		return page, err
 	}
 	queryArgs := append(append([]any{}, args...), limit, offset)
-	rows, err := s.db.Query(`SELECT id,target_id,name,host,group_name,probe_type,port,opened,last_seen,ended,status,reason FROM incidents`+where+" ORDER BY opened DESC,id DESC LIMIT ? OFFSET ?", queryArgs...)
+	rows, err := s.db.Query(`SELECT id,target_id,name,host,group_name,probe_type,port,opened,last_seen,ended,status,reason,excluded_ms,paused FROM incidents`+where+" ORDER BY opened DESC,id DESC LIMIT ? OFFSET ?", queryArgs...)
 	if err != nil {
 		return page, err
 	}
@@ -299,7 +335,9 @@ func (s *incidentStore) query(search, status string, days, offset, limit int) (H
 		var item Incident
 		var opened, last int64
 		var ended sql.NullInt64
-		if err = rows.Scan(&item.ID, &item.TargetID, &item.Name, &item.Host, &item.Group, &item.Type, &item.Port, &opened, &last, &ended, &item.Status, &item.Reason); err != nil {
+		var excluded int64
+		var paused bool
+		if err = rows.Scan(&item.ID, &item.TargetID, &item.Name, &item.Host, &item.Group, &item.Type, &item.Port, &opened, &last, &ended, &item.Status, &item.Reason, &excluded, &paused); err != nil {
 			return page, err
 		}
 		item.Opened = time.UnixMilli(opened).UTC().Format(time.RFC3339Nano)
@@ -309,7 +347,10 @@ func (s *incidentStore) query(search, status string, days, offset, limit int) (H
 			end = ended.Int64
 			item.Ended = time.UnixMilli(end).UTC().Format(time.RFC3339Nano)
 		}
-		item.DurationSeconds = (end - opened) / 1000
+		item.DurationSeconds = (end - opened - excluded) / 1000
+		if paused && item.Status == "open" {
+			item.Reason += " · Monitoring paused; outage remains open"
+		}
 		if item.DurationSeconds < 0 {
 			item.DurationSeconds = 0
 		}

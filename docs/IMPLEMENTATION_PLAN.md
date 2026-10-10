@@ -18,10 +18,12 @@ sample history and charts remain planned. This keeps configuration readable and 
 high-volume monitoring data. Existing settings must remain importable when storage evolves.
 
 Incident history implementation: `modernc.org/sqlite` supplies a pure-Go driver,
-with schema version 4 (including persisted alert suppression), a background writer, paged queries, CSV export, and configurable
-retention. Go 1.26 is now the minimum version. Outages are segmented at pauses,
+with schema version 5 (including persisted alert suppression and paused-outage accounting), a background writer, paged queries, CSV export, and configurable
+retention. Go 1.26 is now the minimum version. Outages are segmented at
 edits, deletion, errors, shutdown/restart, and long observation gaps; interrupted
-records end at the last observation. Writes are bounded and errors are visible.
+records end at the last observation. Pauses now preserve the current outage within
+the application session, exclude the unobserved pause interval, and retain recovery
+alert eligibility after fresh checks. Writes are bounded and errors are visible.
 
 This document is the working implementation plan. Check off milestones only when
 their acceptance criteria are met, and update decisions as implementation supplies
@@ -137,7 +139,11 @@ UI detects a gap. Bound frontend logs and chart buffers.
 - Timeouts, refused TCP connections, and unreachable responses are probe failures.
 - Invalid configuration, missing privileges, or an unavailable local adapter are
   diagnostic errors; distinguish them from evidence that the remote target is down.
-- Pause/stop cancels work and does not open an outage or trigger an outage webhook.
+- Pause cancels probe work without opening or recovering an outage. An existing
+  outage stays open; resume uses fresh thresholds and the same alert association.
+  Continued failure does not duplicate the outage alert. Exclude unobserved paused
+  time from duration. Deletion closes as interrupted without a recovery webhook.
+  Shutdown/restart and configuration edits still interrupt observation.
 - Sleep and resume create a monitoring gap, not synthetic failures. Reset pending
   counters and obtain fresh evidence after resume.
 - Emit one transition event per established state change. Initial discovery is
@@ -255,8 +261,15 @@ Tests cover retries, restart recovery, timeouts, redaction, and terminal failure
 
 - [x] Add saved dark-default/light themes and card-density preferences.
 - [x] Add search/status/group filters and transactional bulk actions.
+- [x] Make compact cards meaningfully denser and active silencing visibly amber in both themes.
+- [x] Clarify skipped/invalid import rows, singular labels, and failed TCP timing.
+- [x] Preserve same-session outages across pause/resume with excluded time and recovery routing.
 - [ ] Add saved views and customizable layout beyond card density.
 - [ ] Add desktop notifications and mute controls where supported.
+- [ ] Add polished outage/recovery visual notifications with configurable screen
+  position, auto-close duration, and a persistent-until-dismissed option. Keep
+  notification health/initial-discovery semantics aligned with webhook transitions;
+  investigate desktop overlay feasibility rather than claiming background popups work.
 - [ ] Implement tested tray behavior if the platform spike supports it.
 - [x] Add versioned monitor configuration import/export with preview and validation.
 - [x] Exclude credentials and live history from configuration exports by default.
@@ -321,10 +334,19 @@ features is implemented yet; they remain outside the first-release checklist abo
 ## Verification strategy
 
 Latest completed implementation-slice checks (2026-10-10): `go test ./...`,
-`go vet ./...`, 34 frontend tests, frontend production/type-check build, and
+`go vet ./...`, 39 frontend tests, frontend production/type-check build, and
 `wails build` passed. This is a development verification record, not completion
 of milestone 6. The checklist reconciliation itself changes documentation only;
 it does not establish new manual desktop, standard-user, or load-test evidence.
+
+User UI/UX verification (2026-10-10): brief failures stayed below the unavailable
+threshold; an outage/recovery pair shared its incident ID and delivered HTTP 200;
+snoozing suppressed delivery with zero attempts; individual scoped destinations
+routed correctly; restart persistence, duplicate-skipping/paused import, and light
+theme passed. These are targeted checks, not a full release matrix. The subsequent
+fix pass adds automated pause/resume/deletion/migration coverage and UI regressions;
+the new paused-outage policy, denser cards, and amber silencing banner still need
+a desktop spot check after restarting the backend.
 
 - Unit-test state transitions, scheduling/cancellation, validation, retention, and
   retry decisions with fake clocks and controlled outcomes.
