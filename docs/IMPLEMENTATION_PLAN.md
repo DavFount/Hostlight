@@ -1,10 +1,16 @@
 # Hostlight implementation plan
 
-Status: implementation underway. A Windows ICMP/TCP monitoring preview is available with dark/light
-themes, target editing, filtering, pause/resume, configurable thresholds, and saved
-target definitions. Bulk paste now includes validation previews and duplicate checks;
-group filtering and transactional pause/resume apply to the shown monitors. The
-milestones below remain the full release acceptance checklist.
+Status reviewed: 2026-10-10. Implementation underway; not release-qualified.
+The Windows preview includes ICMP/TCP monitoring, target management and bulk paste,
+saved configuration, dark/light themes, incident history, scoped webhook delivery,
+per-monitor alert suppression, and reviewed monitor backup/import.
+
+Checklist convention: `[x]` means the stated implementation or verification is
+complete; `[ ]` means work or verification remains. Split partially delivered
+features into separate items rather than leaving completed work unchecked.
+Completed items do not imply that an entire milestone's acceptance criteria pass.
+Manual platform checks, load/soak tests, and release checks remain explicit gates.
+Update this checklist with each implementation slice before requesting a commit.
 
 Implementation note: target settings currently use an atomically replaced, versioned
 JSON file in the OS user configuration directory. SQLite now stores incident history;
@@ -61,12 +67,16 @@ Go owns target validation, scheduling, probes, status decisions, persistence, an
 alert delivery. Vue owns presentation and transient interaction state. Monitoring
 must continue when the view changes or the window is minimized.
 
-Use Wails v2, Vue 3, TypeScript, Vite, and the existing npm lockfile. Add Pinia for
-shared frontend state. Add routing when multiple screens exist. Select a chart
+Use Wails v2, Vue 3, TypeScript, Vite, and the existing npm lockfile. The preview
+uses Vue composition state, component-local typed API declarations, view switching,
+and one-second snapshot polling; Pinia, a shared API adapter, routing, and sequenced
+events below are proposed architecture, not implemented prerequisites. Introduce
+them when shared state or navigation complexity warrants it. Select a chart
 library after testing a small latency-chart prototype; avoid installing a broad
 UI stack before the first working probe.
 
-Suggested structure:
+Suggested future structure (current Go implementation remains in package `main`,
+with frontend screens under `frontend/src/components`):
 
 ```text
 app.go                         Thin Wails facade and lifecycle wiring
@@ -96,7 +106,9 @@ typed API through the facade; treat generated `frontend/wailsjs` files as genera
 
 ## Data and event contracts
 
-Define these models before adding persistence or alerts:
+Target contract for further extraction/refactoring; the preview implements these
+responsibilities across existing structs and storage records, not all as separate
+models. Generation/sequence-based frontend reconciliation remains planned:
 
 | Model | Required responsibilities |
 | --- | --- |
@@ -111,7 +123,7 @@ Define these models before adding persistence or alerts:
 Store timestamps in UTC; localize them in the UI. Measure probe duration with a
 monotonic clock. Separate immutable result/transition records from current status.
 
-Frontend startup should subscribe to events and obtain a versioned snapshot,
+Planned event-driven design: frontend startup should subscribe to events and obtain a versioned snapshot,
 reconciling buffered events by sequence. Include a run generation so results from
 a stopped or edited target cannot overwrite its new state. Batch high-frequency
 result updates, deliver transitions reliably, and expose snapshot refresh when the
@@ -136,11 +148,14 @@ UI detects a gap. Bound frontend logs and chart buffers.
 
 ## Milestone 0 — Baseline and technical spikes
 
-- [ ] Verify `wails dev`, frontend production build, and Windows desktop build.
-- [ ] Establish formatting, type checks, Go checks, and basic CI.
-- [ ] Prototype ICMP on Windows as a standard user and record the implementation choice.
-- [ ] Check cancellation, DNS behavior, IPv6, and local permission/error reporting.
-- [ ] Choose a maintained SQLite driver and migration approach compatible with the build.
+- [x] Verify frontend production/type-check build and Windows desktop build.
+- [ ] Complete a recorded `wails dev` desktop smoke test (startup, bindings, shutdown).
+- [x] Establish Go formatting, Go tests/vet, and frontend component tests/type checks.
+- [ ] Add basic CI for these checks and the supported Windows build.
+- [x] Implement native Windows IP Helper ICMP and document the choice in README.
+- [x] Test cancellation, DNS/address selection, IPv4/IPv6 localhost, and error classification.
+- [ ] Record standard-user and adapter/permission failure checks on Windows.
+- [x] Select pure-Go `modernc.org/sqlite` with versioned transactional migrations.
 - [ ] Investigate tray integration if required; document Wails v2/platform limitations.
 
 Acceptance: the starter builds reproducibly and a small probe prototype reports
@@ -150,12 +165,14 @@ elevating the whole desktop app. Confirm library versions at implementation time
 
 ## Milestone 1 — Application shell and target management
 
-- [ ] Replace the greeting demo with Hostlight navigation, empty state, and target grid.
-- [ ] Implement domain models and a typed Wails facade.
-- [ ] Add target create/edit/delete, aliases, groups, and bulk paste.
-- [ ] Validate addresses, ports, intervals, timeouts, and threshold ranges in Go.
-- [ ] Add Pinia stores and a frontend API adapter with mock data for UI development.
-- [ ] Support keyboard navigation, readable status labels, and color-independent indicators.
+- [x] Replace the greeting demo with Hostlight navigation, empty state, and target grid.
+- [x] Implement target models and typed Wails methods/bindings for implemented features.
+- [x] Add target create/edit/delete, aliases, groups, and bulk paste with validation previews.
+- [x] Validate addresses, ports, intervals, timeouts, and threshold ranges in Go.
+- [x] Provide common TCP service-port choices with custom-port entry.
+- [ ] Introduce shared frontend state/API adapters when complexity warrants them; Pinia remains optional.
+- [x] Show readable status labels and color-independent indicators.
+- [ ] Audit keyboard navigation, focus management, and screen-reader behavior across screens.
 
 Acceptance: targets can be managed through the UI; invalid input produces useful
 messages; frontend build/type checks pass. Mock status is clearly marked until
@@ -163,14 +180,17 @@ real monitoring is connected.
 
 ## Milestone 2 — Monitoring engine
 
-- [ ] Implement a cancellable probe interface with ICMP and TCP adapters.
-- [ ] Resolve hostnames and apply explicit IPv4/IPv6 selection rules.
-- [ ] Schedule checks with bounded concurrency and staggered starts.
-- [ ] Prevent overlapping checks for a target; define missed-tick behavior.
-- [ ] Implement the state machine and transition events.
-- [ ] Wire start/stop all and per-target pause/resume into the live UI.
-- [ ] Show last response, latency, loss, diagnostic errors, and elapsed outage duration.
-- [ ] Handle edits, deletion, shutdown, network changes, and sleep/resume safely.
+- [x] Implement cancellable ICMP/TCP probe adapters with stale-result protection.
+- [x] Resolve hostnames; document ICMP IPv4 preference and IPv6-only/scoped-address support.
+- [x] Bound concurrent probes to 32 and prevent overlapping checks per monitor.
+- [ ] Add staggered starts and configurable concurrency/capacity limits; document scheduling behavior.
+- [x] Implement tested failure/recovery state decisions and backend incident/alert transitions.
+- [ ] Implement sequenced frontend transition events if replacing snapshot polling.
+- [x] Wire per-target and filtered bulk pause/resume into the live UI.
+- [x] Show last check, latency, and diagnostic errors; show incident durations in history.
+- [ ] Add loss statistics and elapsed outage duration to monitor cards.
+- [x] Discard stale results after edits, deletion, pause, and shutdown.
+- [ ] Verify network changes and sleep/resume, including fresh threshold counters after gaps.
 
 Acceptance: controlled success/failure sequences produce exactly the expected
 transitions. Stopping or editing a target cannot apply stale results. A sustained
@@ -179,14 +199,15 @@ limits are configurable and failures do not stall unrelated targets.
 
 ## Milestone 3 — Persistence and history
 
-- [ ] Create versioned SQLite migrations and transactional repositories.
-- [ ] Save target/group configuration and application preferences.
-- [ ] Persist transitions/incidents and bounded probe samples.
-- [ ] Define retention, sample aggregation, and cleanup schedules.
-- [ ] Add history filters, incident duration, date ranges, and CSV export.
+- [x] Create versioned SQLite migrations and transactional incident/alert storage.
+- [x] Save target/group/pause configuration in versioned JSON and theme/density in local storage.
+- [x] Persist observed incidents and monitoring interruptions.
+- [ ] Persist bounded probe samples and define sample aggregation.
+- [x] Implement configurable incident retention, record limits, and scheduled cleanup.
+- [x] Add history filters, incident duration, date ranges, paging, and CSV export.
 - [ ] Add recent latency/loss charts and precisely labeled statistics.
-- [ ] Store data in the OS application-data directory; show its location in settings.
-- [ ] Handle database failures visibly and recover unfinished incidents after restart.
+- [x] Store data in the OS application-data directory and display the configuration location.
+- [x] Surface database/queue failures and interrupt unfinished incidents after restart.
 
 Acceptance: targets survive restart; incidents remain consistent across crashes;
 retention bounds database growth; migrations preserve existing data. Shutdown and
@@ -209,8 +230,11 @@ blocking across destinations. Monitor ID high-water marks persist to prevent
 deleted identities being reused by replacements. Provider presets, transition
 selection, and cooldown rules remain future work.
 
-- [ ] Configure generic JSON endpoints, headers, transition selection, and test delivery.
-- [ ] Keep endpoint secrets in the OS credential store; persist only references.
+- [x] Configure named generic JSON destinations, global/group/monitor scopes, and test delivery.
+- [x] Support bearer authentication and HMAC request headers.
+- [ ] Add arbitrary custom headers and configurable transition selection.
+- [x] Encrypt endpoint URLs, bearer tokens, and signing keys with current-user Windows DPAPI.
+- [ ] Evaluate credential-store references and non-Windows secret adapters before cross-platform support.
 - [x] Create a durable delivery queue transactionally with recorded transitions.
 - [x] Add stable event IDs, schema version, timestamps, target metadata, and outage duration.
 - [x] Deliver asynchronously with request timeouts and bounded concurrency.
@@ -229,7 +253,9 @@ Tests cover retries, restart recovery, timeouts, redaction, and terminal failure
 
 ## Milestone 5 — Desktop workflow and configuration portability
 
-- [ ] Add theme preferences, saved layout, search/filter, and bulk actions.
+- [x] Add saved dark-default/light themes and card-density preferences.
+- [x] Add search/status/group filters and transactional bulk actions.
+- [ ] Add saved views and customizable layout beyond card density.
 - [ ] Add desktop notifications and mute controls where supported.
 - [ ] Implement tested tray behavior if the platform spike supports it.
 - [x] Add versioned monitor configuration import/export with preview and validation.
@@ -273,7 +299,8 @@ Prioritize these using actual usage after the first release:
 
 1. HTTP/HTTPS status/body checks, DNS expected-answer checks, and TLS expiry.
 2. Degraded-state latency/loss policies with rolling windows and hysteresis.
-3. Maintenance schedules, timed silences, acknowledgments, and dependency suppression.
+3. Recurring and global/group maintenance, acknowledgments, and dependency suppression
+   (per-monitor timed silences and one-time windows are already implemented).
 4. Route diagnostics and MTR-style monitoring.
 5. Saved views, advanced tables, comparison charts, and customizable layouts.
 6. A shared-core CLI/headless runner with clear process ownership and local IPC.
@@ -283,7 +310,21 @@ Prioritize these using actual usage after the first release:
 Do not add a server, cloud accounts, remote agents, or plugin system without a
 separate product decision. Keep those possibilities from complicating v1.
 
+API-tooling direction: keep Hostlight focused on monitoring rather than building
+a general-purpose Postman/Insomnia replacement. HTTP/HTTPS monitoring is the next
+candidate feature after the current slice: status/latency checks first, with a
+small test-request workflow shared with webhook diagnostics. Expected body/JSON
+checks and TLS expiry can follow. Request collections, scripting, environment
+management, and request chaining are not committed scope. None of these HTTP
+features is implemented yet; they remain outside the first-release checklist above.
+
 ## Verification strategy
+
+Latest completed implementation-slice checks (2026-10-10): `go test ./...`,
+`go vet ./...`, 34 frontend tests, frontend production/type-check build, and
+`wails build` passed. This is a development verification record, not completion
+of milestone 6. The checklist reconciliation itself changes documentation only;
+it does not establish new manual desktop, standard-user, or load-test evidence.
 
 - Unit-test state transitions, scheduling/cancellation, validation, retention, and
   retry decisions with fake clocks and controlled outcomes.
@@ -298,10 +339,10 @@ separate product decision. Keep those possibilities from complicating v1.
 
 ## First implementation slice
 
-Deliver one TCP target end to end: add it in Vue, validate it in Go, probe a local
-test listener, apply failure/recovery thresholds, and update the status card.
-Then add ICMP using the platform spike results. Complete this slice before expanding
-navigation, charting, or notification integrations.
+Completed: TCP monitoring end to end, followed by native Windows ICMP. Subsequent
+slices added persistence, incident history, scoped webhooks, per-monitor suppression,
+and monitor backup/import. See the milestone checklists for remaining work; this
+completed bootstrap sequence is retained as historical context, not the next task.
 
 ## Decision log
 
@@ -310,7 +351,9 @@ navigation, charting, or notification integrations.
 | Desktop framework | Existing Wails v2 project | A required feature cannot be supported cleanly |
 | Frontend | Vue 3 + TypeScript + Vite | No planned migration |
 | Package manager | npm and committed lockfile | A concrete workflow requires a change |
-| Persistence | SQLite; driver selected in milestone 0 | Build or measured performance requires it |
+| Persistence | Atomic versioned JSON for targets; SQLite via modernc.org/sqlite for history/alerts | Build or measured performance requires it |
+| Secrets | Current-user Windows DPAPI encrypted blobs; not Credential Manager references | Cross-platform support or portable credentials are required |
+| Frontend updates | One-second snapshots with Vue composition state; Pinia/router not installed | Shared state, update load, or navigation complexity warrants a change |
 | First platform | Windows | Windows acceptance criteria pass |
 | Monitoring ownership | Go process independent of views | Headless execution is implemented |
 | Alert delivery | Durable queue, at-least-once semantics | External integrations require additional guarantees |
