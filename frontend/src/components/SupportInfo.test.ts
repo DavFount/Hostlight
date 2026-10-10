@@ -1,0 +1,10 @@
+import {afterEach,describe,expect,it,vi} from 'vitest'
+import {flushPromises,mount} from '@vue/test-utils'
+import SupportInfo from './SupportInfo.vue'
+const report={release:'early preview',os:'windows',architecture:'amd64',goVersion:'go1.27.2',wailsVersion:'v2',configurationHealth:'ready',historyHealth:'ready',storageSummary:'ready',monitorCount:3,states:{up:2,down:1},checks:{icmp:3},openIncidents:1,pendingDeliveries:0,probeConcurrency:32,historyQueueLength:0,historyQueueCapacity:1024,created:new Date().toISOString()}
+afterEach(()=>{delete (window as any).go})
+describe('support information',()=>{
+ it('loads a safe summary and exports only on request',async()=>{const save=vi.fn().mockResolvedValue('C:/support.json');(window as any).go={main:{App:{GetSupportReport:vi.fn().mockResolvedValue(report),ExportSupportReport:save}}};const w=mount(SupportInfo);await flushPromises();expect(w.text()).toContain('windows / amd64');expect(w.text()).toContain('Nothing is uploaded automatically');expect(save).not.toHaveBeenCalled();await w.findAll('button')[1]!.trigger('click');await flushPromises();expect(w.text()).toContain('Diagnostics saved to C:/support.json');w.unmount()})
+ it('shows missing statistics as unavailable and does not report cancelled exports as saved',async()=>{(window as any).go={main:{App:{GetSupportReport:vi.fn().mockResolvedValue({...report,storageSummary:'unavailable'}),ExportSupportReport:vi.fn().mockResolvedValue('')}}};const w=mount(SupportInfo);await flushPromises();expect(w.findAll('dd').filter(d=>d.text()==='Unavailable')).toHaveLength(2);await w.findAll('button')[1]!.trigger('click');await flushPromises();expect(w.text()).not.toContain('Diagnostics saved');w.unmount()})
+ it('does not expose raw backend failures',async()=>{(window as any).go={main:{App:{GetSupportReport:vi.fn().mockRejectedValue('PRIVATE-PATH')}}};const w=mount(SupportInfo);await flushPromises();expect(w.text()).toContain('could not be loaded');expect(w.text()).not.toContain('PRIVATE-PATH');w.unmount()})
+})

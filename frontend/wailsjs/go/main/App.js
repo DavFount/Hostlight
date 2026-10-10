@@ -38,6 +38,10 @@ export function ExportMonitorBackup() {
   return window['go']['main']['App']['ExportMonitorBackup']();
 }
 
+export function ExportSupportReport() {
+  return window['go']['main']['App']['ExportSupportReport']();
+}
+
 export function GetAlertSilences() {
   return window['go']['main']['App']['GetAlertSilences']();
 }
@@ -48,6 +52,10 @@ export function GetConfigurationStatus() {
 
 export function GetIncidents(arg1, arg2, arg3, arg4) {
   return window['go']['main']['App']['GetIncidents'](arg1, arg2, arg3, arg4);
+}
+
+export function GetSupportReport() {
+  return window['go']['main']['App']['GetSupportReport']();
 }
 
 export function GetTargets() {

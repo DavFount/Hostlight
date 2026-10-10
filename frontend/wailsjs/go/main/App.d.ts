@@ -20,11 +20,15 @@ export function ExportIncidents(arg1:string,arg2:string,arg3:number):Promise<str
 
 export function ExportMonitorBackup():Promise<string>;
 
+export function ExportSupportReport():Promise<string>;
+
 export function GetAlertSilences():Promise<Array<main.AlertSilence>>;
 
 export function GetConfigurationStatus():Promise<main.ConfigurationStatus>;
 
 export function GetIncidents(arg1:string,arg2:string,arg3:number,arg4:number):Promise<main.HistoryPage>;
+
+export function GetSupportReport():Promise<main.SupportReport>;
 
 export function GetTargets():Promise<Array<main.Target>>;
 

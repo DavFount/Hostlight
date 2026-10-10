@@ -288,7 +288,11 @@ Tests cover retries, restart recovery, timeouts, redaction, and terminal failure
 - [x] Add versioned monitor configuration import/export with preview and validation.
 - [x] Exclude credentials and live history from configuration exports by default.
 - [ ] Offer explicit portable mode with writable-path checks and clear credential behavior.
-- [ ] Add support information and a sanitized diagnostic export.
+- [x] Add support information and an explicit sanitized JSON diagnostic export:
+  allowlisted runtime/platform, health flags, aggregate counts, and queue sizes;
+  no monitor addresses, names, secrets, paths, raw errors, or logs. Protect live
+  storage export paths and test privacy, storage failures, and cancelled exports.
+- [ ] Manually verify support refresh and native diagnostic save/cancel dialogs.
 
 Implementation update: **Monitor backups** provides a separate version-4 JSON
 allowlist for monitor definitions and pause preferences. Imports are add-only,

@@ -1,5 +1,19 @@
 # Hostlight
 
+### Support and diagnostics
+
+Open **Support** for platform/runtime information, component health, aggregate
+monitor counts, and incident/webhook queue statistics. Use **Refresh snapshot**
+to update it. Unavailable statistics are not reported as zero.
+
+**Export sanitized diagnostics** saves a versioned JSON file through the native
+save dialog. It includes aggregate counts, runtime versions, health flags, queue
+sizes, and a UTC timestamp. It excludes monitor names/addresses, URLs, groups,
+response bodies, check messages, incident records, webhook destinations and
+credentials, local paths/usernames, raw errors/logs, and saved views. Nothing is
+uploaded automatically. Counts can change during collection; review the file
+before sharing. The export cannot overwrite Hostlight’s live settings/history.
+
 ### Saved monitoring views
 
 Set the monitor search, status, and group filters, then expand **Save or manage

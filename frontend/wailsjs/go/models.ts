@@ -357,6 +357,54 @@ export namespace main {
 	}
 	
 	
+	export class SupportReport {
+	    format: string;
+	    version: number;
+	    created: string;
+	    release: string;
+	    os: string;
+	    architecture: string;
+	    goVersion: string;
+	    wailsVersion: string;
+	    configurationHealth: string;
+	    historyHealth: string;
+	    storageSummary: string;
+	    monitorCount: number;
+	    states: Record<string, number>;
+	    checks: Record<string, number>;
+	    openIncidents: number;
+	    pendingDeliveries: number;
+	    probeConcurrency: number;
+	    historyQueueLength: number;
+	    historyQueueCapacity: number;
+	
+	    static createFrom(source: any = {}) {
+	        return new SupportReport(source);
+	    }
+	
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.format = source["format"];
+	        this.version = source["version"];
+	        this.created = source["created"];
+	        this.release = source["release"];
+	        this.os = source["os"];
+	        this.architecture = source["architecture"];
+	        this.goVersion = source["goVersion"];
+	        this.wailsVersion = source["wailsVersion"];
+	        this.configurationHealth = source["configurationHealth"];
+	        this.historyHealth = source["historyHealth"];
+	        this.storageSummary = source["storageSummary"];
+	        this.monitorCount = source["monitorCount"];
+	        this.states = source["states"];
+	        this.checks = source["checks"];
+	        this.openIncidents = source["openIncidents"];
+	        this.pendingDeliveries = source["pendingDeliveries"];
+	        this.probeConcurrency = source["probeConcurrency"];
+	        this.historyQueueLength = source["historyQueueLength"];
+	        this.historyQueueCapacity = source["historyQueueCapacity"];
+	    }
+	}
 	
 	export class VisualAlert {
 	    sequence: number;
