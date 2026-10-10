@@ -22,6 +22,9 @@ Initial goals:
 
 Additional probe types, maintenance windows, and advanced alert rules may follow.
 
+See the [implementation plan](docs/IMPLEMENTATION_PLAN.md) for architecture,
+delivery milestones, acceptance criteria, and the planned first release scope.
+
 ## Prerequisites
 
 - Go 1.25 or newer, as declared in `go.mod`.
