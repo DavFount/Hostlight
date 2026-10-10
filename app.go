@@ -16,15 +16,18 @@ import (
 
 // App struct
 type App struct {
-	ctx         context.Context
-	mu          sync.Mutex
-	targets     map[string]*monitor
-	next        uint64
-	configPath  string
-	configError string
-	slots       chan struct{}
-	dial        func(context.Context, string, time.Duration) (net.Conn, error)
-	ping        func(context.Context, string, time.Duration) (float64, error)
+	ctx          context.Context
+	mu           sync.Mutex
+	targets      map[string]*monitor
+	next         uint64
+	configPath   string
+	configError  string
+	slots        chan struct{}
+	dial         func(context.Context, string, time.Duration) (net.Conn, error)
+	ping         func(context.Context, string, time.Duration) (float64, error)
+	history      *incidentStore
+	historyError string
+	closing      bool
 }
 
 // NewApp creates a new App application struct
@@ -47,26 +50,58 @@ func NewApp() *App {
 // so we can call the runtime methods
 func (a *App) startup(ctx context.Context) {
 	a.ctx = ctx
+	if a.configPath != "" {
+		store, err := openIncidentStore(filepath.Join(filepath.Dir(a.configPath), "history.db"), time.Now())
+		if err != nil {
+			a.historyError = "History unavailable: " + err.Error()
+		} else {
+			a.history = store
+			go store.writer()
+		}
+	}
 	a.loadConfiguration()
 }
 
 func (a *App) shutdown(context.Context) {
 	a.mu.Lock()
-	defer a.mu.Unlock()
+	if a.closing {
+		a.mu.Unlock()
+		return
+	}
 	for _, m := range a.targets {
 		m.cancel()
+		a.recordHistoryLocked(m.target, "Monitoring stopped when Hostlight closed")
+	}
+	a.closing = true
+	store := a.history
+	if store != nil {
+		close(store.events)
+	}
+	a.mu.Unlock()
+	if store != nil {
+		select {
+		case <-store.done:
+			store.db.Close()
+		case <-time.After(5 * time.Second):
+			go func() { <-store.done; store.db.Close() }()
+		}
 	}
 }
 
 type ConfigurationStatus struct {
-	Path  string `json:"path"`
-	Error string `json:"error"`
+	Path         string `json:"path"`
+	Error        string `json:"error"`
+	HistoryError string `json:"historyError"`
 }
 
 func (a *App) GetConfigurationStatus() ConfigurationStatus {
 	a.mu.Lock()
 	defer a.mu.Unlock()
-	return ConfigurationStatus{a.configPath, a.configError}
+	historyError := a.historyError
+	if a.history != nil {
+		historyError = a.history.errorMessage()
+	}
+	return ConfigurationStatus{Path: a.configPath, Error: a.configError, HistoryError: historyError}
 }
 
 type Target struct {
@@ -167,6 +202,7 @@ func (a *App) saveTarget(t Target, resume bool) error {
 	}
 	if old != nil {
 		old.cancel()
+		a.recordHistoryLocked(old.target, "Monitor settings changed")
 	}
 	if t.State != "paused" {
 		go a.run(ctx, m, t)
@@ -193,6 +229,7 @@ func (a *App) DeleteTarget(id string) error {
 			return err
 		}
 		m.cancel()
+		a.recordHistoryLocked(m.target, "Monitor removed")
 	}
 	return nil
 }
@@ -208,6 +245,7 @@ func (a *App) PauseTarget(id string) error {
 			return err
 		}
 		m.cancel()
+		a.recordHistoryLocked(old, "Monitoring paused")
 	}
 	return nil
 }
@@ -248,7 +286,7 @@ func (a *App) run(ctx context.Context, m *monitor, t Target) {
 			return
 		}
 		a.mu.Lock()
-		if a.targets[t.ID] != m || m.target.State == "paused" {
+		if a.closing || a.targets[t.ID] != m || m.target.State == "paused" {
 			a.mu.Unlock()
 			return
 		}
@@ -276,6 +314,7 @@ func (a *App) run(ctx context.Context, m *monitor, t Target) {
 			m.target.Message = err.Error()
 			m.target.State = rules.apply(m.target.State, false)
 		}
+		a.recordHistoryLocked(m.target, "result")
 		a.mu.Unlock()
 		timer := time.NewTimer(time.Duration(t.Interval) * time.Second)
 		select {

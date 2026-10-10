@@ -6,16 +6,21 @@
   "scripts": {
     "dev": "vite",
     "build": "vue-tsc --noEmit && vite build",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "test": "vitest run",
+    "test:watch": "vitest"
   },
   "dependencies": {
     "vue": "^3.5.0"
   },
   "devDependencies": {
+    "@babel/types": "^7.26.0",
     "@vitejs/plugin-vue": "^6.0.0",
+    "@vue/test-utils": "^2.5.1",
+    "happy-dom": "^20.14.6",
     "typescript": "^5.6.3",
     "vite": "^7.0.0",
-    "vue-tsc": "^2.1.0",
-    "@babel/types": "^7.26.0"
+    "vitest": "^5.0.3",
+    "vue-tsc": "^2.1.0"
   }
 }

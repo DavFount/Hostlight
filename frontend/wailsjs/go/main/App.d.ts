@@ -6,7 +6,11 @@ export function AddBulk(arg1:string,arg2:main.Target):Promise<number>;
 
 export function DeleteTarget(arg1:string):Promise<void>;
 
+export function ExportIncidents(arg1:string,arg2:string,arg3:number):Promise<string>;
+
 export function GetConfigurationStatus():Promise<main.ConfigurationStatus>;
+
+export function GetIncidents(arg1:string,arg2:string,arg3:number,arg4:number):Promise<main.HistoryPage>;
 
 export function GetTargets():Promise<Array<main.Target>>;
 
@@ -17,5 +21,7 @@ export function PreviewBulk(arg1:string,arg2:main.Target):Promise<Array<main.Bul
 export function ResumeTarget(arg1:string):Promise<void>;
 
 export function SaveTarget(arg1:main.Target):Promise<void>;
+
+export function SetHistoryRetention(arg1:number):Promise<void>;
 
 export function SetTargetsPaused(arg1:Array<string>,arg2:boolean):Promise<void>;

@@ -10,8 +10,16 @@ export function DeleteTarget(arg1) {
   return window['go']['main']['App']['DeleteTarget'](arg1);
 }
 
+export function ExportIncidents(arg1, arg2, arg3) {
+  return window['go']['main']['App']['ExportIncidents'](arg1, arg2, arg3);
+}
+
 export function GetConfigurationStatus() {
   return window['go']['main']['App']['GetConfigurationStatus']();
+}
+
+export function GetIncidents(arg1, arg2, arg3, arg4) {
+  return window['go']['main']['App']['GetIncidents'](arg1, arg2, arg3, arg4);
 }
 
 export function GetTargets() {
@@ -32,6 +40,10 @@ export function ResumeTarget(arg1) {
 
 export function SaveTarget(arg1) {
   return window['go']['main']['App']['SaveTarget'](arg1);
+}
+
+export function SetHistoryRetention(arg1) {
+  return window['go']['main']['App']['SetHistoryRetention'](arg1);
 }
 
 export function SetTargetsPaused(arg1, arg2) {

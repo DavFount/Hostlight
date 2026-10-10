@@ -40,9 +40,43 @@ An ICMP timeout can mean a firewall blocks echo requests, even when a service is
 available. Ping measures echo round-trip time; TCP measures connection-attempt time.
 Windows native ping calls finish within the configured timeout; pause, edits, and
 shutdown discard their results even if the native request is still finishing.
-ICMP on macOS/Linux, incident/metric history, webhook alerts, and advanced platform
+ICMP on macOS/Linux, metric history/charts, webhook alerts, and advanced platform
 error handling are still planned.
 This preview is intended for development and evaluation.
+
+## Incident history
+
+Open **Incident history** to review outages, recovery, and interrupted monitoring.
+History is saved in `history.db` alongside `targets.json`, using SQLite with a
+versioned schema and a pure-Go driver. No separate database server is required.
+Only one desktop instance runs at a time to keep monitoring and storage ownership clear.
+
+- An incident opens when the configured failure threshold establishes unavailable status.
+- Recovery closes it only after the configured success threshold is met.
+- Pause, deletion, settings changes, local check errors, and shutdown interrupt
+  the incident at its last observation; they do not imply recovery.
+- A restart or long observation gap also interrupts the previous incident.
+  A gap means no results for more than the greater of 30 seconds or twice the
+  sum of the configured interval and timeout. A continued outage starts a new observed segment.
+- Durations measure the observed status period, not an SLA or proof of continuous
+  downtime. Initial failures before the failure threshold are not counted.
+
+Search by monitor, host, or group; filter by outcome and date range; and export
+matching records to CSV using the native save dialog. The grid shows 100 records
+per page; exports include all matching records up to 50,000, with UTC timestamps.
+CSV text is escaped to prevent spreadsheet formulas from being interpreted.
+
+Completed history defaults to 90 days. The history screen offers 7, 30, 90, and
+365 days; reducing retention requests confirmation before removing older completed
+incidents. Cleanup runs on startup, after retention changes, and hourly. Completed
+records are also bounded to approximately the most recent 50,000 records; active
+incidents are preserved. SQLite may reuse freed pages rather than shrink the file.
+
+History writes use a bounded background queue so disk operations do not block
+probe checks. Storage errors or queue overflow are shown in the application;
+history may be incomplete after such an error. Closing drains pending writes for
+up to five seconds. An abrupt exit can lose queued observations, and unfinished
+incidents are marked interrupted on the next start.
 
 Initial goals:
 
@@ -60,7 +94,7 @@ delivery milestones, acceptance criteria, and the planned first release scope.
 
 ## Prerequisites
 
-- Go 1.25 or newer, as declared in `go.mod`.
+- Go 1.26 or newer, as declared in `go.mod` (required by the SQLite driver).
 - Node.js 24 LTS and npm (the configured frontend package manager).
 - Wails v2 CLI; use the version required by `go.mod`.
 - Git.
@@ -118,6 +152,7 @@ Type-check and build the frontend:
 ```powershell
 cd frontend
 npm run build
+npm test
 ```
 
 Backend tests cover local TCP connectivity, failure and recovery thresholds,
@@ -127,6 +162,9 @@ type-specific validation, legacy configuration compatibility, error classificati
 and native Windows IPv4/IPv6 localhost replies.
 Bulk-operation tests cover previews, duplicate detection, limits, persistence,
 stale selections, and rollback when a group change or batch cannot be saved.
+History tests cover schema initialization, outage/recovery, monitoring gaps,
+restart interruption, retention, filters, queue overflow, and CSV formatting.
+Vue component tests verify history presentation, paging, export, and retention controls.
 
 ## Project layout
 

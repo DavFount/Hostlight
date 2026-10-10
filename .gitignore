@@ -9,6 +9,7 @@ node_modules/
 !/frontend/dist/gitkeep
 !/frontend/dist/.gitkeep
 *.tsbuildinfo
+/frontend/coverage/
 .vite/
 
 # Go test and coverage output

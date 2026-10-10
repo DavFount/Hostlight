@@ -69,6 +69,7 @@ func storedApp(t *testing.T, path string) *App {
 	ctx, cancel := context.WithCancel(context.Background())
 	cancel()
 	a.startup(ctx)
+	t.Cleanup(func() { a.shutdown(context.Background()) })
 	return a
 }
 

@@ -25,9 +25,10 @@ func main() {
 		AssetServer: &assetserver.Options{
 			Assets: assets,
 		},
-		BackgroundColour: &options.RGBA{R: 27, G: 38, B: 54, A: 1},
-		OnStartup:        app.startup,
-		OnShutdown:       app.shutdown,
+		BackgroundColour:   &options.RGBA{R: 27, G: 38, B: 54, A: 1},
+		OnStartup:          app.startup,
+		OnShutdown:         app.shutdown,
+		SingleInstanceLock: &options.SingleInstanceLock{UniqueId: "hostlight-desktop-91be6b13-35d0-4f18-aad5-402d19b3aa49"},
 		Bind: []interface{}{
 			app,
 		},

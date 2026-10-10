@@ -7,9 +7,15 @@ group filtering and transactional pause/resume apply to the shown monitors. The
 milestones below remain the full release acceptance checklist.
 
 Implementation note: target settings currently use an atomically replaced, versioned
-JSON file in the OS user configuration directory. SQLite is still planned for
-incident and sample history. This keeps configuration readable and separate from
+JSON file in the OS user configuration directory. SQLite now stores incident history;
+sample history and charts remain planned. This keeps configuration readable and separate from
 high-volume monitoring data. Existing settings must remain importable when storage evolves.
+
+Incident history implementation: `modernc.org/sqlite` supplies a pure-Go driver,
+with schema version 1, a background writer, paged queries, CSV export, and configurable
+retention. Go 1.26 is now the minimum version. Outages are segmented at pauses,
+edits, deletion, errors, shutdown/restart, and long observation gaps; interrupted
+records end at the last observation. Writes are bounded and errors are visible.
 
 This document is the working implementation plan. Check off milestones only when
 their acceptance criteria are met, and update decisions as implementation supplies
