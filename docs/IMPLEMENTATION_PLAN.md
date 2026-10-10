@@ -158,7 +158,9 @@ UI detects a gap. Bound frontend logs and chart buffers.
 - [x] Verify frontend production/type-check build and Windows desktop build.
 - [ ] Complete a recorded `wails dev` desktop smoke test (startup, bindings, shutdown).
 - [x] Establish Go formatting, Go tests/vet, and frontend component tests/type checks.
-- [ ] Add basic CI for these checks and the supported Windows build.
+- [x] Add Windows GitHub Actions and a shared fail-fast local verification script
+  for formatting, Go tests/vet, package helper tests, frontend tests/build, and Wails build.
+- [ ] Record the first successful hosted CI run after pushing the workflows.
 - [x] Implement native Windows IP Helper ICMP and document the choice in README.
 - [x] Test cancellation, DNS/address selection, IPv4/IPv6 localhost, and error classification.
 - [ ] Record standard-user and adapter/permission failure checks on Windows.
@@ -324,7 +326,12 @@ continues when minimized. Closing behavior is explicit and platform-tested.
 - [ ] Benchmark an initial 200-target workload at one-second intervals on a recorded
   Windows reference machine; measure CPU, memory, scheduling delay, and UI responsiveness.
 - [ ] Run an extended soak and verify retention, queue bounds, and cleanup.
-- [ ] Produce release artifacts, version metadata, checksums, and release notes.
+- [x] Add manual-dispatch release automation: tested Windows ZIP, embedded version,
+  SHA-256 checksums, draft-first upload/publication, and GitHub-created tags without
+  local tag/push commands. Default to prerelease; never overwrite existing versions.
+- [ ] Verify the first hosted publication and downloaded release artifacts.
+- [ ] Add an installer, curated release notes, and code signing before declaring
+  the final distribution experience complete.
 - [ ] Verify fresh-machine startup, WebView2 requirements, upgrade, and uninstall behavior.
 - [ ] Decide distribution format and code-signing approach before public release.
 - [ ] Document supported platforms, configuration location, limits, and known issues.
@@ -366,7 +373,11 @@ Prioritize these using actual usage after the first release:
    (per-monitor timed silences and one-time windows are already implemented).
 4. Route diagnostics and MTR-style monitoring.
 5. Saved views, advanced tables, comparison charts, and customizable layouts.
-6. A shared-core CLI/headless runner with clear process ownership and local IPC.
+6. Release 2: optional Windows service using a shared core and secured local IPC;
+   keep standalone mode. Service owns probes/history/webhooks and the GUI attaches
+   without starting a second engine. Include boot startup, RMM health/heartbeat,
+   installation IDs for ticket correlation, and explicit service-account credential
+   provisioning. No service execution or account migration is part of release 1.
 7. Verified macOS/Linux packages and platform-specific probe/credential adapters.
 8. Signed automatic updates with rollback/recovery behavior.
 
@@ -385,7 +396,7 @@ slice extends the original first-release scope by explicit user direction.
 ## Verification strategy
 
 Latest completed implementation-slice checks (2026-10-10): `go test ./...`,
-`go vet ./...`, 62 frontend tests, frontend production/type-check build, and
+`go vet ./...`, 79 frontend tests, frontend production/type-check build, and
 `wails build` passed. This is a development verification record, not completion
 of milestone 6. The checklist reconciliation itself changes documentation only;
 it does not establish new manual desktop, standard-user, or load-test evidence.

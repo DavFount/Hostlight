@@ -13,6 +13,8 @@ import (
 	wruntime "github.com/wailsapp/wails/v2/pkg/runtime"
 )
 
+var applicationVersion = "early preview"
+
 // Deliberately separate from Target/configuration: never serialize user strings,
 // paths, raw errors, destinations, delivery payloads, or environment variables.
 type SupportReport struct {
@@ -38,7 +40,7 @@ type SupportReport struct {
 }
 
 func (a *App) GetSupportReport() SupportReport {
-	r := SupportReport{Format: "hostlight-diagnostics", Version: 1, Created: time.Now().UTC().Format(time.RFC3339), Release: "early preview", OS: runtime.GOOS, Architecture: runtime.GOARCH, GoVersion: runtime.Version(), WailsVersion: "unavailable", ConfigurationHealth: "ready", HistoryHealth: "unavailable", StorageSummary: "unavailable", States: map[string]int{}, Checks: map[string]int{}}
+	r := SupportReport{Format: "hostlight-diagnostics", Version: 1, Created: time.Now().UTC().Format(time.RFC3339), Release: applicationVersion, OS: runtime.GOOS, Architecture: runtime.GOARCH, GoVersion: runtime.Version(), WailsVersion: "unavailable", ConfigurationHealth: "ready", HistoryHealth: "unavailable", StorageSummary: "unavailable", States: map[string]int{}, Checks: map[string]int{}}
 	if info, ok := debug.ReadBuildInfo(); ok {
 		for _, d := range info.Deps {
 			if d.Path == "github.com/wailsapp/wails/v2" {
