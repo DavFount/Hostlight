@@ -363,6 +363,9 @@ export namespace main {
 	    name: string;
 	    event: string;
 	    time: string;
+	    host: string;
+	    reason: string;
+	    durationSeconds: number;
 	
 	    static createFrom(source: any = {}) {
 	        return new VisualAlert(source);
@@ -374,6 +377,9 @@ export namespace main {
 	        this.name = source["name"];
 	        this.event = source["event"];
 	        this.time = source["time"];
+	        this.host = source["host"];
+	        this.reason = source["reason"];
+	        this.durationSeconds = source["durationSeconds"];
 	    }
 	}
 	export class VisualAlertPage {

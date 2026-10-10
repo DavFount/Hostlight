@@ -271,6 +271,8 @@ Tests cover retries, restart recovery, timeouts, redaction, and terminal failure
 - [x] Add session-only in-app outage/recovery popups with four corner positions,
   persisted enable/duration controls, preview, dismissal, and bounded transition feed.
   Respect maintenance/snoozing; suppress initial discovery and orphan recoveries.
+- [x] Include monitor name, host, and check failure reason in outage popups;
+  include observed outage duration (excluding pauses) in recovery popups.
 - [ ] Manually verify in-app popups in both themes, persistent dismissal, timing,
   pause/resume recovery, and silence windows using the running Wails application.
 - [ ] Add polished outage/recovery visual notifications with configurable screen

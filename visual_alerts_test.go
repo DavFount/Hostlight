@@ -8,7 +8,7 @@ import (
 func TestVisualAlertsTransitions(t *testing.T) {
 	s := historyFixture(t)
 	a := &App{history: s}
-	target := Target{ID: "visual", Name: "Router", State: "down", Interval: 5, Timeout: 3}
+	target := Target{ID: "visual", Name: "Router", Host: "192.0.2.10", Message: "TCP connection refused on port 443", State: "down", Interval: 5, Timeout: 3}
 	at := time.Now()
 	apply := func(state, previous string) {
 		t.Helper()
@@ -27,6 +27,9 @@ func TestVisualAlertsTransitions(t *testing.T) {
 	apply("down", "down")
 	apply("up", "down")
 	page := a.GetVisualAlerts(0, false)
+	if len(page.Items) == 2 && (page.Items[0].Host != target.Host || page.Items[0].Reason != target.Message || page.Items[1].DurationSeconds != 2) {
+		t.Fatalf("alert details: %+v", page)
+	}
 	if len(page.Items) != 2 || page.Items[0].Event != "down" || page.Items[1].Event != "up" {
 		t.Fatalf("transitions: %+v", page)
 	}
@@ -59,6 +62,9 @@ func TestVisualAlertsPauseRetainsRecovery(t *testing.T) {
 	page := a.GetVisualAlerts(0, false)
 	if len(page.Items) != 2 || page.Items[1].Event != "up" {
 		t.Fatalf("pause recovery: %+v", page)
+	}
+	if page.Items[1].DurationSeconds != 1 {
+		t.Fatalf("paused time included: %+v", page.Items[1])
 	}
 }
 

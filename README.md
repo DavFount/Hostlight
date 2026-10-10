@@ -7,6 +7,9 @@ Choose any corner, 5/10/30/60-second dismissal, or **Until dismissed**. Controls
 are saved locally; use **Preview popup** to check positioning. These popups appear
 inside Hostlight only—not over other applications or while it is minimized.
 Native desktop overlays and OS notifications remain planned.
+Outage popups include the monitor name, host/address, and the actual check failure
+reason (including HTTP or certificate-policy failures). Recovery popups include
+the monitor name, host/address, and observed outage duration, excluding paused time.
 
 Popups follow confirmed incident transitions, not individual failed checks. Initial
 discovery is silent. Snoozing and maintenance suppress popups without replay, and
