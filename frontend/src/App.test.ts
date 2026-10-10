@@ -1,6 +1,7 @@
 import {afterEach,beforeEach,describe,expect,it,vi} from 'vitest'
 import {flushPromises,mount,type VueWrapper} from '@vue/test-utils'
 import App from './App.vue'
+import hostlightLogo from './assets/hostlight.svg'
 const target={id:'1',name:'Gateway',host:'192.0.2.1',group:'Office',type:'icmp',port:0,interval:5,timeout:3,failures:3,recovery:2,state:'down',latency:0,message:'Request timed out',checked:'2026-10-09T12:00:00Z'}
 const silence={id:'window-1',targetId:'1',kind:'maintenance',starts:'2026-10-09T11:00:00Z',ends:'2026-10-09T14:00:00Z',reason:'Planned upgrade'}
 const api={GetTargets:vi.fn(),GetConfigurationStatus:vi.fn(),GetAlertSilences:vi.fn()}
@@ -8,6 +9,7 @@ let wrapper:VueWrapper
 beforeEach(()=>{vi.clearAllMocks();vi.useFakeTimers({toFake:['Date']});vi.setSystemTime(new Date('2026-10-09T12:00:00Z'));api.GetTargets.mockResolvedValue([target]);api.GetConfigurationStatus.mockResolvedValue({path:'',error:'',historyError:''});api.GetAlertSilences.mockResolvedValue([silence]);Object.assign(window,{go:{main:{App:api}}})})
 afterEach(()=>{wrapper?.unmount();vi.useRealTimers()})
 describe('monitor alert controls',()=>{
+ it('shows the Hostlight vector mark beside its accessible brand name',async()=>{wrapper=mount(App);await flushPromises();expect(wrapper.find('.brand').text()).toContain('Hostlight');expect(wrapper.find('.brand img').attributes('src')).toBe(hostlightLogo);expect(wrapper.find('.brand img').attributes('alt')).toBe('')})
  it('hides failed TCP latency and explains elapsed failure time even before down threshold',async()=>{api.GetTargets.mockResolvedValue([{...target,type:'tcp',port:443,state:'up',latency:12.9,message:'Connection refused'}]);wrapper=mount(App);await flushPromises();expect(wrapper.find('.reading strong').text()).toBe('—');expect(wrapper.find('.diagnostic').text()).toContain('failed after 12.9 ms');expect(wrapper.find('.state').text()).toContain('Available')})
  it('shows successful TCP latency while recovery evidence is still pending',async()=>{api.GetTargets.mockResolvedValue([{...target,type:'tcp',port:443,latency:25.2,message:'TCP connection successful'}]);wrapper=mount(App);await flushPromises();expect(wrapper.find('.reading strong').text()).toBe('25.2');expect(wrapper.find('.reading small').text()).toContain('last successful connection')})
  it('styles active silencing as a warning but not upcoming maintenance',async()=>{wrapper=mount(App);await flushPromises();expect(wrapper.find('.silence-badge').classes()).toContain('active');wrapper.unmount();api.GetAlertSilences.mockResolvedValue([{...silence,starts:'2026-10-09T13:00:00Z'}]);wrapper=mount(App);await flushPromises();expect(wrapper.find('.silence-badge').classes()).not.toContain('active')})

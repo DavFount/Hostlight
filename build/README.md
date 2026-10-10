@@ -20,7 +20,26 @@ The directory contains the following files:
 - `Info.plist` - the main plist file used for Mac builds. It is used when building using `wails build`.
 - `Info.dev.plist` - same as the main plist file but used when building using `wails dev`.
 
-## Windows
+## Hostlight brand assets
+
+The editable master is `frontend/src/assets/hostlight.svg`: a mint H with an
+illuminated status dot on a dark rounded tile. The sidebar and browser favicon
+use this SVG directly. The mark stays the same for available/unavailable states;
+monitor colors communicate health separately.
+
+Run `powershell -NoProfile -File build/generate-icons.ps1` from the project root
+after changing the master. The dependency-free Windows script reads its rectangle
+and circle geometry and generates `build/appicon.png` (1024px) and
+`build/windows/icon.ico` (16, 20, 24, 32, 40, 48, 64, 128, and 256px PNG frames).
+Keep the SVG to the supported rect/circle geometry or extend the renderer when
+introducing other primitives. Commit the source, script, PNG, and ICO together.
+
+Wails embeds the ICO in the Windows executable, supplying the window, taskbar,
+Alt-Tab, and Explorer icon. Restart `wails dev` or rebuild to pick up icon-resource
+changes; a frontend hot reload alone cannot replace an executable icon. Windows
+may retain an old pinned shortcut's icon until it is unpinned and pinned again.
+
+## Windows build resources
 
 The `windows` directory contains the manifest and rc files used when building with `wails build`.
 These may be customised for your application. To return these files to the default state, simply delete them and

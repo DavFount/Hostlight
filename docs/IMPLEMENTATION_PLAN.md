@@ -260,6 +260,7 @@ Tests cover retries, restart recovery, timeouts, redaction, and terminal failure
 ## Milestone 5 — Desktop workflow and configuration portability
 
 - [x] Add saved dark-default/light themes and card-density preferences.
+- [x] Add a consistent vector Hostlight logo, sidebar/favicon branding, and generated multi-resolution Windows executable icons.
 - [x] Add search/status/group filters and transactional bulk actions.
 - [x] Make compact cards meaningfully denser and active silencing visibly amber in both themes.
 - [x] Clarify skipped/invalid import rows, singular labels, and failed TCP timing.
@@ -334,7 +335,7 @@ features is implemented yet; they remain outside the first-release checklist abo
 ## Verification strategy
 
 Latest completed implementation-slice checks (2026-10-10): `go test ./...`,
-`go vet ./...`, 39 frontend tests, frontend production/type-check build, and
+`go vet ./...`, 40 frontend tests, frontend production/type-check build, and
 `wails build` passed. This is a development verification record, not completion
 of milestone 6. The checklist reconciliation itself changes documentation only;
 it does not establish new manual desktop, standard-user, or load-test evidence.
