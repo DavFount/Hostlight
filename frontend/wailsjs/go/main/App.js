@@ -50,6 +50,10 @@ export function GetConfigurationStatus() {
   return window['go']['main']['App']['GetConfigurationStatus']();
 }
 
+export function GetDesktopStatus() {
+  return window['go']['main']['App']['GetDesktopStatus']();
+}
+
 export function GetIncidents(arg1, arg2, arg3, arg4) {
   return window['go']['main']['App']['GetIncidents'](arg1, arg2, arg3, arg4);
 }
@@ -78,12 +82,20 @@ export function GetWebhookSettings() {
   return window['go']['main']['App']['GetWebhookSettings']();
 }
 
+export function HideHostlight() {
+  return window['go']['main']['App']['HideHostlight']();
+}
+
 export function PauseTarget(arg1) {
   return window['go']['main']['App']['PauseTarget'](arg1);
 }
 
 export function PreviewBulk(arg1, arg2) {
   return window['go']['main']['App']['PreviewBulk'](arg1, arg2);
+}
+
+export function QuitHostlight() {
+  return window['go']['main']['App']['QuitHostlight']();
 }
 
 export function ResumeTarget(arg1) {
@@ -106,12 +118,20 @@ export function ScheduleTargetMaintenance(arg1, arg2, arg3, arg4) {
   return window['go']['main']['App']['ScheduleTargetMaintenance'](arg1, arg2, arg3, arg4);
 }
 
+export function SetCloseToTray(arg1) {
+  return window['go']['main']['App']['SetCloseToTray'](arg1);
+}
+
 export function SetHistoryRetention(arg1) {
   return window['go']['main']['App']['SetHistoryRetention'](arg1);
 }
 
 export function SetTargetsPaused(arg1, arg2) {
   return window['go']['main']['App']['SetTargetsPaused'](arg1, arg2);
+}
+
+export function ShowHostlight() {
+  return window['go']['main']['App']['ShowHostlight']();
 }
 
 export function SnoozeTargetAlerts(arg1, arg2, arg3) {

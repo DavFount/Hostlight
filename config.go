@@ -11,9 +11,10 @@ import (
 
 // Configuration contains definitions only. Live results are never restored as evidence.
 type configuration struct {
-	Version int           `json:"version"`
-	NextID  uint64        `json:"nextId,omitempty"`
-	Targets []savedTarget `json:"targets"`
+	CloseToTray bool          `json:"closeToTray,omitempty"`
+	Version     int           `json:"version"`
+	NextID      uint64        `json:"nextId,omitempty"`
+	Targets     []savedTarget `json:"targets"`
 }
 type savedTarget struct {
 	Target Target `json:"target"`
@@ -27,7 +28,7 @@ func (a *App) persistLocked() error {
 	if a.configPath == "" {
 		return nil
 	} // In-memory fixtures.
-	cfg := configuration{Version: 4, NextID: a.next, Targets: make([]savedTarget, 0, len(a.targets))}
+	cfg := configuration{Version: 4, NextID: a.next, CloseToTray: a.desktop.closeToTray, Targets: make([]savedTarget, 0, len(a.targets))}
 	for _, m := range a.targets {
 		t := m.target
 		paused := t.State == "paused"
@@ -108,6 +109,7 @@ func (a *App) loadConfiguration() {
 			a.next = id
 		}
 	}
+	a.desktop.closeToTray = cfg.CloseToTray
 	for _, s := range cfg.Targets {
 		t := s.Target
 		if t.Type == "" {

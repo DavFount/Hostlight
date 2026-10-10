@@ -31,6 +31,7 @@ type App struct {
 	closing       bool
 	alertCancel   context.CancelFunc
 	alertDone     chan struct{}
+	desktop       desktopState
 }
 
 // NewApp creates a new App application struct
@@ -80,11 +81,15 @@ func (a *App) shutdown(context.Context) {
 		a.recordHistoryLocked(m.target, "Monitoring stopped when Hostlight closed")
 	}
 	a.closing = true
+	tray := a.desktop.tray
 	store := a.history
 	if store != nil {
 		close(store.events)
 	}
 	a.mu.Unlock()
+	if tray != nil {
+		tray.Close()
+	}
 	if a.alertCancel != nil {
 		a.alertCancel()
 		<-a.alertDone

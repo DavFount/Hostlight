@@ -163,7 +163,8 @@ UI detects a gap. Bound frontend logs and chart buffers.
 - [x] Test cancellation, DNS/address selection, IPv4/IPv6 localhost, and error classification.
 - [ ] Record standard-user and adapter/permission failure checks on Windows.
 - [x] Select pure-Go `modernc.org/sqlite` with versioned transactional migrations.
-- [ ] Investigate tray integration if required; document Wails v2/platform limitations.
+- [x] Verify native Windows tray feasibility with Shell_NotifyIcon and a dedicated
+  message-pump thread, Wails OnBeforeClose, and explicit Quit lifecycle handling.
 
 Acceptance: the starter builds reproducibly and a small probe prototype reports
 success, timeout, and local errors correctly without requiring elevation by default.
@@ -284,7 +285,12 @@ Tests cover retries, restart recovery, timeouts, redaction, and terminal failure
   position, auto-close duration, and a persistent-until-dismissed option. Keep
   notification health/initial-discovery semantics aligned with webhook transitions;
   investigate desktop overlay feasibility rather than claiming background popups work.
-- [ ] Implement tested tray behavior if the platform spike supports it.
+- [x] Implement Windows tray Show/Quit controls, explicit hide, persisted opt-in
+  close-to-tray, single-instance restore, icon availability fallback, and cleanup.
+  Native smoke covers add/remove, activation, and icon-loss recovery without
+  restarting Explorer. Other platforms retain ordinary close-to-exit behavior.
+- [ ] Manually verify Wails close/hide/restore, checks and webhook delivery while
+  hidden, second-launch restore, real Explorer restart, and explicit quit cleanup.
 - [x] Add versioned monitor configuration import/export with preview and validation.
 - [x] Exclude credentials and live history from configuration exports by default.
 - [ ] Offer explicit portable mode with writable-path checks and clear credential behavior.

@@ -1,5 +1,29 @@
 # Hostlight
 
+### Windows tray behavior
+
+Hostlight adds its icon to the Windows notification area while running (Windows
+may put it in the overflow area). Click it to show the window, or right-click for
+**Show Hostlight** and **Quit Hostlight (stop monitoring)**.
+
+In the sidebar, expand **Desktop behavior** to enable **Close to tray**. It is off
+by default: closing normally quits. When enabled, the window’s close button hides
+it and checks, incident recording, and webhook delivery continue. **Hide to tray**
+works without changing the close preference. Use **Quit Hostlight** to stop the
+app; the sidebar quit button asks for confirmation. Launching Hostlight again
+restores the existing instance rather than starting another monitor engine.
+
+The preference is saved with local settings, not monitor backups. Close-to-tray
+only hides while a reachable tray icon is available. If the icon disappears,
+Hostlight attempts to restore the window and re-add the icon. The native icon
+health check runs every five seconds. If tray setup fails, closing still quits.
+There is no start-hidden, login startup, service mode, or desktop-overlay alert
+behavior in this slice. In-app popups are not visible while hidden; use webhooks
+for unattended alerts. Other platforms do not yet have tray integration.
+
+Implementation references: [Wails lifecycle options](https://v2.wails.io/docs/reference/options/)
+and [Microsoft notification-area APIs](https://learn.microsoft.com/en-us/windows/win32/api/shellapi/nf-shellapi-shell_notifyicona).
+
 ### Support and diagnostics
 
 Open **Support** for platform/runtime information, component health, aggregate

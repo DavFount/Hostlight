@@ -27,8 +27,10 @@ func main() {
 		},
 		BackgroundColour:   &options.RGBA{R: 27, G: 38, B: 54, A: 1},
 		OnStartup:          app.startup,
+		OnDomReady:         app.desktopReady,
+		OnBeforeClose:      app.beforeClose,
 		OnShutdown:         app.shutdown,
-		SingleInstanceLock: &options.SingleInstanceLock{UniqueId: "hostlight-desktop-91be6b13-35d0-4f18-aad5-402d19b3aa49"},
+		SingleInstanceLock: &options.SingleInstanceLock{UniqueId: "hostlight-desktop-91be6b13-35d0-4f18-aad5-402d19b3aa49", OnSecondInstanceLaunch: func(options.SecondInstanceData) { app.ShowHostlight() }},
 		Bind: []interface{}{
 			app,
 		},

@@ -124,6 +124,22 @@ export namespace main {
 	        this.historyError = source["historyError"];
 	    }
 	}
+	export class DesktopStatus {
+	    supported: boolean;
+	    available: boolean;
+	    closeToTray: boolean;
+	
+	    static createFrom(source: any = {}) {
+	        return new DesktopStatus(source);
+	    }
+	
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.supported = source["supported"];
+	        this.available = source["available"];
+	        this.closeToTray = source["closeToTray"];
+	    }
+	}
 	export class HTTPProbeResult {
 	    success: boolean;
 	    statusCode: number;

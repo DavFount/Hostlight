@@ -1,0 +1,10 @@
+import {afterEach,describe,expect,it,vi} from 'vitest'
+import {flushPromises,mount} from '@vue/test-utils'
+import DesktopControls from './DesktopControls.vue'
+const status={supported:true,available:true,closeToTray:false}
+afterEach(()=>{delete (window as any).go})
+describe('desktop controls',()=>{
+ it('saves close preference and requires confirmation before quitting',async()=>{const save=vi.fn().mockResolvedValue(undefined),quit=vi.fn().mockResolvedValue(undefined);(window as any).go={main:{App:{GetDesktopStatus:vi.fn().mockResolvedValue(status),SetCloseToTray:save,QuitHostlight:quit}}};const w=mount(DesktopControls);await flushPromises();await w.get('input').setValue(true);await flushPromises();expect(save).toHaveBeenCalledWith(true);expect((w.get('input').element as HTMLInputElement).checked).toBe(true);await w.findAll('button').find(b=>b.text()==='Quit Hostlight')!.trigger('click');expect(quit).not.toHaveBeenCalled();await w.findAll('button').find(b=>b.text()==='Confirm quit')!.trigger('click');expect(quit).toHaveBeenCalledOnce();w.unmount()})
+ it('disables hiding without a tray but allows turning off a restored preference',async()=>{(window as any).go={main:{App:{GetDesktopStatus:vi.fn().mockResolvedValue({...status,available:false,closeToTray:true})}}};const w=mount(DesktopControls);await flushPromises();expect(w.findAll('button')[0]!.attributes('disabled')).toBeDefined();expect(w.get('input').attributes('disabled')).toBeUndefined();expect(w.text()).toContain('closing quits');w.unmount()})
+ it('preserves displayed preference when saving fails',async()=>{(window as any).go={main:{App:{GetDesktopStatus:vi.fn().mockResolvedValue(status),SetCloseToTray:vi.fn().mockRejectedValue('PRIVATE')}}};const w=mount(DesktopControls);await flushPromises();await w.get('input').setValue(true);await flushPromises();expect((w.get('input').element as HTMLInputElement).checked).toBe(false);expect(w.get('[role="alert"]').text()).toContain('Unable to save');expect(w.text()).not.toContain('PRIVATE');w.unmount()})
+})

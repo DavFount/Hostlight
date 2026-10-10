@@ -26,6 +26,8 @@ export function GetAlertSilences():Promise<Array<main.AlertSilence>>;
 
 export function GetConfigurationStatus():Promise<main.ConfigurationStatus>;
 
+export function GetDesktopStatus():Promise<main.DesktopStatus>;
+
 export function GetIncidents(arg1:string,arg2:string,arg3:number,arg4:number):Promise<main.HistoryPage>;
 
 export function GetSupportReport():Promise<main.SupportReport>;
@@ -40,9 +42,13 @@ export function GetWebhookDestinations():Promise<Array<main.WebhookSettings>>;
 
 export function GetWebhookSettings():Promise<main.WebhookSettings>;
 
+export function HideHostlight():Promise<void>;
+
 export function PauseTarget(arg1:string):Promise<void>;
 
 export function PreviewBulk(arg1:string,arg2:main.Target):Promise<Array<main.BulkRow>>;
+
+export function QuitHostlight():Promise<void>;
 
 export function ResumeTarget(arg1:string):Promise<void>;
 
@@ -54,9 +60,13 @@ export function SaveWebhookSettings(arg1:main.WebhookSettings):Promise<void>;
 
 export function ScheduleTargetMaintenance(arg1:string,arg2:string,arg3:string,arg4:string):Promise<void>;
 
+export function SetCloseToTray(arg1:boolean):Promise<void>;
+
 export function SetHistoryRetention(arg1:number):Promise<void>;
 
 export function SetTargetsPaused(arg1:Array<string>,arg2:boolean):Promise<void>;
+
+export function ShowHostlight():Promise<void>;
 
 export function SnoozeTargetAlerts(arg1:string,arg2:number,arg3:string):Promise<void>;
 
