@@ -6,11 +6,19 @@ export function AddBulk(arg1:string,arg2:main.Target):Promise<number>;
 
 export function CancelAlertSilence(arg1:string):Promise<void>;
 
+export function ChooseMonitorImport():Promise<main.MonitorImportPreview>;
+
+export function CommitMonitorImport(arg1:string,arg2:boolean):Promise<main.MonitorImportResult>;
+
 export function DeleteTarget(arg1:string):Promise<void>;
 
 export function DeleteWebhookDestination(arg1:string):Promise<void>;
 
+export function DismissMonitorImport(arg1:string):Promise<void>;
+
 export function ExportIncidents(arg1:string,arg2:string,arg3:number):Promise<string>;
+
+export function ExportMonitorBackup():Promise<string>;
 
 export function GetAlertSilences():Promise<Array<main.AlertSilence>>;
 

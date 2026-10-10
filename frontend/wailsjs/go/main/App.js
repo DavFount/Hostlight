@@ -10,6 +10,14 @@ export function CancelAlertSilence(arg1) {
   return window['go']['main']['App']['CancelAlertSilence'](arg1);
 }
 
+export function ChooseMonitorImport() {
+  return window['go']['main']['App']['ChooseMonitorImport']();
+}
+
+export function CommitMonitorImport(arg1, arg2) {
+  return window['go']['main']['App']['CommitMonitorImport'](arg1, arg2);
+}
+
 export function DeleteTarget(arg1) {
   return window['go']['main']['App']['DeleteTarget'](arg1);
 }
@@ -18,8 +26,16 @@ export function DeleteWebhookDestination(arg1) {
   return window['go']['main']['App']['DeleteWebhookDestination'](arg1);
 }
 
+export function DismissMonitorImport(arg1) {
+  return window['go']['main']['App']['DismissMonitorImport'](arg1);
+}
+
 export function ExportIncidents(arg1, arg2, arg3) {
   return window['go']['main']['App']['ExportIncidents'](arg1, arg2, arg3);
+}
+
+export function ExportMonitorBackup() {
+  return window['go']['main']['App']['ExportMonitorBackup']();
 }
 
 export function GetAlertSilences() {

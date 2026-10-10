@@ -185,6 +185,130 @@ export namespace main {
 		}
 	}
 	
+	export class PortableMonitor {
+	    name: string;
+	    host: string;
+	    type: string;
+	    port: number;
+	    group: string;
+	    interval: number;
+	    timeout: number;
+	    failures: number;
+	    recovery: number;
+	    paused: boolean;
+	
+	    static createFrom(source: any = {}) {
+	        return new PortableMonitor(source);
+	    }
+	
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.name = source["name"];
+	        this.host = source["host"];
+	        this.type = source["type"];
+	        this.port = source["port"];
+	        this.group = source["group"];
+	        this.interval = source["interval"];
+	        this.timeout = source["timeout"];
+	        this.failures = source["failures"];
+	        this.recovery = source["recovery"];
+	        this.paused = source["paused"];
+	    }
+	}
+	export class MonitorImportRow {
+	    row: number;
+	    monitor: PortableMonitor;
+	    status: string;
+	    detail: string;
+	
+	    static createFrom(source: any = {}) {
+	        return new MonitorImportRow(source);
+	    }
+	
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.row = source["row"];
+	        this.monitor = this.convertValues(source["monitor"], PortableMonitor);
+	        this.status = source["status"];
+	        this.detail = source["detail"];
+	    }
+	
+		convertValues(a: any, classs: any, asMap: boolean = false): any {
+		    if (!a) {
+		        return a;
+		    }
+		    if (a.slice && a.map) {
+		        return (a as any[]).map(elem => this.convertValues(elem, classs));
+		    } else if ("object" === typeof a) {
+		        if (asMap) {
+		            for (const key of Object.keys(a)) {
+		                a[key] = new classs(a[key]);
+		            }
+		            return a;
+		        }
+		        return new classs(a);
+		    }
+		    return a;
+		}
+	}
+	export class MonitorImportPreview {
+	    token: string;
+	    source: string;
+	    rows: MonitorImportRow[];
+	    ready: number;
+	    skipped: number;
+	    invalid: number;
+	
+	    static createFrom(source: any = {}) {
+	        return new MonitorImportPreview(source);
+	    }
+	
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.token = source["token"];
+	        this.source = source["source"];
+	        this.rows = this.convertValues(source["rows"], MonitorImportRow);
+	        this.ready = source["ready"];
+	        this.skipped = source["skipped"];
+	        this.invalid = source["invalid"];
+	    }
+	
+		convertValues(a: any, classs: any, asMap: boolean = false): any {
+		    if (!a) {
+		        return a;
+		    }
+		    if (a.slice && a.map) {
+		        return (a as any[]).map(elem => this.convertValues(elem, classs));
+		    } else if ("object" === typeof a) {
+		        if (asMap) {
+		            for (const key of Object.keys(a)) {
+		                a[key] = new classs(a[key]);
+		            }
+		            return a;
+		        }
+		        return new classs(a);
+		    }
+		    return a;
+		}
+	}
+	export class MonitorImportResult {
+	    added: number;
+	    skipped: number;
+	    paused: number;
+	
+	    static createFrom(source: any = {}) {
+	        return new MonitorImportResult(source);
+	    }
+	
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.added = source["added"];
+	        this.skipped = source["skipped"];
+	        this.paused = source["paused"];
+	    }
+	}
+	
+	
 	
 	export class WebhookDelivery {
 	    destinationId: string;

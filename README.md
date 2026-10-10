@@ -179,6 +179,41 @@ and retries still respect the interval. Up to 50 active/upcoming windows per
 monitor and 10,000 total are supported. Reasons are ordinary operational metadata,
 not encrypted secrets; do not put passwords or tokens in them.
 
+## Monitor backups and import
+
+Open **Monitor backups** to export monitor definitions to a versioned JSON backup,
+or choose an exported backup to review before importing. This is a monitor-only
+backup, not a complete workspace or a copy of the internal `targets.json` format.
+
+Included: names, hosts, groups, ICMP/TCP settings, timing/threshold rules, and source
+pause preferences. Excluded: monitor IDs, live results, webhook destinations and
+credentials, maintenance windows, incident/delivery history, and appearance settings.
+The file still contains internal hostnames/IP addresses; store and share it accordingly.
+
+Import is add-only. Existing monitors are never overwritten. Duplicate host/check
+combinations within the file or already in the workspace are skipped, using the
+same hostname/IP normalization as bulk add. Different TCP ports and ICMP remain
+distinct checks. Invalid settings block the whole import; nothing is partially added.
+The preview shows check settings, source pause preferences, and each entry's result.
+
+Imported monitors receive fresh IDs and stay **paused by default**. An explicit
+checkbox starts monitors that were not paused in the source backup; source-paused
+monitors stay paused. Starting performs real network checks. Existing destination
+rules for all monitors or matching groups apply to future availability changes;
+individual monitor assignments are not transferred.
+
+The preview uses an in-memory copy of the selected file and expires after 15 minutes.
+Changing monitor definitions or pause preferences requires choosing the file again;
+routine background check results do not invalidate it. Imports are saved as one
+transactional settings replacement, with rollback on failure. Exports also use a
+temporary file and replacement; live configuration/database paths are protected.
+
+Limits: 1,000 monitors and 1 MiB per backup. Unsupported versions, unknown JSON
+fields, and trailing documents are rejected rather than guessed. Windows UTF-8
+BOM files are accepted. JSON files edited by hand must use the exported format
+(`format: hostlight-monitors`, `version: 1`); existing internal settings files are
+still loaded normally at application startup.
+
 Initial goals:
 
 - A responsive, color-coded grid of monitored targets.

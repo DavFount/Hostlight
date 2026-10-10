@@ -232,10 +232,20 @@ Tests cover retries, restart recovery, timeouts, redaction, and terminal failure
 - [ ] Add theme preferences, saved layout, search/filter, and bulk actions.
 - [ ] Add desktop notifications and mute controls where supported.
 - [ ] Implement tested tray behavior if the platform spike supports it.
-- [ ] Add versioned configuration import/export with preview and validation.
-- [ ] Exclude credentials and live history from configuration exports by default.
+- [x] Add versioned monitor configuration import/export with preview and validation.
+- [x] Exclude credentials and live history from configuration exports by default.
 - [ ] Offer explicit portable mode with writable-path checks and clear credential behavior.
 - [ ] Add support information and a sanitized diagnostic export.
+
+Implementation update: **Monitor backups** provides a separate version-1 JSON
+allowlist for monitor definitions and pause preferences. Imports are add-only,
+skip duplicate host/check combinations, reject invalid batches, and default to
+paused. Explicit opt-in starts only source-active monitors. Preview tokens expire
+after 15 minutes and bind to the monitor-settings snapshot; commits revalidate
+under the application lock and roll back failed writes. Export/import omit IDs,
+credentials, webhook rules, maintenance windows, history, and appearance. Limits
+are 1,000 monitors and 1 MiB. Native dialogs select files; live storage paths are
+protected against export overwrite. Full workspace portability remains future work.
 
 Acceptance: reopening restores the intended workspace; imports cannot silently
 replace configuration; exported configuration contains no secrets. Monitoring

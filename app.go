@@ -16,20 +16,21 @@ import (
 
 // App struct
 type App struct {
-	ctx          context.Context
-	mu           sync.Mutex
-	targets      map[string]*monitor
-	next         uint64
-	configPath   string
-	configError  string
-	slots        chan struct{}
-	dial         func(context.Context, string, time.Duration) (net.Conn, error)
-	ping         func(context.Context, string, time.Duration) (float64, error)
-	history      *incidentStore
-	historyError string
-	closing      bool
-	alertCancel  context.CancelFunc
-	alertDone    chan struct{}
+	monitorImport *pendingMonitorImport
+	ctx           context.Context
+	mu            sync.Mutex
+	targets       map[string]*monitor
+	next          uint64
+	configPath    string
+	configError   string
+	slots         chan struct{}
+	dial          func(context.Context, string, time.Duration) (net.Conn, error)
+	ping          func(context.Context, string, time.Duration) (float64, error)
+	history       *incidentStore
+	historyError  string
+	closing       bool
+	alertCancel   context.CancelFunc
+	alertDone     chan struct{}
 }
 
 // NewApp creates a new App application struct
