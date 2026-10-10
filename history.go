@@ -70,7 +70,7 @@ func openIncidentStore(path string, now time.Time) (*incidentStore, error) {
 	if err = db.QueryRow("PRAGMA user_version").Scan(&version); err != nil {
 		return fail(err)
 	}
-	if version > 3 {
+	if version > 4 {
 		return fail(fmt.Errorf("History database version is newer than this application supports"))
 	}
 	if version == 0 {
@@ -115,6 +115,16 @@ func openIncidentStore(path string, now time.Time) (*incidentStore, error) {
  CREATE INDEX delivery_destination ON deliveries(destination_id,status,created);
  DELETE FROM webhook_config;
  PRAGMA user_version=3; COMMIT;`); err != nil {
+			return fail(err)
+		}
+	}
+	if version < 4 {
+		if _, err = db.Exec(`BEGIN;
+ CREATE TABLE alert_silences(id TEXT PRIMARY KEY,target_id TEXT NOT NULL,kind TEXT NOT NULL,starts INTEGER NOT NULL,ends INTEGER NOT NULL,reason TEXT NOT NULL);
+ CREATE INDEX silence_active ON alert_silences(target_id,starts,ends);
+ ALTER TABLE deliveries ADD COLUMN target_id TEXT NOT NULL DEFAULT '';
+ UPDATE deliveries SET target_id=COALESCE(json_extract(CAST(payload AS TEXT),'$.target.id'),'');
+ PRAGMA user_version=4; COMMIT;`); err != nil {
 			return fail(err)
 		}
 	}
@@ -234,6 +244,10 @@ func (s *incidentStore) prune(now time.Time) error {
 	}
 	// Preserve the outage marker for active incidents so eventual recoveries can alert.
 	_, err = s.db.Exec(`DELETE FROM deliveries WHERE status!='pending' AND incident_id NOT IN (SELECT id FROM incidents WHERE status='open') AND (created<? OR id NOT IN (SELECT id FROM deliveries ORDER BY created DESC,rowid DESC LIMIT 10000))`, now.AddDate(0, 0, -30).UnixMilli())
+	if err != nil {
+		return err
+	}
+	_, err = s.db.Exec("DELETE FROM alert_silences WHERE ends<?", now.AddDate(0, 0, -30).UnixMilli())
 	return err
 }
 func historyWhere(search, status string, days int) (string, []any, error) {

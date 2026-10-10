@@ -1,5 +1,27 @@
 export namespace main {
 	
+	export class AlertSilence {
+	    id: string;
+	    targetId: string;
+	    kind: string;
+	    starts: string;
+	    ends: string;
+	    reason: string;
+	
+	    static createFrom(source: any = {}) {
+	        return new AlertSilence(source);
+	    }
+	
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.id = source["id"];
+	        this.targetId = source["targetId"];
+	        this.kind = source["kind"];
+	        this.starts = source["starts"];
+	        this.ends = source["ends"];
+	        this.reason = source["reason"];
+	    }
+	}
 	export class Target {
 	    id: string;
 	    name: string;

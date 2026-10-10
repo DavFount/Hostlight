@@ -4,11 +4,15 @@ import {main} from '../models';
 
 export function AddBulk(arg1:string,arg2:main.Target):Promise<number>;
 
+export function CancelAlertSilence(arg1:string):Promise<void>;
+
 export function DeleteTarget(arg1:string):Promise<void>;
 
 export function DeleteWebhookDestination(arg1:string):Promise<void>;
 
 export function ExportIncidents(arg1:string,arg2:string,arg3:number):Promise<string>;
+
+export function GetAlertSilences():Promise<Array<main.AlertSilence>>;
 
 export function GetConfigurationStatus():Promise<main.ConfigurationStatus>;
 
@@ -34,9 +38,13 @@ export function SaveWebhookDestination(arg1:main.WebhookSettings):Promise<void>;
 
 export function SaveWebhookSettings(arg1:main.WebhookSettings):Promise<void>;
 
+export function ScheduleTargetMaintenance(arg1:string,arg2:string,arg3:string,arg4:string):Promise<void>;
+
 export function SetHistoryRetention(arg1:number):Promise<void>;
 
 export function SetTargetsPaused(arg1:Array<string>,arg2:boolean):Promise<void>;
+
+export function SnoozeTargetAlerts(arg1:string,arg2:number,arg3:string):Promise<void>;
 
 export function TestWebhook():Promise<void>;
 

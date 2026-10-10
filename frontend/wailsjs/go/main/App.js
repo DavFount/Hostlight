@@ -6,6 +6,10 @@ export function AddBulk(arg1, arg2) {
   return window['go']['main']['App']['AddBulk'](arg1, arg2);
 }
 
+export function CancelAlertSilence(arg1) {
+  return window['go']['main']['App']['CancelAlertSilence'](arg1);
+}
+
 export function DeleteTarget(arg1) {
   return window['go']['main']['App']['DeleteTarget'](arg1);
 }
@@ -16,6 +20,10 @@ export function DeleteWebhookDestination(arg1) {
 
 export function ExportIncidents(arg1, arg2, arg3) {
   return window['go']['main']['App']['ExportIncidents'](arg1, arg2, arg3);
+}
+
+export function GetAlertSilences() {
+  return window['go']['main']['App']['GetAlertSilences']();
 }
 
 export function GetConfigurationStatus() {
@@ -66,12 +74,20 @@ export function SaveWebhookSettings(arg1) {
   return window['go']['main']['App']['SaveWebhookSettings'](arg1);
 }
 
+export function ScheduleTargetMaintenance(arg1, arg2, arg3, arg4) {
+  return window['go']['main']['App']['ScheduleTargetMaintenance'](arg1, arg2, arg3, arg4);
+}
+
 export function SetHistoryRetention(arg1) {
   return window['go']['main']['App']['SetHistoryRetention'](arg1);
 }
 
 export function SetTargetsPaused(arg1, arg2) {
   return window['go']['main']['App']['SetTargetsPaused'](arg1, arg2);
+}
+
+export function SnoozeTargetAlerts(arg1, arg2, arg3) {
+  return window['go']['main']['App']['SnoozeTargetAlerts'](arg1, arg2, arg3);
 }
 
 export function TestWebhook() {

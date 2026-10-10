@@ -364,23 +364,36 @@ func enqueueWebhookDestinations(ctx context.Context, tx *sql.Tx, t Target, event
 	for _, d := range selected {
 		if event == "up" {
 			var alerted int
-			if err = tx.QueryRowContext(ctx, "SELECT count(*) FROM deliveries WHERE incident_id=? AND event='down' AND status!='cancelled' AND destination_id=? AND secret=?", incidentID, d.id, d.blob).Scan(&alerted); err != nil {
+			if err = tx.QueryRowContext(ctx, "SELECT count(*) FROM deliveries WHERE incident_id=? AND event='down' AND status NOT IN ('cancelled','suppressed') AND destination_id=? AND secret=?", incidentID, d.id, d.blob).Scan(&alerted); err != nil {
 				return err
 			}
 			if alerted == 0 {
 				continue
 			}
 		}
-		if count >= 10000 {
-			return fmt.Errorf("Webhook queue is full; disable alerts or restore delivery")
-		}
-		count++
 		id := uuid.NewString()
 		payload, e := json.Marshal(WebhookEvent{1, id, event, at.UTC().Format(time.RFC3339Nano), incidentID, t, duration})
 		if e != nil {
 			return e
 		}
-		if _, err = tx.ExecContext(ctx, "INSERT INTO deliveries(id,incident_id,event,payload,secret,created,next_attempt,destination_id,destination_name) VALUES(?,?,?,?,?,?,?,?,?)", id, incidentID, event, payload, d.blob, at.UnixMilli(), at.UnixMilli(), d.id, d.name); err != nil {
+		status, result := "pending", "Waiting to send"
+		if event != "test" {
+			reason, e := activeSilence(ctx, tx, t.ID, at)
+			if e != nil {
+				return e
+			}
+			if reason != "" {
+				status = "suppressed"
+				result = reason
+			}
+		}
+		if status == "pending" {
+			if count >= 10000 {
+				return fmt.Errorf("Webhook queue is full; disable alerts or restore delivery")
+			}
+			count++
+		}
+		if _, err = tx.ExecContext(ctx, "INSERT INTO deliveries(id,incident_id,event,payload,secret,created,next_attempt,destination_id,destination_name,target_id,status,result) VALUES(?,?,?,?,?,?,?,?,?,?,?,?)", id, incidentID, event, payload, d.blob, at.UnixMilli(), at.UnixMilli(), d.id, d.name, t.ID, status, result); err != nil {
 			return err
 		}
 	}
@@ -486,6 +499,9 @@ func sendWebhook(ctx context.Context, client *http.Client, secret webhookSecret,
 	return message, retry, delay
 }
 func (s *incidentStore) deliverOne(ctx context.Context, client *http.Client, now time.Time) (bool, error) {
+	if err := s.suppressPending(ctx, now); err != nil {
+		return false, err
+	}
 	var id string
 	var payload, blob []byte
 	var attempts int

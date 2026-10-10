@@ -142,6 +142,43 @@ details. Completed delivery records are retained for 30 days, bounded to about
 limited to 10,000. Storage errors/overflow are visible in the app; the in-memory
 observation queue can still lose transitions during a crash or disk failure.
 
+## Maintenance and alert snoozing
+
+Choose **Silence alerts** on a monitor card to snooze its notifications now or
+schedule a one-time maintenance window. Snoozes accept 1 minute to 7 days;
+maintenance windows may last up to 30 days and start within the next year.
+An optional reason is shown in the window list and suppressed delivery records.
+These controls apply to every webhook destination that matches that monitor.
+
+Checks, availability status, and incident history continue normally. Cards show
+active suppression or the next scheduled window without changing the monitor's
+availability indicator. Scheduled times are entered in the desktop's local time
+zone and saved as absolute UTC timestamps; the window list includes the local
+time-zone abbreviation. These are not recurring schedules. Review times carefully
+around daylight-saving changes. Windows persist across application restarts.
+
+Suppression policy:
+
+- Window starts are inclusive and ends are exclusive. Overlapping windows combine;
+  ending one does not end another. Active and upcoming windows can be cancelled.
+- Outage notifications during a window are recorded as `suppressed`, with zero
+  send attempts. A recovery for an entirely suppressed outage is not sent.
+- A recovery during a window is also suppressed if its outage was already alerted.
+- Pending notifications and retries that cross a window are permanently suppressed,
+  including when the window passes while Hostlight is closed. Suppression applies
+  before sending; an HTTP request already in flight may still complete.
+- Suppressed notifications are never replayed, even when a window is cancelled.
+  There is **no catch-up notification** if a monitor remains down at the end.
+  Inspect availability before ending planned work; the next actual confirmed
+  outage/recovery cycle uses normal alert routing.
+- Explicit **Send test** requests bypass silencing, since they are operator-initiated.
+
+SQLite schema v4 preserves existing destinations, incident history, and queued
+deliveries. Ended windows are retained internally for 30 days so delayed records
+and retries still respect the interval. Up to 50 active/upcoming windows per
+monitor and 10,000 total are supported. Reasons are ordinary operational metadata,
+not encrypted secrets; do not put passwords or tokens in them.
+
 Initial goals:
 
 - A responsive, color-coded grid of monitored targets.
@@ -151,7 +188,7 @@ Initial goals:
 - Saved targets, friendly names, and groups.
 - Persistent incident history and latency charts.
 
-Additional probe types, maintenance windows, and advanced alert rules may follow.
+Additional probe types, recurring maintenance schedules, and advanced alert rules may follow.
 
 See the [implementation plan](docs/IMPLEMENTATION_PLAN.md) for architecture,
 delivery milestones, acceptance criteria, and the planned first release scope.

@@ -65,7 +65,7 @@ onUnmounted(()=>{active=false;clearInterval(poll)})
    <small>Saving cancels queued deliveries for this destination only. A request already in flight may still complete. Send tests from the saved destination card.</small>
   </form>
   <h2>Recent deliveries</h2>
-  <p>Latest 100 events. Automatic retries: network errors, HTTP 408, 429, and 5xx; up to 8 attempts within 24 hours. Alerts send only while Hostlight is open.</p>
+  <p>Latest 100 events. Automatic retries: network errors, HTTP 408, 429, and 5xx; up to 8 attempts within 24 hours. Alerts send only while Hostlight is open. Suppressed entries were silenced by maintenance or snoozing and will not be replayed. Tests bypass silencing.</p>
   <div class="history-table-wrap"><table class="history-table"><thead><tr><th>Created</th><th>Destination</th><th>Monitor</th><th>Event</th><th>Status</th><th>Attempts</th><th>Result</th></tr></thead><tbody><tr v-for="item in items" :key="item.id"><td>{{new Date(item.created).toLocaleString()}}</td><td>{{item.destinationName}}</td><td>{{item.name}}<small>{{item.host}}</small></td><td>{{item.event==='down'?'Outage':item.event==='up'?'Recovery':'Test'}}<small class="event-id">{{item.id}}</small></td><td>{{item.status}}</td><td>{{item.attempts}}</td><td>{{item.result}}</td></tr><tr v-if="!items.length"><td colspan="7">No webhook deliveries yet. Add a destination and send a test to check connectivity.</td></tr></tbody></table></div>
  </section>
 </template>

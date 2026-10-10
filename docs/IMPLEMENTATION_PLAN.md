@@ -12,7 +12,7 @@ sample history and charts remain planned. This keeps configuration readable and 
 high-volume monitoring data. Existing settings must remain importable when storage evolves.
 
 Incident history implementation: `modernc.org/sqlite` supplies a pure-Go driver,
-with schema version 3 (including multi-destination webhook routing), a background writer, paged queries, CSV export, and configurable
+with schema version 4 (including persisted alert suppression), a background writer, paged queries, CSV export, and configurable
 retention. Go 1.26 is now the minimum version. Outages are segmented at pauses,
 edits, deletion, errors, shutdown/restart, and long observation gaps; interrupted
 records end at the last observation. Writes are bounded and errors are visible.
@@ -20,6 +20,15 @@ records end at the last observation. Writes are bounded and errors are visible.
 This document is the working implementation plan. Check off milestones only when
 their acceptance criteria are met, and update decisions as implementation supplies
 new evidence. Milestones describe delivery order, not calendar commitments.
+
+Alert suppression implementation: per-monitor snoozes and one-time maintenance
+windows are persisted in SQLite. Checks and incident history continue. Notifications
+and queued retries crossing a window are marked suppressed, including intervals
+crossed while closed. Suppressed events never replay, and ongoing outages do not
+generate catch-up alerts when a window ends. Overlapping windows combine; cancelling
+an active window retains its elapsed interval for delayed observations. Test
+delivery bypasses suppression. Local-time scheduling is stored as UTC; recurring
+schedules and global/group maintenance controls remain future work.
 
 ## Product goal
 
@@ -208,6 +217,7 @@ selection, and cooldown rules remain future work.
 - [x] Retry transient network errors, rate limits, and appropriate server errors
   with capped exponential backoff and jitter; honor bounded `Retry-After` values.
 - [x] Treat permanent failures explicitly, cap attempts/age, and show delivery history.
+- [x] Add per-monitor alert snoozing and one-time scheduled maintenance, with visible suppression and no replay.
 - [ ] Define cooldown behavior without dropping the final recovery notification.
 - [x] Support optional HMAC signing and redact secrets from logs and exports.
 - [ ] Add provider payload presets after generic delivery works.
