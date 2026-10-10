@@ -1,5 +1,19 @@
 # Hostlight
 
+### Saved monitoring views
+
+Set the monitor search, status, and group filters, then expand **Save or manage
+views** and give the view a name. Select it later from **Saved view** to reapply
+those filters. Changing filters does not overwrite a saved view; **Update selected**
+explicitly saves changes and can rename it. **Save as new** keeps the original.
+Deletion requires confirmation and never deletes monitors. **Clear filters** shows
+all monitors without changing saved views.
+
+Up to 20 views are stored locally on this computer. Views store filters only—not
+monitor definitions, monitoring settings, or alert rules—and are not part of monitor
+backups. All groups and Ungrouped are distinct. A view for a group with no current
+monitors remains saved and displays no matches until matching monitors exist.
+
 ### In-app visual alerts
 
 Use **Visual alerts** above the current view to configure outage/recovery popups.

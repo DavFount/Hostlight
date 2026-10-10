@@ -266,7 +266,12 @@ Tests cover retries, restart recovery, timeouts, redaction, and terminal failure
 - [x] Make compact cards meaningfully denser and active silencing visibly amber in both themes.
 - [x] Clarify skipped/invalid import rows, singular labels, and failed TCP timing.
 - [x] Preserve same-session outages across pause/resume with excluded time and recovery routing.
-- [ ] Add saved views and customizable layout beyond card density.
+- [x] Add named local saved views for search, status, and group filters with explicit
+  updates, rename/delete controls, validation, and persistence tests.
+- [ ] Add customizable layout beyond card density.
+- [ ] Manually verify saved-view switching, restart persistence, and missing-group behavior.
+- [ ] Replace raw platform check errors in cards/popups with plain-language reasons
+  while retaining the original diagnostic in expandable technical details.
 - [ ] Add desktop notifications and mute controls where supported.
 - [x] Add session-only in-app outage/recovery popups with four corner positions,
   persisted enable/duration controls, preview, dismissal, and bounded transition feed.
