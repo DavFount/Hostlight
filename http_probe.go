@@ -5,6 +5,7 @@ import (
 	"crypto/x509"
 	"errors"
 	"fmt"
+	"io"
 	"net"
 	"net/http"
 	"net/url"
@@ -13,13 +14,14 @@ import (
 	"time"
 )
 
-// This first HTTP slice deliberately sends GET only: no credentials, cookies,
+// HTTP checks deliberately send GET only: no credentials, cookies,
 // request bodies, arbitrary headers, response body storage, or redirect following.
 type HTTPProbeResult struct {
 	Success    bool    `json:"success"`
 	StatusCode int     `json:"statusCode"`
 	Latency    float64 `json:"latency"`
 	Message    string  `json:"message"`
+	Timing     string  `json:"timing"`
 }
 
 type httpCheckError struct {
@@ -73,11 +75,11 @@ func validateHTTPDefinition(t Target) error {
 	if status := expectedHTTPStatus(t); status < 100 || status > 599 {
 		return fmt.Errorf("Expected HTTP status must be 100–599")
 	}
-	return nil
+	return validateHTTPBodyRule(t)
 }
 
 func probeHTTP(ctx context.Context, t Target) (HTTPProbeResult, error) {
-	result := HTTPProbeResult{}
+	result := HTTPProbeResult{Timing: "time to response headers"}
 	if err := validateHTTPDefinition(t); err != nil {
 		return result, &probeSetupError{err.Error()}
 	}
@@ -99,6 +101,7 @@ func probeHTTP(ctx context.Context, t Target) (HTTPProbeResult, error) {
 	result.Latency = float64(time.Since(started).Microseconds()) / 1000
 	if err != nil {
 		result.Message = httpFailureMessage(err)
+		result.Timing = "elapsed attempt time"
 		// Preserve wrapped DNS errors for the engine's local-check-error classification,
 		// but do not return a URL-bearing error through the preview API.
 		return result, &httpCheckError{err, result.Message}
@@ -112,6 +115,27 @@ func probeHTTP(ctx context.Context, t Target) (HTTPProbeResult, error) {
 		if response.StatusCode >= 300 && response.StatusCode < 400 {
 			result.Message += " (redirects are not followed)"
 		}
+		return result, fmt.Errorf("%s", result.Message)
+	}
+	if t.BodyMode != "" {
+		result.Timing = "time to complete response check"
+		data, readErr := io.ReadAll(io.LimitReader(response.Body, maxHTTPBodyBytes+1))
+		result.Latency = float64(time.Since(started).Microseconds()) / 1000
+		if readErr != nil {
+			result.Message = "HTTP response body could not be fully read"
+			if ctx.Err() == context.DeadlineExceeded {
+				result.Message = "HTTP response body timed out"
+			}
+		} else if len(data) > maxHTTPBodyBytes {
+			result.Message = "HTTP response exceeds the 1 MiB body-check limit"
+		} else if bodyErr := matchHTTPBody(t, data); bodyErr != nil {
+			result.Message = bodyErr.Error()
+		} else {
+			result.Message = fmt.Sprintf("HTTP %d · Expected status and body matched", response.StatusCode)
+			return result, nil
+		}
+		result.Success = false
+		result.Timing = "elapsed response check"
 		return result, fmt.Errorf("%s", result.Message)
 	}
 	return result, nil
@@ -149,6 +173,7 @@ func (a *App) TestHTTPRequest(t Target) (HTTPProbeResult, error) {
 	t.Type = "http"
 	t.Port = 0
 	t.Host = strings.TrimSpace(t.Host)
+	t = normalizeHTTPBodyFields(t)
 	if t.Name == "" {
 		t.Name = "Request preview"
 	}

@@ -57,7 +57,7 @@ status codes are failed availability checks.
 **Test HTTP request** makes one real request using the current URL, status, and
 timeout without saving a monitor, writing incident history, or sending alerts.
 Changing the form clears its result. The preview shows the actual status or a
-safe connection/TLS/timeout diagnostic. A successful match on a card shows time
+safe connection/TLS/timeout diagnostic. A successful status-only match on a card shows time
 to response headers, including DNS, connection, and TLS work—not page load time.
 Failed checks display a dash; the preview distinguishes response-header timing
 from elapsed failed-attempt time.
@@ -66,22 +66,48 @@ HTTPS certificates are verified using the system trust configuration. Redirects
 are not followed: a 301/302 is a mismatch unless explicitly expected. Use the
 final health URL when a redirect is not what you want to monitor. Each check
 opens a fresh connection; response headers are limited to 64 KiB and response
-bodies are closed without inspection/storage. The timeout includes DNS and TLS.
+bodies are closed without inspection for status-only checks. Optional body checks
+read a bounded response in memory without storing it. The timeout includes DNS,
+TLS, and body reading when enabled.
 Go's standard environment proxy rules apply; there is no custom proxy/PAC UI.
 
 HTTP is unencrypted. Do not put passwords or tokens in URLs, including query
 parameters: complete URLs are ordinary configuration metadata, saved in plain
 text and included in exports, incident records, and webhook target snapshots.
 Embedded URL credentials and fragments are rejected. Authentication, arbitrary
-headers/methods, body/JSON assertions, redirect options, and TLS expiry policies
-are not implemented in this first slice.
+headers/methods, redirect options, and TLS expiry policies are not implemented yet.
+
+Under **Additional response check**, optionally require:
+
+- **Response contains text:** a case-sensitive substring, such as `service ready`.
+  This is not whole-word matching: `healthy` also appears in `unhealthy`. Prefer
+  JSON field equality for an exact structured health value.
+- **JSON field equals:** a JSON Pointer such as `/status` or `/checks/0/healthy`,
+  with an expected text, number, boolean, or null value. Enter text without quotes.
+  Leave the path blank to compare the root value. Field names containing `/` use
+  `~1`; names containing `~` use `~0`. Missing fields fail, including when null is
+  expected. Types are strict: `true` is not `"true"`. Numbers compare by exact
+  numeric value, so `1` equals `1.0`, without floating-point rounding.
+
+Both the status and optional body rule must match. JSON must be a single complete
+document; arrays/objects cannot be expected values. Body checks read up to 1 MiB
+of decoded content; oversized, incomplete, or timed-out responses fail even if
+an earlier prefix matched. Status mismatches do not read/inspect the body. Body
+content is never displayed, logged, stored, or included in alerts. Expected rules
+are configuration metadata and do appear in backups and webhook target snapshots:
+do not use secret expected values. Expectations are limited to 4,096 bytes; JSON
+Pointer paths to 1,024 characters/32 levels; numeric comparisons to 4,096 characters
+and exponents between -4096 and 4096.
+
+The request preview uses these same rules. Body-rule latency measures the full
+response check, while status-only latency measures time to headers.
 
 Bulk add accepts one complete URL per line with shared expected-status settings.
 Backup duplicate matching normalizes URL host/scheme case, default ports, and an
 empty path to `/`; path/query case and content stay significant. Expected status
 does not create a distinct duplicate identity for the same URL. Configuration
-writes now use version 2; existing version-1 files remain readable. Older builds
-will refuse version 2 rather than guess at HTTP monitors.
+writes now use version 3; existing version-1/2 files remain readable. Older builds
+will refuse version 3 rather than silently discard response rules.
 
 ## Incident history
 
@@ -242,7 +268,7 @@ Open **Monitor backups** to export monitor definitions to a versioned JSON backu
 or choose an exported backup to review before importing. This is a monitor-only
 backup, not a complete workspace or a copy of the internal `targets.json` format.
 
-Included: names, hosts/URLs, groups, ICMP/TCP/HTTP settings, expected HTTP status, timing/threshold rules, and source
+Included: names, hosts/URLs, groups, ICMP/TCP/HTTP settings, expected HTTP status/body rules, timing/threshold rules, and source
 pause preferences. Excluded: monitor IDs, live results, webhook destinations and
 credentials, maintenance windows, incident/delivery history, and appearance settings.
 The file still contains internal hostnames/IP addresses; store and share it accordingly.
@@ -268,9 +294,10 @@ temporary file and replacement; live configuration/database paths are protected.
 Limits: 1,000 monitors and 1 MiB per backup. Unsupported versions, unknown JSON
 fields, and trailing documents are rejected rather than guessed. Windows UTF-8
 BOM files are accepted. JSON files edited by hand must use the exported format
-(`format: hostlight-monitors`, `version: 2` for new exports). Version-1 ICMP/TCP
-backups are still accepted; HTTP definitions require version 2. Older versions
-of Hostlight cannot import version-2 backups. Existing internal settings files are
+(`format: hostlight-monitors`, `version: 3` for new exports). Version-1 ICMP/TCP
+and version-2 HTTP status backups are still accepted; response-body definitions
+require version 3. Older versions of Hostlight cannot import version-3 backups.
+Existing internal settings files are
 still loaded normally at application startup.
 
 Initial goals:

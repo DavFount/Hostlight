@@ -131,6 +131,10 @@ type Target struct {
 	Message        string  `json:"message"`
 	Checked        string  `json:"checked"`
 	ExpectedStatus int     `json:"expectedStatus,omitempty"`
+	BodyMode       string  `json:"bodyMode,omitempty"`
+	BodyExpected   string  `json:"bodyExpected,omitempty"`
+	JSONPointer    string  `json:"jsonPointer,omitempty"`
+	JSONType       string  `json:"jsonType,omitempty"`
 }
 type monitor struct {
 	target Target
@@ -138,6 +142,9 @@ type monitor struct {
 }
 
 func validate(t Target) error {
+	if t.Type != "http" && t.BodyMode != "" {
+		return fmt.Errorf("Response-body checks require an HTTP/HTTPS monitor")
+	}
 	if t.Name == "" || t.Host == "" {
 		return fmt.Errorf("Enter a name and host address")
 	}
@@ -182,7 +189,12 @@ func (a *App) saveTarget(t Target, resume bool) error {
 	}
 	if t.Type != "http" {
 		t.ExpectedStatus = 0
+		t.BodyMode = ""
+		t.BodyExpected = ""
+		t.JSONPointer = ""
+		t.JSONType = ""
 	}
+	t = normalizeHTTPBodyFields(t)
 	if err := validate(t); err != nil {
 		return err
 	}
@@ -272,9 +284,11 @@ func (a *App) run(ctx context.Context, m *monitor, t Target) {
 		started := time.Now()
 		var err error
 		var latency float64
+		var httpMessage string
 		if t.Type == "http" {
 			result, probeErr := probeHTTP(ctx, t)
 			latency, err = result.Latency, probeErr
+			httpMessage = result.Message
 		} else if t.Type == "icmp" {
 			latency, err = a.ping(ctx, t.Host, time.Duration(t.Timeout)*time.Second)
 		} else {
@@ -315,7 +329,7 @@ func (a *App) run(ctx context.Context, m *monitor, t Target) {
 				m.target.Message = "Ping reply received"
 			}
 			if t.Type == "http" {
-				m.target.Message = fmt.Sprintf("HTTP %d · Expected status received", expectedHTTPStatus(t))
+				m.target.Message = httpMessage
 			}
 			m.target.State = rules.apply(m.target.State, true)
 		} else {

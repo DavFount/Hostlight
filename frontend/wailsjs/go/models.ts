@@ -38,6 +38,10 @@ export namespace main {
 	    message: string;
 	    checked: string;
 	    expectedStatus?: number;
+	    bodyMode?: string;
+	    bodyExpected?: string;
+	    jsonPointer?: string;
+	    jsonType?: string;
 	
 	    static createFrom(source: any = {}) {
 	        return new Target(source);
@@ -60,6 +64,10 @@ export namespace main {
 	        this.message = source["message"];
 	        this.checked = source["checked"];
 	        this.expectedStatus = source["expectedStatus"];
+	        this.bodyMode = source["bodyMode"];
+	        this.bodyExpected = source["bodyExpected"];
+	        this.jsonPointer = source["jsonPointer"];
+	        this.jsonType = source["jsonType"];
 	    }
 	}
 	export class BulkRow {
@@ -117,6 +125,7 @@ export namespace main {
 	    statusCode: number;
 	    latency: number;
 	    message: string;
+	    timing: string;
 	
 	    static createFrom(source: any = {}) {
 	        return new HTTPProbeResult(source);
@@ -128,6 +137,7 @@ export namespace main {
 	        this.statusCode = source["statusCode"];
 	        this.latency = source["latency"];
 	        this.message = source["message"];
+	        this.timing = source["timing"];
 	    }
 	}
 	export class Incident {
@@ -217,6 +227,10 @@ export namespace main {
 	    recovery: number;
 	    paused: boolean;
 	    expectedStatus?: number;
+	    bodyMode?: string;
+	    bodyExpected?: string;
+	    jsonPointer?: string;
+	    jsonType?: string;
 	
 	    static createFrom(source: any = {}) {
 	        return new PortableMonitor(source);
@@ -235,6 +249,10 @@ export namespace main {
 	        this.recovery = source["recovery"];
 	        this.paused = source["paused"];
 	        this.expectedStatus = source["expectedStatus"];
+	        this.bodyMode = source["bodyMode"];
+	        this.bodyExpected = source["bodyExpected"];
+	        this.jsonPointer = source["jsonPointer"];
+	        this.jsonType = source["jsonType"];
 	    }
 	}
 	export class MonitorImportRow {

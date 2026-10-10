@@ -27,7 +27,7 @@ func (a *App) persistLocked() error {
 	if a.configPath == "" {
 		return nil
 	} // In-memory fixtures.
-	cfg := configuration{Version: 2, NextID: a.next, Targets: make([]savedTarget, 0, len(a.targets))}
+	cfg := configuration{Version: 3, NextID: a.next, Targets: make([]savedTarget, 0, len(a.targets))}
 	for _, m := range a.targets {
 		t := m.target
 		paused := t.State == "paused"
@@ -87,7 +87,7 @@ func (a *App) loadConfiguration() {
 		a.configError = "Saved targets could not be read. The original file has been preserved."
 		return
 	}
-	if cfg.Version != 1 && cfg.Version != 2 {
+	if cfg.Version < 1 || cfg.Version > 3 {
 		a.configError = "This configuration version is not supported. The original file has been preserved."
 		return
 	}

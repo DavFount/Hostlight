@@ -62,6 +62,10 @@ func (a *App) previewBulkLocked(input string, defaults Target) []BulkRow {
 		}
 		if t.Type != "http" {
 			t.ExpectedStatus = 0
+			t.BodyMode = ""
+			t.BodyExpected = ""
+			t.JSONPointer = ""
+			t.JSONType = ""
 		}
 		name, host, hasName := strings.Cut(line, "|")
 		if !hasName {
@@ -69,6 +73,7 @@ func (a *App) previewBulkLocked(input string, defaults Target) []BulkRow {
 		}
 		t.Host = strings.TrimSpace(host)
 		t.Name = strings.TrimSpace(name)
+		t = normalizeHTTPBodyFields(t)
 		row := BulkRow{Line: i + 1, Target: t}
 		if err := validate(t); err != nil {
 			row.Error = err.Error()
