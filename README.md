@@ -8,8 +8,41 @@ it aims to make the status of multiple hosts and services easy to see at a glanc
 
 ## Project status
 
-The project currently contains the generated Wails Vue/TypeScript starter.
-Monitoring and alerting features are planned and are not implemented yet.
+The first working preview includes a Ping/ICMP and TCP monitor grid, target editing and removal,
+search and status filters, pause/resume controls, and configurable timing and
+failure/recovery thresholds. Dark is the default theme; light mode and card spacing
+preferences are saved locally.
+
+Use **Add multiple** to paste up to 200 hosts at a time, one per line. Optionally
+assign a friendly name with `Office gateway | 192.168.1.1`. Choose a shared check
+type, port (for TCP), group, and timing policy, then review validation before adding.
+Duplicates within the list or existing workspace are highlighted; the same host
+can still have distinct ICMP and TCP monitors or TCP monitors on different ports.
+An invalid line or failed settings write leaves the entire batch unapplied.
+
+The group selector narrows the grid. **Pause shown** and **Resume shown** apply to
+the monitors matching the current group, search, and status filters. Resuming a
+mixed selection leaves already-active monitors running without resetting them.
+
+Targets and pause settings are saved automatically in a versioned JSON file under
+the OS user configuration directory (`%AppData%\Hostlight\targets.json` on Windows).
+The UI displays the exact path. Active monitors restart with fresh checks when
+Hostlight opens; paused monitors stay paused. Settings writes use a temporary file
+and replacement, and unreadable configurations are preserved with a visible error.
+
+New monitors default to **Ping (ICMP)**, which requires only a hostname/IP address.
+Select **TCP service** to check a specific port. Existing saved TCP definitions
+retain their type and port. Windows ping uses the native IP Helper API for IPv4
+and IPv6, without spawning a command or parsing localized output. Dual-stack DNS
+names prefer IPv4; IPv6-only names and scoped IPv6 addresses are supported.
+
+An ICMP timeout can mean a firewall blocks echo requests, even when a service is
+available. Ping measures echo round-trip time; TCP measures connection-attempt time.
+Windows native ping calls finish within the configured timeout; pause, edits, and
+shutdown discard their results even if the native request is still finishing.
+ICMP on macOS/Linux, incident/metric history, webhook alerts, and advanced platform
+error handling are still planned.
+This preview is intended for development and evaluation.
 
 Initial goals:
 
@@ -87,7 +120,13 @@ cd frontend
 npm run build
 ```
 
-No application tests have been added to the starter yet.
+Backend tests cover local TCP connectivity, failure and recovery thresholds,
+cancellation, input validation, configuration round trips, unreadable settings,
+and rollback when settings cannot be saved. ICMP tests include probe dispatch,
+type-specific validation, legacy configuration compatibility, error classification,
+and native Windows IPv4/IPv6 localhost replies.
+Bulk-operation tests cover previews, duplicate detection, limits, persistence,
+stale selections, and rollback when a group change or batch cannot be saved.
 
 ## Project layout
 

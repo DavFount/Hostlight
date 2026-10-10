@@ -1,6 +1,15 @@
 # Hostlight implementation plan
 
-Status: proposed roadmap. The repository currently contains the Wails Vue/TypeScript starter.
+Status: implementation underway. A Windows ICMP/TCP monitoring preview is available with dark/light
+themes, target editing, filtering, pause/resume, configurable thresholds, and saved
+target definitions. Bulk paste now includes validation previews and duplicate checks;
+group filtering and transactional pause/resume apply to the shown monitors. The
+milestones below remain the full release acceptance checklist.
+
+Implementation note: target settings currently use an atomically replaced, versioned
+JSON file in the OS user configuration directory. SQLite is still planned for
+incident and sample history. This keeps configuration readable and separate from
+high-volume monitoring data. Existing settings must remain importable when storage evolves.
 
 This document is the working implementation plan. Check off milestones only when
 their acceptance criteria are met, and update decisions as implementation supplies

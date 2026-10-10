@@ -2,26 +2,309 @@ package main
 
 import (
 	"context"
+	"errors"
 	"fmt"
+	"net"
+	"net/netip"
+	"os"
+	"path/filepath"
+	"sort"
+	"strings"
+	"sync"
+	"time"
 )
 
 // App struct
 type App struct {
-	ctx context.Context
+	ctx         context.Context
+	mu          sync.Mutex
+	targets     map[string]*monitor
+	next        uint64
+	configPath  string
+	configError string
+	slots       chan struct{}
+	dial        func(context.Context, string, time.Duration) (net.Conn, error)
+	ping        func(context.Context, string, time.Duration) (float64, error)
 }
 
 // NewApp creates a new App application struct
 func NewApp() *App {
-	return &App{}
+	a := &App{targets: make(map[string]*monitor), slots: make(chan struct{}, 32)}
+	a.ping = pingHost
+	a.dial = func(ctx context.Context, address string, timeout time.Duration) (net.Conn, error) {
+		d := net.Dialer{Timeout: timeout}
+		return d.DialContext(ctx, "tcp", address)
+	}
+	if dir, err := os.UserConfigDir(); err == nil {
+		a.configPath = filepath.Join(dir, "Hostlight", "targets.json")
+	} else {
+		a.configError = err.Error()
+	}
+	return a
 }
 
 // startup is called when the app starts. The context is saved
 // so we can call the runtime methods
 func (a *App) startup(ctx context.Context) {
 	a.ctx = ctx
+	a.loadConfiguration()
 }
 
-// Greet returns a greeting for the given name
-func (a *App) Greet(name string) string {
-	return fmt.Sprintf("Hello %s, It's show time!", name)
+func (a *App) shutdown(context.Context) {
+	a.mu.Lock()
+	defer a.mu.Unlock()
+	for _, m := range a.targets {
+		m.cancel()
+	}
+}
+
+type ConfigurationStatus struct {
+	Path  string `json:"path"`
+	Error string `json:"error"`
+}
+
+func (a *App) GetConfigurationStatus() ConfigurationStatus {
+	a.mu.Lock()
+	defer a.mu.Unlock()
+	return ConfigurationStatus{a.configPath, a.configError}
+}
+
+type Target struct {
+	ID       string  `json:"id"`
+	Name     string  `json:"name"`
+	Host     string  `json:"host"`
+	Type     string  `json:"type"`
+	Port     int     `json:"port"`
+	Group    string  `json:"group"`
+	Interval int     `json:"interval"`
+	Timeout  int     `json:"timeout"`
+	Failures int     `json:"failures"`
+	Recovery int     `json:"recovery"`
+	State    string  `json:"state"`
+	Latency  float64 `json:"latency"`
+	Message  string  `json:"message"`
+	Checked  string  `json:"checked"`
+}
+type monitor struct {
+	target Target
+	cancel context.CancelFunc
+}
+
+func validate(t Target) error {
+	if t.Name == "" || t.Host == "" {
+		return fmt.Errorf("Enter a name and host address")
+	}
+	_, ipErr := netip.ParseAddr(t.Host)
+	if strings.ContainsAny(t.Host, "/ :|,\t\r\n") && ipErr != nil {
+		return fmt.Errorf("Enter a hostname or IP address without a protocol or port")
+	}
+	if t.Type != "" && t.Type != "tcp" && t.Type != "icmp" {
+		return fmt.Errorf("Choose Ping (ICMP) or TCP service")
+	}
+	if t.Type != "icmp" && (t.Port < 1 || t.Port > 65535) {
+		return fmt.Errorf("Port must be between 1 and 65535")
+	}
+	if t.Interval < 1 || t.Interval > 3600 || t.Timeout < 1 || t.Timeout > 60 {
+		return fmt.Errorf("Interval must be 1–3600 seconds and timeout 1–60 seconds")
+	}
+	if t.Failures < 1 || t.Failures > 100 || t.Recovery < 1 || t.Recovery > 100 {
+		return fmt.Errorf("Thresholds must be 1–100 checks")
+	}
+	return nil
+}
+func (a *App) SaveTarget(t Target) error {
+	return a.saveTarget(t, false)
+}
+func (a *App) saveTarget(t Target, resume bool) error {
+	t.Name = strings.TrimSpace(t.Name)
+	t.Host = strings.TrimSpace(t.Host)
+	t.Group = strings.TrimSpace(t.Group)
+	// Empty type identifies TCP definitions written by the first preview.
+	if t.Type == "" {
+		t.Type = "tcp"
+	}
+	if t.Type == "icmp" {
+		t.Port = 0
+	}
+	if err := validate(t); err != nil {
+		return err
+	}
+	a.mu.Lock()
+	defer a.mu.Unlock()
+	if a.configError != "" {
+		return fmt.Errorf("Configuration unavailable: %s", a.configError)
+	}
+	var old *monitor
+	if t.ID != "" {
+		var ok bool
+		old, ok = a.targets[t.ID]
+		if !ok {
+			return fmt.Errorf("Target no longer exists")
+		}
+	} else {
+		a.next++
+		t.ID = fmt.Sprint(a.next)
+	}
+	t.State = "unknown"
+	t.Message = "Waiting for checks"
+	t.Checked = ""
+	t.Latency = 0
+	if old != nil && old.target.State == "paused" && !resume {
+		t.State = "paused"
+		t.Message = "Monitoring paused"
+	}
+	ctx, cancel := context.WithCancel(a.ctx)
+	m := &monitor{target: t, cancel: cancel}
+	a.targets[t.ID] = m
+	if err := a.persistLocked(); err != nil {
+		cancel()
+		if old != nil {
+			a.targets[t.ID] = old
+		} else {
+			delete(a.targets, t.ID)
+		}
+		return err
+	}
+	if old != nil {
+		old.cancel()
+	}
+	if t.State != "paused" {
+		go a.run(ctx, m, t)
+	}
+	return nil
+}
+func (a *App) GetTargets() []Target {
+	a.mu.Lock()
+	defer a.mu.Unlock()
+	out := make([]Target, 0, len(a.targets))
+	for _, m := range a.targets {
+		out = append(out, m.target)
+	}
+	sort.Slice(out, func(i, j int) bool { return out[i].ID < out[j].ID })
+	return out
+}
+func (a *App) DeleteTarget(id string) error {
+	a.mu.Lock()
+	defer a.mu.Unlock()
+	if m, ok := a.targets[id]; ok {
+		delete(a.targets, id)
+		if err := a.persistLocked(); err != nil {
+			a.targets[id] = m
+			return err
+		}
+		m.cancel()
+	}
+	return nil
+}
+func (a *App) PauseTarget(id string) error {
+	a.mu.Lock()
+	defer a.mu.Unlock()
+	if m, ok := a.targets[id]; ok {
+		old := m.target
+		m.target.State = "paused"
+		m.target.Message = "Monitoring paused"
+		if err := a.persistLocked(); err != nil {
+			m.target = old
+			return err
+		}
+		m.cancel()
+	}
+	return nil
+}
+func (a *App) ResumeTarget(id string) error {
+	a.mu.Lock()
+	m, ok := a.targets[id]
+	if !ok {
+		a.mu.Unlock()
+		return fmt.Errorf("Target no longer exists")
+	}
+	t := m.target
+	a.mu.Unlock()
+	return a.saveTarget(t, true)
+}
+func (a *App) run(ctx context.Context, m *monitor, t Target) {
+	rules := statusRules{failures: t.Failures, recovery: t.Recovery}
+	for {
+		select {
+		case a.slots <- struct{}{}:
+		case <-ctx.Done():
+			return
+		}
+		started := time.Now()
+		var err error
+		var latency float64
+		if t.Type == "icmp" {
+			latency, err = a.ping(ctx, t.Host, time.Duration(t.Timeout)*time.Second)
+		} else {
+			var conn net.Conn
+			conn, err = a.dial(ctx, net.JoinHostPort(t.Host, fmt.Sprint(t.Port)), time.Duration(t.Timeout)*time.Second)
+			latency = float64(time.Since(started).Microseconds()) / 1000
+			if conn != nil {
+				conn.Close()
+			}
+		}
+		<-a.slots
+		if ctx.Err() != nil {
+			return
+		}
+		a.mu.Lock()
+		if a.targets[t.ID] != m || m.target.State == "paused" {
+			a.mu.Unlock()
+			return
+		}
+		m.target.Checked = time.Now().UTC().Format(time.RFC3339)
+		m.target.Latency = latency
+		var dns *net.DNSError
+		var local *probeSetupError
+		localError := errors.As(err, &dns) || errors.As(err, &local)
+		if localError {
+			rules.good = 0
+			rules.bad = 0
+			m.target.State = "error"
+			if dns != nil {
+				m.target.Message = "DNS lookup failed. Check the hostname and local DNS connection."
+			} else {
+				m.target.Message = err.Error()
+			}
+		} else if err == nil {
+			m.target.Message = "TCP connection successful"
+			if t.Type == "icmp" {
+				m.target.Message = "Ping reply received"
+			}
+			m.target.State = rules.apply(m.target.State, true)
+		} else {
+			m.target.Message = err.Error()
+			m.target.State = rules.apply(m.target.State, false)
+		}
+		a.mu.Unlock()
+		timer := time.NewTimer(time.Duration(t.Interval) * time.Second)
+		select {
+		case <-ctx.Done():
+			timer.Stop()
+			return
+		case <-timer.C:
+		}
+	}
+}
+
+type statusRules struct{ good, bad, failures, recovery int }
+
+func (s *statusRules) apply(state string, success bool) string {
+	if state == "error" {
+		state = "unknown"
+	}
+	if success {
+		s.bad = 0
+		s.good++
+		if s.good >= s.recovery {
+			return "up"
+		}
+	} else {
+		s.good = 0
+		s.bad++
+		if s.bad >= s.failures {
+			return "down"
+		}
+	}
+	return state
 }
