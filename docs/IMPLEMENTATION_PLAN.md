@@ -1,7 +1,7 @@
 # Hostlight implementation plan
 
 Status reviewed: 2026-10-10. Implementation underway; not release-qualified.
-The Windows preview includes ICMP/TCP monitoring, target management and bulk paste,
+The Windows preview includes ICMP/TCP/HTTP monitoring, target management and bulk paste,
 saved configuration, dark/light themes, incident history, scoped webhook delivery,
 per-monitor alert suppression, and reviewed monitor backup/import.
 
@@ -50,6 +50,7 @@ verify macOS/Linux support separately before claiming those platforms are suppor
 ## First release scope
 
 - ICMP and TCP probes with IPv4/IPv6 support.
+- HTTP/HTTPS GET probes with exact status matching and a non-saving request preview.
 - Target CRUD, aliases, groups, bulk input, and saved configuration.
 - Responsive status grid and searchable target list.
 - Configurable probe intervals, timeouts, and failure/recovery thresholds.
@@ -58,7 +59,7 @@ verify macOS/Linux support separately before claiming those platforms are suppor
 - SQLite incident history, recent latency/loss charts, and bounded retention.
 - Application settings, export/import, and a reproducible Windows build.
 
-Defer HTTP/DNS/TLS probes, degraded-state policies, MTR, dependency suppression,
+Defer DNS probes, TLS expiry policies, degraded-state policies, MTR, dependency suppression,
 advanced dashboards, remote agents, and headless service operation until the core
 release is dependable. Tray integration is a separate platform feasibility task;
 it must not delay a working monitoring application.
@@ -277,7 +278,7 @@ Tests cover retries, restart recovery, timeouts, redaction, and terminal failure
 - [ ] Offer explicit portable mode with writable-path checks and clear credential behavior.
 - [ ] Add support information and a sanitized diagnostic export.
 
-Implementation update: **Monitor backups** provides a separate version-1 JSON
+Implementation update: **Monitor backups** provides a separate version-2 JSON
 allowlist for monitor definitions and pause preferences. Imports are add-only,
 skip duplicate host/check combinations, reject invalid batches, and default to
 paused. Explicit opt-in starts only source-active monitors. Preview tokens expire
@@ -285,7 +286,8 @@ after 15 minutes and bind to the monitor-settings snapshot; commits revalidate
 under the application lock and roll back failed writes. Export/import omit IDs,
 credentials, webhook rules, maintenance windows, history, and appearance. Limits
 are 1,000 monitors and 1 MiB. Native dialogs select files; live storage paths are
-protected against export overwrite. Full workspace portability remains future work.
+protected against export overwrite. Version-1 ICMP/TCP backups remain readable;
+version 2 carries HTTP expected-status settings. Full workspace portability remains future work.
 
 Acceptance: reopening restores the intended workspace; imports cannot silently
 replace configuration; exported configuration contains no secrets. Monitoring
@@ -307,11 +309,23 @@ Acceptance: release checks pass on the supported Windows platform, no critical
 monitoring/alerting defects remain, and the README reflects implemented behavior.
 Treat 200 targets as an initial benchmark, not a supported capacity claim until measured.
 
+## HTTP monitoring — first slice delivered
+
+- [x] Add full HTTP/HTTPS URL validation, exact expected status (default 200), and GET probes.
+- [x] Apply existing thresholds, pause/resume, scoped alerts, silencing, and history semantics.
+- [x] Verify HTTPS certificates, refuse redirects, bound timeouts/header size, and avoid body storage.
+- [x] Add a one-request preview that does not save monitors or create incidents/alerts.
+- [x] Add HTTP bulk input, version-2 configuration/backups, and version-1 read compatibility.
+- [x] Test local status/redirect/timeout/TLS/cancellation behavior, live recovery, and portability.
+- [ ] Manually verify HTTP outage/recovery, preview, and backup import in the Windows desktop UI.
+- [ ] Add expected body/JSON assertions, optional authentication, and TLS expiry policies in later slices.
+- [ ] Reuse/extend request diagnostics for webhook response inspection without exposing secrets.
+
 ## Later milestones
 
 Prioritize these using actual usage after the first release:
 
-1. HTTP/HTTPS status/body checks, DNS expected-answer checks, and TLS expiry.
+1. Extend HTTP checks with body/JSON assertions; add DNS expected-answer checks and TLS expiry.
 2. Degraded-state latency/loss policies with rolling windows and hysteresis.
 3. Recurring and global/group maintenance, acknowledgments, and dependency suppression
    (per-monitor timed silences and one-time windows are already implemented).
@@ -325,17 +339,17 @@ Do not add a server, cloud accounts, remote agents, or plugin system without a
 separate product decision. Keep those possibilities from complicating v1.
 
 API-tooling direction: keep Hostlight focused on monitoring rather than building
-a general-purpose Postman/Insomnia replacement. HTTP/HTTPS monitoring is the next
-candidate feature after the current slice: status/latency checks first, with a
-small test-request workflow shared with webhook diagnostics. Expected body/JSON
+a general-purpose Postman/Insomnia replacement. HTTP/HTTPS status/latency checks
+and a monitor-specific test-request preview are implemented. Sharing that workflow
+with webhook diagnostics remains planned. Expected body/JSON
 checks and TLS expiry can follow. Request collections, scripting, environment
-management, and request chaining are not committed scope. None of these HTTP
-features is implemented yet; they remain outside the first-release checklist above.
+management, and request chaining are not committed scope. The delivered HTTP
+slice extends the original first-release scope by explicit user direction.
 
 ## Verification strategy
 
 Latest completed implementation-slice checks (2026-10-10): `go test ./...`,
-`go vet ./...`, 40 frontend tests, frontend production/type-check build, and
+`go vet ./...`, 48 frontend tests, frontend production/type-check build, and
 `wails build` passed. This is a development verification record, not completion
 of milestone 6. The checklist reconciliation itself changes documentation only;
 it does not establish new manual desktop, standard-user, or load-test evidence.

@@ -16,6 +16,9 @@ type BulkRow struct {
 }
 
 func targetKey(t Target) string {
+	if t.Type == "http" {
+		return "http|" + canonicalHTTPURL(t.Host)
+	}
 	host := strings.ToLower(strings.TrimSuffix(t.Host, "."))
 	if ip, err := netip.ParseAddr(host); err == nil {
 		host = ip.Unmap().String()
@@ -51,8 +54,14 @@ func (a *App) previewBulkLocked(input string, defaults Target) []BulkRow {
 		if t.Type == "" {
 			t.Type = "icmp"
 		}
-		if t.Type == "icmp" {
+		if t.Type == "icmp" || t.Type == "http" {
 			t.Port = 0
+		}
+		if t.Type == "http" && t.ExpectedStatus == 0 {
+			t.ExpectedStatus = 200
+		}
+		if t.Type != "http" {
+			t.ExpectedStatus = 0
 		}
 		name, host, hasName := strings.Cut(line, "|")
 		if !hasName {

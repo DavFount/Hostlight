@@ -8,7 +8,7 @@ it aims to make the status of multiple hosts and services easy to see at a glanc
 
 ## Project status
 
-The first working preview includes a Ping/ICMP and TCP monitor grid, target editing and removal,
+The working preview includes Ping/ICMP, TCP, and HTTP/HTTPS monitors, target editing and removal,
 search and status filters, pause/resume controls, and configurable timing and
 failure/recovery thresholds. Dark is the default theme; light mode and card spacing
 preferences are saved locally.
@@ -43,6 +43,45 @@ shutdown discard their results even if the native request is still finishing.
 ICMP on macOS/Linux, metric history/charts, and advanced platform
 error handling are still planned.
 This preview is intended for development and evaluation.
+
+## HTTP/HTTPS monitoring
+
+Choose **HTTP / HTTPS** when adding a monitor, enter a full URL such as
+`https://service.example/health`, and choose the exact expected status (default
+200). The URL supplies its port; the separate TCP-port setting is not used.
+Checks send GET requests and apply the same failure/recovery thresholds, scoped
+webhooks, history, pause/resume, and silencing rules as other monitors. A failed
+DNS lookup is a check error; connection/TLS failures, timeouts, and unexpected
+status codes are failed availability checks.
+
+**Test HTTP request** makes one real request using the current URL, status, and
+timeout without saving a monitor, writing incident history, or sending alerts.
+Changing the form clears its result. The preview shows the actual status or a
+safe connection/TLS/timeout diagnostic. A successful match on a card shows time
+to response headers, including DNS, connection, and TLS work—not page load time.
+Failed checks display a dash; the preview distinguishes response-header timing
+from elapsed failed-attempt time.
+
+HTTPS certificates are verified using the system trust configuration. Redirects
+are not followed: a 301/302 is a mismatch unless explicitly expected. Use the
+final health URL when a redirect is not what you want to monitor. Each check
+opens a fresh connection; response headers are limited to 64 KiB and response
+bodies are closed without inspection/storage. The timeout includes DNS and TLS.
+Go's standard environment proxy rules apply; there is no custom proxy/PAC UI.
+
+HTTP is unencrypted. Do not put passwords or tokens in URLs, including query
+parameters: complete URLs are ordinary configuration metadata, saved in plain
+text and included in exports, incident records, and webhook target snapshots.
+Embedded URL credentials and fragments are rejected. Authentication, arbitrary
+headers/methods, body/JSON assertions, redirect options, and TLS expiry policies
+are not implemented in this first slice.
+
+Bulk add accepts one complete URL per line with shared expected-status settings.
+Backup duplicate matching normalizes URL host/scheme case, default ports, and an
+empty path to `/`; path/query case and content stay significant. Expected status
+does not create a distinct duplicate identity for the same URL. Configuration
+writes now use version 2; existing version-1 files remain readable. Older builds
+will refuse version 2 rather than guess at HTTP monitors.
 
 ## Incident history
 
@@ -203,7 +242,7 @@ Open **Monitor backups** to export monitor definitions to a versioned JSON backu
 or choose an exported backup to review before importing. This is a monitor-only
 backup, not a complete workspace or a copy of the internal `targets.json` format.
 
-Included: names, hosts, groups, ICMP/TCP settings, timing/threshold rules, and source
+Included: names, hosts/URLs, groups, ICMP/TCP/HTTP settings, expected HTTP status, timing/threshold rules, and source
 pause preferences. Excluded: monitor IDs, live results, webhook destinations and
 credentials, maintenance windows, incident/delivery history, and appearance settings.
 The file still contains internal hostnames/IP addresses; store and share it accordingly.
@@ -229,7 +268,9 @@ temporary file and replacement; live configuration/database paths are protected.
 Limits: 1,000 monitors and 1 MiB per backup. Unsupported versions, unknown JSON
 fields, and trailing documents are rejected rather than guessed. Windows UTF-8
 BOM files are accepted. JSON files edited by hand must use the exported format
-(`format: hostlight-monitors`, `version: 1`); existing internal settings files are
+(`format: hostlight-monitors`, `version: 2` for new exports). Version-1 ICMP/TCP
+backups are still accepted; HTTP definitions require version 2. Older versions
+of Hostlight cannot import version-2 backups. Existing internal settings files are
 still loaded normally at application startup.
 
 Initial goals:

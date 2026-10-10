@@ -37,6 +37,7 @@ export namespace main {
 	    latency: number;
 	    message: string;
 	    checked: string;
+	    expectedStatus?: number;
 	
 	    static createFrom(source: any = {}) {
 	        return new Target(source);
@@ -58,6 +59,7 @@ export namespace main {
 	        this.latency = source["latency"];
 	        this.message = source["message"];
 	        this.checked = source["checked"];
+	        this.expectedStatus = source["expectedStatus"];
 	    }
 	}
 	export class BulkRow {
@@ -108,6 +110,24 @@ export namespace main {
 	        this.path = source["path"];
 	        this.error = source["error"];
 	        this.historyError = source["historyError"];
+	    }
+	}
+	export class HTTPProbeResult {
+	    success: boolean;
+	    statusCode: number;
+	    latency: number;
+	    message: string;
+	
+	    static createFrom(source: any = {}) {
+	        return new HTTPProbeResult(source);
+	    }
+	
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.success = source["success"];
+	        this.statusCode = source["statusCode"];
+	        this.latency = source["latency"];
+	        this.message = source["message"];
 	    }
 	}
 	export class Incident {
@@ -196,6 +216,7 @@ export namespace main {
 	    failures: number;
 	    recovery: number;
 	    paused: boolean;
+	    expectedStatus?: number;
 	
 	    static createFrom(source: any = {}) {
 	        return new PortableMonitor(source);
@@ -213,6 +234,7 @@ export namespace main {
 	        this.failures = source["failures"];
 	        this.recovery = source["recovery"];
 	        this.paused = source["paused"];
+	        this.expectedStatus = source["expectedStatus"];
 	    }
 	}
 	export class MonitorImportRow {

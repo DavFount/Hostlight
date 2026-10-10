@@ -116,20 +116,21 @@ func (a *App) GetConfigurationStatus() ConfigurationStatus {
 }
 
 type Target struct {
-	ID       string  `json:"id"`
-	Name     string  `json:"name"`
-	Host     string  `json:"host"`
-	Type     string  `json:"type"`
-	Port     int     `json:"port"`
-	Group    string  `json:"group"`
-	Interval int     `json:"interval"`
-	Timeout  int     `json:"timeout"`
-	Failures int     `json:"failures"`
-	Recovery int     `json:"recovery"`
-	State    string  `json:"state"`
-	Latency  float64 `json:"latency"`
-	Message  string  `json:"message"`
-	Checked  string  `json:"checked"`
+	ID             string  `json:"id"`
+	Name           string  `json:"name"`
+	Host           string  `json:"host"`
+	Type           string  `json:"type"`
+	Port           int     `json:"port"`
+	Group          string  `json:"group"`
+	Interval       int     `json:"interval"`
+	Timeout        int     `json:"timeout"`
+	Failures       int     `json:"failures"`
+	Recovery       int     `json:"recovery"`
+	State          string  `json:"state"`
+	Latency        float64 `json:"latency"`
+	Message        string  `json:"message"`
+	Checked        string  `json:"checked"`
+	ExpectedStatus int     `json:"expectedStatus,omitempty"`
 }
 type monitor struct {
 	target Target
@@ -141,13 +142,17 @@ func validate(t Target) error {
 		return fmt.Errorf("Enter a name and host address")
 	}
 	_, ipErr := netip.ParseAddr(t.Host)
-	if strings.ContainsAny(t.Host, "/ :|,\t\r\n") && ipErr != nil {
+	if t.Type == "http" {
+		if err := validateHTTPDefinition(t); err != nil {
+			return err
+		}
+	} else if strings.ContainsAny(t.Host, "/ :|,\t\r\n") && ipErr != nil {
 		return fmt.Errorf("Enter a hostname or IP address without a protocol or port")
 	}
-	if t.Type != "" && t.Type != "tcp" && t.Type != "icmp" {
-		return fmt.Errorf("Choose Ping (ICMP) or TCP service")
+	if t.Type != "" && t.Type != "tcp" && t.Type != "icmp" && t.Type != "http" {
+		return fmt.Errorf("Choose Ping (ICMP), TCP service, or HTTP/HTTPS")
 	}
-	if t.Type != "icmp" && (t.Port < 1 || t.Port > 65535) {
+	if t.Type != "icmp" && t.Type != "http" && (t.Port < 1 || t.Port > 65535) {
 		return fmt.Errorf("Port must be between 1 and 65535")
 	}
 	if t.Interval < 1 || t.Interval > 3600 || t.Timeout < 1 || t.Timeout > 60 {
@@ -169,8 +174,14 @@ func (a *App) saveTarget(t Target, resume bool) error {
 	if t.Type == "" {
 		t.Type = "tcp"
 	}
-	if t.Type == "icmp" {
+	if t.Type == "icmp" || t.Type == "http" {
 		t.Port = 0
+	}
+	if t.Type == "http" && t.ExpectedStatus == 0 {
+		t.ExpectedStatus = 200
+	}
+	if t.Type != "http" {
+		t.ExpectedStatus = 0
 	}
 	if err := validate(t); err != nil {
 		return err
@@ -261,7 +272,10 @@ func (a *App) run(ctx context.Context, m *monitor, t Target) {
 		started := time.Now()
 		var err error
 		var latency float64
-		if t.Type == "icmp" {
+		if t.Type == "http" {
+			result, probeErr := probeHTTP(ctx, t)
+			latency, err = result.Latency, probeErr
+		} else if t.Type == "icmp" {
 			latency, err = a.ping(ctx, t.Host, time.Duration(t.Timeout)*time.Second)
 		} else {
 			var conn net.Conn
@@ -299,6 +313,9 @@ func (a *App) run(ctx context.Context, m *monitor, t Target) {
 			m.target.Message = "TCP connection successful"
 			if t.Type == "icmp" {
 				m.target.Message = "Ping reply received"
+			}
+			if t.Type == "http" {
+				m.target.Message = fmt.Sprintf("HTTP %d · Expected status received", expectedHTTPStatus(t))
 			}
 			m.target.State = rules.apply(m.target.State, true)
 		} else {

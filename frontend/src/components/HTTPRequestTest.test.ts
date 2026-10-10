@@ -1,0 +1,16 @@
+import {afterEach,beforeEach,describe,expect,it,vi} from 'vitest'
+import {flushPromises,mount,type VueWrapper} from '@vue/test-utils'
+import HTTPRequestTest from './HTTPRequestTest.vue'
+const target={name:'Health',host:'https://service.example/health',type:'http',expectedStatus:200,timeout:3,interval:5,failures:3,recovery:2}
+const api={TestHTTPRequest:vi.fn()}
+let wrapper:VueWrapper
+beforeEach(()=>{vi.clearAllMocks();api.TestHTTPRequest.mockResolvedValue({success:true,statusCode:200,latency:12.4,message:'HTTP 200 · Expected status received'});Object.assign(window,{go:{main:{App:api}}})})
+afterEach(()=>wrapper?.unmount())
+describe('HTTP request preview',()=>{
+ it('uses the current definition and does not submit the monitor form',async()=>{wrapper=mount(HTTPRequestTest,{props:{target}});expect(wrapper.find('button').attributes('type')).toBe('button');expect(wrapper.text()).toContain('Does not save a monitor or send an alert');await wrapper.find('button').trigger('click');await flushPromises();expect(api.TestHTTPRequest).toHaveBeenCalledWith(target);expect(wrapper.find('[role="status"]').text()).toContain('HTTP 200');expect(wrapper.find('[role="status"]').text()).toContain('12.4 ms')})
+ it('shows unexpected statuses as failures, not successful latency',async()=>{api.TestHTTPRequest.mockResolvedValue({success:false,statusCode:503,latency:8,message:'HTTP 503 · Expected 200'});wrapper=mount(HTTPRequestTest,{props:{target}});await wrapper.find('button').trigger('click');await flushPromises();expect(wrapper.find('.http-mismatch').text()).toContain('Check failed');expect(wrapper.find('.http-mismatch').text()).toContain('Expected 200')})
+ it('explains failed connection timing without claiming a response',async()=>{api.TestHTTPRequest.mockResolvedValue({success:false,statusCode:0,latency:1000,message:'HTTP request failed'});wrapper=mount(HTTPRequestTest,{props:{target}});await wrapper.find('button').trigger('click');await flushPromises();expect(wrapper.find('[role="status"]').text()).toContain('elapsed attempt time')})
+ it('surfaces validation errors',async()=>{api.TestHTTPRequest.mockRejectedValue('Enter a complete HTTP URL');wrapper=mount(HTTPRequestTest,{props:{target}});await wrapper.find('button').trigger('click');await flushPromises();expect(wrapper.find('[role="alert"]').text()).toContain('Enter a complete HTTP URL')})
+ it('discards results when settings change while the request is in flight',async()=>{let complete!:(value:unknown)=>void;api.TestHTTPRequest.mockImplementation(()=>new Promise(resolve=>{complete=resolve}));wrapper=mount(HTTPRequestTest,{props:{target}});await wrapper.find('button').trigger('click');await wrapper.setProps({target:{...target,host:'https://other.example/health'}});complete({success:true,statusCode:200,latency:1,message:'Old result'});await flushPromises();expect(wrapper.find('[role="status"]').exists()).toBe(false);expect(wrapper.find('button').attributes('disabled')).toBeUndefined()})
+ it('clears completed results when the expected status changes',async()=>{wrapper=mount(HTTPRequestTest,{props:{target}});await wrapper.find('button').trigger('click');await flushPromises();await wrapper.setProps({target:{...target,expectedStatus:204}});expect(wrapper.find('[role="status"]').exists()).toBe(false)})
+})

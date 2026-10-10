@@ -23,16 +23,17 @@ const maxMonitorImportCount = 1000
 
 // A separate allowlist prevents adding new runtime Target fields to exports by accident.
 type PortableMonitor struct {
-	Name     string `json:"name"`
-	Host     string `json:"host"`
-	Type     string `json:"type"`
-	Port     int    `json:"port"`
-	Group    string `json:"group"`
-	Interval int    `json:"interval"`
-	Timeout  int    `json:"timeout"`
-	Failures int    `json:"failures"`
-	Recovery int    `json:"recovery"`
-	Paused   bool   `json:"paused"`
+	Name           string `json:"name"`
+	Host           string `json:"host"`
+	Type           string `json:"type"`
+	Port           int    `json:"port"`
+	Group          string `json:"group"`
+	Interval       int    `json:"interval"`
+	Timeout        int    `json:"timeout"`
+	Failures       int    `json:"failures"`
+	Recovery       int    `json:"recovery"`
+	Paused         bool   `json:"paused"`
+	ExpectedStatus int    `json:"expectedStatus,omitempty"`
 }
 type MonitorBackup struct {
 	Format     string            `json:"format"`
@@ -71,16 +72,22 @@ func portableMonitor(t Target) PortableMonitor {
 	if t.Type == "" {
 		t.Type = "tcp"
 	}
-	if t.Type == "icmp" {
+	if t.Type == "icmp" || t.Type == "http" {
 		t.Port = 0
 	}
-	return PortableMonitor{t.Name, t.Host, t.Type, t.Port, t.Group, t.Interval, t.Timeout, t.Failures, t.Recovery, t.State == "paused"}
+	return PortableMonitor{Name: t.Name, Host: t.Host, Type: t.Type, Port: t.Port, Group: t.Group, Interval: t.Interval, Timeout: t.Timeout, Failures: t.Failures, Recovery: t.Recovery, Paused: t.State == "paused", ExpectedStatus: t.ExpectedStatus}
 }
 func (p PortableMonitor) target() Target {
-	return Target{Name: strings.TrimSpace(p.Name), Host: strings.TrimSpace(p.Host), Type: p.Type, Port: p.Port, Group: strings.TrimSpace(p.Group), Interval: p.Interval, Timeout: p.Timeout, Failures: p.Failures, Recovery: p.Recovery}
+	if p.Type == "http" && p.ExpectedStatus == 0 {
+		p.ExpectedStatus = 200
+	}
+	if p.Type != "http" {
+		p.ExpectedStatus = 0
+	}
+	return Target{Name: strings.TrimSpace(p.Name), Host: strings.TrimSpace(p.Host), Type: p.Type, Port: p.Port, Group: strings.TrimSpace(p.Group), Interval: p.Interval, Timeout: p.Timeout, Failures: p.Failures, Recovery: p.Recovery, ExpectedStatus: p.ExpectedStatus}
 }
 func (a *App) monitorBackupLocked() MonitorBackup {
-	backup := MonitorBackup{Format: "hostlight-monitors", Version: 1, ExportedAt: time.Now().UTC().Format(time.RFC3339), Monitors: []PortableMonitor{}}
+	backup := MonitorBackup{Format: "hostlight-monitors", Version: 2, ExportedAt: time.Now().UTC().Format(time.RFC3339), Monitors: []PortableMonitor{}}
 	ids := make([]string, 0, len(a.targets))
 	for id := range a.targets {
 		ids = append(ids, id)
@@ -123,8 +130,8 @@ func decodeMonitorBackup(data []byte) (MonitorBackup, error) {
 	if err := decoder.Decode(&extra); err != io.EOF {
 		return backup, fmt.Errorf("The backup contains unexpected data after the JSON document")
 	}
-	if backup.Format != "hostlight-monitors" || backup.Version != 1 {
-		return backup, fmt.Errorf("Choose a supported Hostlight monitor backup (format hostlight-monitors, version 1)")
+	if backup.Format != "hostlight-monitors" || (backup.Version != 1 && backup.Version != 2) {
+		return backup, fmt.Errorf("Choose a supported Hostlight monitor backup (format hostlight-monitors, version 1 or 2)")
 	}
 	if len(backup.Monitors) == 0 || len(backup.Monitors) > maxMonitorImportCount {
 		return backup, fmt.Errorf("A backup must contain 1–1,000 monitors")
@@ -142,8 +149,10 @@ func (a *App) previewMonitorBackupLocked(backup MonitorBackup) MonitorImportPrev
 		row := MonitorImportRow{Row: i + 1, Monitor: p, Status: "ready", Detail: "Add as a new monitor"}
 		// Require an explicit type rather than guessing for manually edited backups.
 		var err error
-		if t.Type != "icmp" && t.Type != "tcp" {
-			err = fmt.Errorf("Choose icmp or tcp as the check type")
+		if t.Type != "icmp" && t.Type != "tcp" && t.Type != "http" {
+			err = fmt.Errorf("Choose icmp, tcp, or http as the check type")
+		} else if t.Type == "http" && (backup.Version < 2 || t.Port != 0) {
+			err = fmt.Errorf("HTTP monitors require backup version 2 and port 0 (the URL supplies its port)")
 		} else if t.Type == "icmp" && t.Port != 0 {
 			err = fmt.Errorf("ICMP monitors must have port 0")
 		} else {

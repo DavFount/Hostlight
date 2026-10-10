@@ -106,6 +106,10 @@ export function SnoozeTargetAlerts(arg1, arg2, arg3) {
   return window['go']['main']['App']['SnoozeTargetAlerts'](arg1, arg2, arg3);
 }
 
+export function TestHTTPRequest(arg1) {
+  return window['go']['main']['App']['TestHTTPRequest'](arg1);
+}
+
 export function TestWebhook() {
   return window['go']['main']['App']['TestWebhook']();
 }

@@ -54,6 +54,8 @@ export function SetTargetsPaused(arg1:Array<string>,arg2:boolean):Promise<void>;
 
 export function SnoozeTargetAlerts(arg1:string,arg2:number,arg3:string):Promise<void>;
 
+export function TestHTTPRequest(arg1:main.Target):Promise<main.HTTPProbeResult>;
+
 export function TestWebhook():Promise<void>;
 
 export function TestWebhookDestination(arg1:string):Promise<void>;
