@@ -163,6 +163,63 @@ export namespace main {
 		}
 	}
 	
+	
+	export class WebhookDelivery {
+	    name: string;
+	    host: string;
+	    id: string;
+	    event: string;
+	    created: string;
+	    attempts: number;
+	    status: string;
+	    result: string;
+	
+	    static createFrom(source: any = {}) {
+	        return new WebhookDelivery(source);
+	    }
+	
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.name = source["name"];
+	        this.host = source["host"];
+	        this.id = source["id"];
+	        this.event = source["event"];
+	        this.created = source["created"];
+	        this.attempts = source["attempts"];
+	        this.status = source["status"];
+	        this.result = source["result"];
+	    }
+	}
+	export class WebhookSettings {
+	    enabled: boolean;
+	    configured: boolean;
+	    url: string;
+	    bearer: string;
+	    signingKey: string;
+	    allowHTTP: boolean;
+	    clearBearer: boolean;
+	    clearSigningKey: boolean;
+	    hasBearer: boolean;
+	    hasSigningKey: boolean;
+	
+	    static createFrom(source: any = {}) {
+	        return new WebhookSettings(source);
+	    }
+	
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.enabled = source["enabled"];
+	        this.configured = source["configured"];
+	        this.url = source["url"];
+	        this.bearer = source["bearer"];
+	        this.signingKey = source["signingKey"];
+	        this.allowHTTP = source["allowHTTP"];
+	        this.clearBearer = source["clearBearer"];
+	        this.clearSigningKey = source["clearSigningKey"];
+	        this.hasBearer = source["hasBearer"];
+	        this.hasSigningKey = source["hasSigningKey"];
+	    }
+	}
 
 }
 

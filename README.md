@@ -40,7 +40,7 @@ An ICMP timeout can mean a firewall blocks echo requests, even when a service is
 available. Ping measures echo round-trip time; TCP measures connection-attempt time.
 Windows native ping calls finish within the configured timeout; pause, edits, and
 shutdown discard their results even if the native request is still finishing.
-ICMP on macOS/Linux, metric history/charts, webhook alerts, and advanced platform
+ICMP on macOS/Linux, metric history/charts, and advanced platform
 error handling are still planned.
 This preview is intended for development and evaluation.
 
@@ -77,6 +77,49 @@ probe checks. Storage errors or queue overflow are shown in the application;
 history may be incomplete after such an error. Closing drains pending writes for
 up to five seconds. An abrupt exit can lose queued observations, and unfinished
 incidents are marked interrupted on the next start.
+
+## Webhook alerts
+
+Open **Webhook alerts**, enter your JSON receiver's HTTPS endpoint, enable alerts,
+and save. **Send test using saved settings** queues a real test request; its outcome
+appears in delivery history. This first version supports one destination for all
+monitors, with optional bearer authentication and HMAC signing. Slack, Discord,
+and Teams-specific payload formats are not implemented yet.
+
+- A confirmed `up` → `down` transition queues an outage event; the corresponding
+  recovery queues an `up` event. Existing monitor thresholds apply.
+- Initial discovery is silent, even if a monitor starts down. Pauses, edits,
+  removals, local check errors, observation gaps, and restarts are not recoveries.
+- URLs, tokens, and signing keys are encrypted using current-user Windows DPAPI
+  before storage in SQLite. They are not returned to the webview. This is not a
+  portable credential backup or Windows Credential Manager entry; other platforms
+  cannot save webhook settings yet. See [Microsoft's DPAPI documentation](https://learn.microsoft.com/en-us/windows/win32/api/dpapi/nf-dpapi-cryptprotectdata).
+- HTTPS verifies certificates. HTTP requires explicit permission and should only
+  be used on trusted internal networks. Redirects are never followed.
+- Saving settings cancels pending deliveries, including when disabling alerts.
+  Requests already in flight may complete. A recovery is only queued for an outage
+  alerted under the same saved settings; old outages never switch destinations.
+
+The incident change and its delivery are committed in one SQLite transaction.
+A separate worker sends one request at a time with a 10-second timeout. Network/TLS
+failures, HTTP 408, 429, and 5xx retry with exponential backoff (starting at five
+seconds), jitter, and bounded `Retry-After` support (up to one hour). Other non-2xx
+responses are terminal. Delivery stops after eight attempts or 24 hours. Pending
+requests resume after restart; Hostlight must be open to send them. FIFO delivery
+preserves outage/recovery order, so a retry delays later alerts.
+
+Delivery is **at least once**, not exactly once. Receivers must deduplicate the
+stable `id` / `X-Hostlight-Event-ID` when a response is lost. JSON schema version 1
+contains `schemaVersion`, `id`, `event` (`down`, `up`, or `test`), UTC `time`,
+`incidentId`, a `target` snapshot, and `durationSeconds` (observed outage duration
+on recovery). With a signing key, `X-Hostlight-Signature` is `sha256=` followed by
+the hex HMAC-SHA256 of the exact request body.
+
+The screen shows the latest 100 deliveries without response bodies or endpoint
+details. Completed delivery records are retained for 30 days, bounded to about
+10,000, except outage markers needed for active incidents. The pending queue is
+limited to 10,000. Storage errors/overflow are visible in the app; the in-memory
+observation queue can still lose transitions during a crash or disk failure.
 
 Initial goals:
 

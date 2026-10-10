@@ -14,6 +14,10 @@ export function GetIncidents(arg1:string,arg2:string,arg3:number,arg4:number):Pr
 
 export function GetTargets():Promise<Array<main.Target>>;
 
+export function GetWebhookDeliveries():Promise<Array<main.WebhookDelivery>>;
+
+export function GetWebhookSettings():Promise<main.WebhookSettings>;
+
 export function PauseTarget(arg1:string):Promise<void>;
 
 export function PreviewBulk(arg1:string,arg2:main.Target):Promise<Array<main.BulkRow>>;
@@ -22,6 +26,10 @@ export function ResumeTarget(arg1:string):Promise<void>;
 
 export function SaveTarget(arg1:main.Target):Promise<void>;
 
+export function SaveWebhookSettings(arg1:main.WebhookSettings):Promise<void>;
+
 export function SetHistoryRetention(arg1:number):Promise<void>;
 
 export function SetTargetsPaused(arg1:Array<string>,arg2:boolean):Promise<void>;
+
+export function TestWebhook():Promise<void>;

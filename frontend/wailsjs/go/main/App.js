@@ -26,6 +26,14 @@ export function GetTargets() {
   return window['go']['main']['App']['GetTargets']();
 }
 
+export function GetWebhookDeliveries() {
+  return window['go']['main']['App']['GetWebhookDeliveries']();
+}
+
+export function GetWebhookSettings() {
+  return window['go']['main']['App']['GetWebhookSettings']();
+}
+
 export function PauseTarget(arg1) {
   return window['go']['main']['App']['PauseTarget'](arg1);
 }
@@ -42,10 +50,18 @@ export function SaveTarget(arg1) {
   return window['go']['main']['App']['SaveTarget'](arg1);
 }
 
+export function SaveWebhookSettings(arg1) {
+  return window['go']['main']['App']['SaveWebhookSettings'](arg1);
+}
+
 export function SetHistoryRetention(arg1) {
   return window['go']['main']['App']['SetHistoryRetention'](arg1);
 }
 
 export function SetTargetsPaused(arg1, arg2) {
   return window['go']['main']['App']['SetTargetsPaused'](arg1, arg2);
+}
+
+export function TestWebhook() {
+  return window['go']['main']['App']['TestWebhook']();
 }

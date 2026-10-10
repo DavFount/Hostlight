@@ -22,7 +22,7 @@ func historyFixture(t *testing.T) *incidentStore {
 }
 func applyHistory(t *testing.T, s *incidentStore, target Target, kind string, at time.Time) {
 	t.Helper()
-	if err := s.apply(historyEvent{target, kind, at}); err != nil {
+	if err := s.apply(historyEvent{target: target, kind: kind, at: at}); err != nil {
 		t.Fatal(err)
 	}
 }
@@ -165,7 +165,7 @@ func TestHistoryFiltersRetentionAndMigration(t *testing.T) {
 		t.Fatal("invalid date range accepted")
 	}
 	var version int
-	if err = s.db.QueryRow("PRAGMA user_version").Scan(&version); err != nil || version != 1 {
+	if err = s.db.QueryRow("PRAGMA user_version").Scan(&version); err != nil || version != 2 {
 		t.Fatal("schema version missing")
 	}
 	path := filepath.Join(t.TempDir(), "future.db")

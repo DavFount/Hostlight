@@ -39,9 +39,10 @@ type HistoryPage struct {
 	RetentionDays int        `json:"retentionDays"`
 }
 type historyEvent struct {
-	target Target
-	kind   string
-	at     time.Time
+	target   Target
+	kind     string
+	at       time.Time
+	previous string
 }
 type incidentStore struct {
 	db      *sql.DB
@@ -69,7 +70,7 @@ func openIncidentStore(path string, now time.Time) (*incidentStore, error) {
 	if err = db.QueryRow("PRAGMA user_version").Scan(&version); err != nil {
 		return fail(err)
 	}
-	if version > 1 {
+	if version > 2 {
 		return fail(fmt.Errorf("History database version is newer than this application supports"))
 	}
 	if version == 0 {
@@ -92,6 +93,16 @@ func openIncidentStore(path string, now time.Time) (*incidentStore, error) {
 			return fail(err)
 		}
 		if err = tx.Commit(); err != nil {
+			return fail(err)
+		}
+	}
+	if version < 2 {
+		if _, err = db.Exec(`BEGIN;
+ CREATE TABLE webhook_config(id INTEGER PRIMARY KEY CHECK(id=1), enabled INTEGER NOT NULL, secret BLOB NOT NULL);
+ CREATE TABLE deliveries(id TEXT PRIMARY KEY, incident_id INTEGER NOT NULL, event TEXT NOT NULL, payload BLOB NOT NULL, secret BLOB NOT NULL,
+ created INTEGER NOT NULL, next_attempt INTEGER NOT NULL, attempts INTEGER NOT NULL DEFAULT 0, status TEXT NOT NULL DEFAULT 'pending', result TEXT NOT NULL DEFAULT 'Waiting to send');
+ CREATE INDEX delivery_due ON deliveries(status,next_attempt);
+ PRAGMA user_version=2; COMMIT;`); err != nil {
 			return fail(err)
 		}
 	}
@@ -136,24 +147,30 @@ func (s *incidentStore) apply(e historyEvent) error {
 	defer cancel()
 	t := e.target
 	at := e.at.UnixMilli()
+	tx, err := s.db.BeginTx(ctx, nil)
+	if err != nil {
+		return err
+	}
+	defer tx.Rollback()
 	if e.kind == "result" {
 		gap := 2 * time.Duration(t.Interval+t.Timeout) * time.Second
 		if gap < 30*time.Second {
 			gap = 30 * time.Second
 		}
-		if _, err := s.db.ExecContext(ctx, "UPDATE incidents SET status='interrupted', ended=last_seen, reason=reason || ' · Monitoring gap: no observations received' WHERE target_id=? AND status='open' AND last_seen<?", t.ID, e.at.Add(-gap).UnixMilli()); err != nil {
+		if _, err := tx.ExecContext(ctx, "UPDATE incidents SET status='interrupted', ended=last_seen, reason=reason || ' · Monitoring gap: no observations received' WHERE target_id=? AND status='open' AND last_seen<?", t.ID, e.at.Add(-gap).UnixMilli()); err != nil {
 			return err
 		}
 	}
 	if e.kind == "result" && t.State == "down" {
-		tx, err := s.db.BeginTx(ctx, nil)
+		result, err := tx.ExecContext(ctx, `INSERT OR IGNORE INTO incidents(target_id,name,host,group_name,probe_type,port,opened,last_seen,status,reason) VALUES(?,?,?,?,?,?,?,?,'open',?)`, t.ID, t.Name, t.Host, t.Group, t.Type, t.Port, at, at, t.Message)
 		if err != nil {
 			return err
 		}
-		defer tx.Rollback()
-		_, err = tx.ExecContext(ctx, `INSERT OR IGNORE INTO incidents(target_id,name,host,group_name,probe_type,port,opened,last_seen,status,reason) VALUES(?,?,?,?,?,?,?,?,'open',?)`, t.ID, t.Name, t.Host, t.Group, t.Type, t.Port, at, at, t.Message)
-		if err != nil {
-			return err
+		if count, _ := result.RowsAffected(); count == 1 && e.previous == "up" {
+			id, _ := result.LastInsertId()
+			if err = enqueueWebhook(ctx, tx, t, "down", id, e.at, 0); err != nil {
+				return err
+			}
 		}
 		if _, err = tx.ExecContext(ctx, "UPDATE incidents SET last_seen=? WHERE target_id=? AND status='open'", at, t.ID); err != nil {
 			return err
@@ -161,18 +178,39 @@ func (s *incidentStore) apply(e historyEvent) error {
 		return tx.Commit()
 	}
 	if e.kind == "result" && t.State == "up" {
-		_, err := s.db.ExecContext(ctx, "UPDATE incidents SET status='resolved', last_seen=?, ended=?, reason=reason || ' · Recovery threshold reached' WHERE target_id=? AND status='open'", at, at, t.ID)
-		return err
+		var id, opened int64
+		err := tx.QueryRowContext(ctx, "SELECT id,opened FROM incidents WHERE target_id=? AND status='open'", t.ID).Scan(&id, &opened)
+		if err != nil && err != sql.ErrNoRows {
+			return err
+		}
+		if err == nil {
+			var alerted int
+			if err = tx.QueryRowContext(ctx, "SELECT count(*) FROM deliveries WHERE incident_id=? AND event='down' AND status!='cancelled' AND secret=(SELECT secret FROM webhook_config WHERE id=1 AND enabled=1)", id).Scan(&alerted); err != nil {
+				return err
+			}
+			if alerted > 0 {
+				if err = enqueueWebhook(ctx, tx, t, "up", id, e.at, (at-opened)/1000); err != nil {
+					return err
+				}
+			}
+		}
+		if _, err = tx.ExecContext(ctx, "UPDATE incidents SET status='resolved', last_seen=?, ended=?, reason=reason || ' · Recovery threshold reached' WHERE target_id=? AND status='open'", at, at, t.ID); err != nil {
+			return err
+		}
+		return tx.Commit()
 	}
 	if e.kind == "result" && t.State != "error" {
-		return nil
+		return tx.Commit()
 	}
 	reason := e.kind
 	if reason == "result" {
 		reason = "Check error: " + t.Message
 	}
-	_, err := s.db.ExecContext(ctx, "UPDATE incidents SET status='interrupted', ended=last_seen, reason=reason || ' · ' || ? WHERE target_id=? AND status='open'", reason, t.ID)
-	return err
+	_, err = tx.ExecContext(ctx, "UPDATE incidents SET status='interrupted', ended=last_seen, reason=reason || ' · ' || ? WHERE target_id=? AND status='open'", reason, t.ID)
+	if err != nil {
+		return err
+	}
+	return tx.Commit()
 }
 func (s *incidentStore) retention() (int, error) {
 	var days int
@@ -185,6 +223,11 @@ func (s *incidentStore) prune(now time.Time) error {
 		return err
 	}
 	_, err = s.db.Exec(`DELETE FROM incidents WHERE status!='open' AND (ended<? OR id NOT IN (SELECT id FROM incidents ORDER BY id DESC LIMIT 50000))`, now.AddDate(0, 0, -days).UnixMilli())
+	if err != nil {
+		return err
+	}
+	// Preserve the outage marker for active incidents so eventual recoveries can alert.
+	_, err = s.db.Exec(`DELETE FROM deliveries WHERE status!='pending' AND incident_id NOT IN (SELECT id FROM incidents WHERE status='open') AND (created<? OR id NOT IN (SELECT id FROM deliveries ORDER BY created DESC,rowid DESC LIMIT 10000))`, now.AddDate(0, 0, -30).UnixMilli())
 	return err
 }
 func historyWhere(search, status string, days int) (string, []any, error) {
@@ -257,12 +300,16 @@ func (s *incidentStore) query(search, status string, days, offset, limit int) (H
 
 // Called with the application lock held, preserving event order across edits,
 // results, pause, and deletion without disk I/O on the probe path.
-func (a *App) recordHistoryLocked(t Target, kind string) {
+func (a *App) recordHistoryLocked(t Target, kind string, previous ...string) {
 	if a.history == nil || a.closing {
 		return
 	}
+	prior := ""
+	if len(previous) > 0 {
+		prior = previous[0]
+	}
 	select {
-	case a.history.events <- historyEvent{t, kind, time.Now()}:
+	case a.history.events <- historyEvent{target: t, kind: kind, at: time.Now(), previous: prior}:
 	default:
 		a.history.setFailure(fmt.Errorf("History queue is full. Some observations were not recorded; history may contain gaps"))
 	}

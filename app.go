@@ -28,6 +28,8 @@ type App struct {
 	history      *incidentStore
 	historyError string
 	closing      bool
+	alertCancel  context.CancelFunc
+	alertDone    chan struct{}
 }
 
 // NewApp creates a new App application struct
@@ -57,6 +59,10 @@ func (a *App) startup(ctx context.Context) {
 		} else {
 			a.history = store
 			go store.writer()
+			alertCtx, cancel := context.WithCancel(context.Background())
+			a.alertCancel = cancel
+			a.alertDone = make(chan struct{})
+			go func() { defer close(a.alertDone); store.deliverWebhooks(alertCtx) }()
 		}
 	}
 	a.loadConfiguration()
@@ -78,6 +84,10 @@ func (a *App) shutdown(context.Context) {
 		close(store.events)
 	}
 	a.mu.Unlock()
+	if a.alertCancel != nil {
+		a.alertCancel()
+		<-a.alertDone
+	}
 	if store != nil {
 		select {
 		case <-store.done:
@@ -290,6 +300,7 @@ func (a *App) run(ctx context.Context, m *monitor, t Target) {
 			a.mu.Unlock()
 			return
 		}
+		previous := m.target.State
 		m.target.Checked = time.Now().UTC().Format(time.RFC3339)
 		m.target.Latency = latency
 		var dns *net.DNSError
@@ -314,7 +325,7 @@ func (a *App) run(ctx context.Context, m *monitor, t Target) {
 			m.target.Message = err.Error()
 			m.target.State = rules.apply(m.target.State, false)
 		}
-		a.recordHistoryLocked(m.target, "result")
+		a.recordHistoryLocked(m.target, "result", previous)
 		a.mu.Unlock()
 		timer := time.NewTimer(time.Duration(t.Interval) * time.Second)
 		select {

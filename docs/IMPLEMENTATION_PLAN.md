@@ -12,7 +12,7 @@ sample history and charts remain planned. This keeps configuration readable and 
 high-volume monitoring data. Existing settings must remain importable when storage evolves.
 
 Incident history implementation: `modernc.org/sqlite` supplies a pure-Go driver,
-with schema version 1, a background writer, paged queries, CSV export, and configurable
+with schema version 2 (including the webhook outbox), a background writer, paged queries, CSV export, and configurable
 retention. Go 1.26 is now the minimum version. Outages are segmented at pauses,
 edits, deletion, errors, shutdown/restart, and long observation gaps; interrupted
 records end at the last observation. Writes are bounded and errors are visible.
@@ -185,16 +185,25 @@ restart gaps are represented as gaps rather than invented uptime or downtime.
 
 ## Milestone 4 — Webhook alerts
 
+Implementation update: the first generic destination is implemented for all monitors,
+with enable/disable, test delivery, bearer authentication, HMAC signing, and a recent
+delivery table. Schema v2 migrates v1 history without losing incidents. Secrets use
+current-user Windows DPAPI encrypted blobs rather than credential-store references;
+this deliberately makes the first implementation Windows-only and non-portable.
+Initial discovery is silent. Pending deliveries are cancelled on settings changes,
+and recovery alerts require an outage under that same configuration. Provider
+presets, per-group routing, transition selection, and cooldown rules remain future work.
+
 - [ ] Configure generic JSON endpoints, headers, transition selection, and test delivery.
 - [ ] Keep endpoint secrets in the OS credential store; persist only references.
-- [ ] Create a durable delivery queue transactionally with recorded transitions.
-- [ ] Add stable event IDs, schema version, timestamps, target metadata, and outage duration.
-- [ ] Deliver asynchronously with request timeouts and bounded concurrency.
-- [ ] Retry transient network errors, rate limits, and appropriate server errors
+- [x] Create a durable delivery queue transactionally with recorded transitions.
+- [x] Add stable event IDs, schema version, timestamps, target metadata, and outage duration.
+- [x] Deliver asynchronously with request timeouts and bounded concurrency.
+- [x] Retry transient network errors, rate limits, and appropriate server errors
   with capped exponential backoff and jitter; honor bounded `Retry-After` values.
-- [ ] Treat permanent failures explicitly, cap attempts/age, and show delivery history.
+- [x] Treat permanent failures explicitly, cap attempts/age, and show delivery history.
 - [ ] Define cooldown behavior without dropping the final recovery notification.
-- [ ] Support optional HMAC signing and redact secrets from logs and exports.
+- [x] Support optional HMAC signing and redact secrets from logs and exports.
 - [ ] Add provider payload presets after generic delivery works.
 
 Acceptance: an outage and recovery each create one logical event, including across
