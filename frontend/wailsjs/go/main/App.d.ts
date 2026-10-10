@@ -28,6 +28,8 @@ export function GetIncidents(arg1:string,arg2:string,arg3:number,arg4:number):Pr
 
 export function GetTargets():Promise<Array<main.Target>>;
 
+export function GetVisualAlerts(arg1:number,arg2:boolean):Promise<main.VisualAlertPage>;
+
 export function GetWebhookDeliveries():Promise<Array<main.WebhookDelivery>>;
 
 export function GetWebhookDestinations():Promise<Array<main.WebhookSettings>>;

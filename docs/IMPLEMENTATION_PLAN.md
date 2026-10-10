@@ -268,6 +268,11 @@ Tests cover retries, restart recovery, timeouts, redaction, and terminal failure
 - [x] Preserve same-session outages across pause/resume with excluded time and recovery routing.
 - [ ] Add saved views and customizable layout beyond card density.
 - [ ] Add desktop notifications and mute controls where supported.
+- [x] Add session-only in-app outage/recovery popups with four corner positions,
+  persisted enable/duration controls, preview, dismissal, and bounded transition feed.
+  Respect maintenance/snoozing; suppress initial discovery and orphan recoveries.
+- [ ] Manually verify in-app popups in both themes, persistent dismissal, timing,
+  pause/resume recovery, and silence windows using the running Wails application.
 - [ ] Add polished outage/recovery visual notifications with configurable screen
   position, auto-close duration, and a persistent-until-dismissed option. Keep
   notification health/initial-discovery semantics aligned with webhook transitions;

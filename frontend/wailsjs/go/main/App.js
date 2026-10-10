@@ -54,6 +54,10 @@ export function GetTargets() {
   return window['go']['main']['App']['GetTargets']();
 }
 
+export function GetVisualAlerts(arg1, arg2) {
+  return window['go']['main']['App']['GetVisualAlerts'](arg1, arg2);
+}
+
 export function GetWebhookDeliveries() {
   return window['go']['main']['App']['GetWebhookDeliveries']();
 }

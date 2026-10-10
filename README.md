@@ -1,5 +1,22 @@
 # Hostlight
 
+### In-app visual alerts
+
+Use **Visual alerts** above the current view to configure outage/recovery popups.
+Choose any corner, 5/10/30/60-second dismissal, or **Until dismissed**. Controls
+are saved locally; use **Preview popup** to check positioning. These popups appear
+inside Hostlight only—not over other applications or while it is minimized.
+Native desktop overlays and OS notifications remain planned.
+
+Popups follow confirmed incident transitions, not individual failed checks. Initial
+discovery is silent. Snoozing and maintenance suppress popups without replay, and
+a suppressed outage does not generate an orphan recovery popup. Same-session
+pause/resume retains recovery association. Restarting or reopening the UI does
+not replay old alerts. The backend retains 100 recent transitions, with a visible
+warning if the UI falls behind; at most 20 popups remain visible. Persistent means
+until dismissed within that limit and the current UI session. Incident history is
+the complete record. Visual alerts require working incident storage.
+
 See what's reachable. Know when it changes.
 
 Hostlight is a desktop network-monitoring application being built with Go, Wails,

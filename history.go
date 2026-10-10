@@ -45,6 +45,7 @@ type historyEvent struct {
 	previous string
 }
 type incidentStore struct {
+	visual  visualFeed
 	db      *sql.DB
 	path    string
 	mu      sync.Mutex
@@ -215,12 +216,14 @@ func (s *incidentStore) apply(e historyEvent) error {
 		}
 	}
 	if e.kind == "result" && t.State == "down" {
+		var visualID int64
 		result, err := tx.ExecContext(ctx, `INSERT OR IGNORE INTO incidents(target_id,name,host,group_name,probe_type,port,opened,last_seen,status,reason) VALUES(?,?,?,?,?,?,?,?,'open',?)`, t.ID, t.Name, t.Host, t.Group, t.Type, t.Port, at, at, t.Message)
 		if err != nil {
 			return err
 		}
 		if count, _ := result.RowsAffected(); count == 1 && e.previous == "up" {
 			id, _ := result.LastInsertId()
+			visualID = id
 			if err = enqueueWebhook(ctx, tx, t, "down", id, e.at, 0); err != nil {
 				return err
 			}
@@ -228,7 +231,7 @@ func (s *incidentStore) apply(e historyEvent) error {
 		if _, err = tx.ExecContext(ctx, "UPDATE incidents SET last_seen=? WHERE target_id=? AND status='open'", at, t.ID); err != nil {
 			return err
 		}
-		return tx.Commit()
+		return s.commitVisual(ctx, tx, e, visualID, "down")
 	}
 	if e.kind == "result" && t.State == "up" {
 		var id, opened, excluded int64
@@ -244,7 +247,7 @@ func (s *incidentStore) apply(e historyEvent) error {
 		if _, err = tx.ExecContext(ctx, "UPDATE incidents SET status='resolved', last_seen=?, ended=?, reason=reason || ' · Recovery threshold reached' WHERE target_id=? AND status='open'", at, at, t.ID); err != nil {
 			return err
 		}
-		return tx.Commit()
+		return s.commitVisual(ctx, tx, e, id, "up")
 	}
 	if e.kind == "result" && t.State != "error" {
 		// Fresh threshold evidence after resume is still observed time, even
@@ -262,7 +265,13 @@ func (s *incidentStore) apply(e historyEvent) error {
 	if err != nil {
 		return err
 	}
-	return tx.Commit()
+	if err = tx.Commit(); err != nil {
+		return err
+	}
+	s.mu.Lock()
+	delete(s.visual.outages, t.ID)
+	s.mu.Unlock()
+	return nil
 }
 func (s *incidentStore) retention() (int, error) {
 	var days int
