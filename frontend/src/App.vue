@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import {computed,onMounted,onUnmounted,ref,watch} from 'vue'
+import {computed,nextTick,onMounted,onUnmounted,ref,watch} from 'vue'
 import IncidentHistory from './components/IncidentHistory.vue'
 import WebhookAlerts from './components/WebhookAlerts.vue'
 import AlertSilences from './components/AlertSilences.vue'
@@ -12,6 +12,8 @@ import VisualAlerts from './components/VisualAlerts.vue'
 import SavedViews from './components/SavedViews.vue'
 import SupportInfo from './components/SupportInfo.vue'
 import DesktopControls from './components/DesktopControls.vue'
+import SchedulingControls from './components/SchedulingControls.vue'
+import HistoryPreferences from './components/HistoryPreferences.vue'
 import type {MonitorFilters} from './savedViews'
 type Silence={id:string;targetId:string;kind:string;starts:string;ends:string;reason:string}
 type Target={id:string;name:string;host:string;type:'icmp'|'tcp'|'http';port:number;group:string;interval:number;timeout:number;failures:number;recovery:number;state:string;latency:number;message:string;checked:string;expectedStatus?:number;bodyMode?:string;bodyExpected?:string;jsonPointer?:string;jsonType?:string;tlsMinDays?:number;certificateExpires?:string}
@@ -20,6 +22,19 @@ type API={GetAlertSilences:()=>Promise<Silence[]>;GetTargets:()=>Promise<Target[
 const api=()=>(window as unknown as {go?:{main:{App:API}}}).go?.main.App
 const targets=ref<Target[]>([]),search=ref(''),filter=ref('all'),error=ref(''),editing=ref(false),busy=ref(false)
 const configuration=ref({path:'',error:'',historyError:''}),view=ref('monitors')
+const settingsSection=ref('general'),pageHeading=ref<HTMLElement>()
+const visualPreferences=ref<HTMLElement|null>(null)
+const settingsSections=[{id:'general',label:'General'},{id:'webhooks',label:'Webhook alerts'},{id:'history',label:'History'},{id:'backups',label:'Monitor backups'}]
+function navigate(destination:string){
+ if(!['monitors','history','settings','about','backups'].includes(destination))return
+ editing.value=false;silencing.value=null
+ view.value=destination==='backups'?'settings':destination
+ if(destination==='backups')settingsSection.value='backups'
+ nextTick(()=>pageHeading.value?.focus())
+}
+let removeMenuListener:(()=>void)|undefined
+onMounted(()=>{const runtime=(window as unknown as {runtime?:{EventsOnMultiple?:(name:string,callback:(destination:string)=>void,count:number)=>()=>void}}).runtime;removeMenuListener=runtime?.EventsOnMultiple?.('hostlight:navigate',navigate,-1)})
+onUnmounted(()=>removeMenuListener?.())
 const silences=ref<Silence[]>([]),silencing=ref<Target|null>(null),now=ref(Date.now())
 const silenceBadges=computed(()=>{const map=new Map<string,Silence>();for(const s of silences.value){if(new Date(s.ends).getTime()<=now.value)continue;const prior=map.get(s.targetId);const active=new Date(s.starts).getTime()<=now.value;const priorActive=prior&&new Date(prior.starts).getTime()<=now.value;if(!prior||(active&&!priorActive)||(active&&priorActive&&s.ends>prior.ends)||(!active&&!priorActive&&s.starts<prior.starts))map.set(s.targetId,s)}return map})
 function silenceLabel(id:string){const s=silenceBadges.value.get(id);if(!s)return '';return new Date(s.starts).getTime()<=now.value?`Alerts silenced until ${new Date(s.ends).toLocaleString()}`:`Maintenance scheduled: ${new Date(s.starts).toLocaleString()}`}
@@ -86,15 +101,19 @@ onUnmounted(()=>clearInterval(timer))
 </script>
 <template>
 <div class="shell" :class="density">
-<aside><div class="brand"><img :src="hostlightLogo" alt="" width="36" height="36"> Hostlight</div><div class="workspace"><small>WORKSPACE</small><strong>Local network</strong><span>Desktop monitoring</span></div><button class="nav" :aria-current="view==='monitors'?'page':undefined" @click="view='monitors'">▦ Monitors <span>{{targets.length}}</span></button><button class="nav" :aria-current="view==='history'?'page':undefined" @click="view='history'">◷ Incident history</button><button class="nav" :aria-current="view==='alerts'?'page':undefined" @click="view='alerts'">♧ Webhook alerts</button><button class="nav" :aria-current="view==='backups'?'page':undefined" @click="view='backups'">⇄ Monitor backups</button><button class="nav" :aria-current="view==='support'?'page':undefined" @click="view='support'">ⓘ Support</button><p class="sidebar-note">● Checks run on this computer<br>Keep Hostlight running. Hiding to tray is OK.</p><div class="appearance"><label for="theme">Appearance</label><select id="theme" v-model="theme"><option value="dark">Dark</option><option value="light">Light</option></select><label for="density">Card spacing</label><select id="density" v-model="density"><option value="comfortable">Comfortable</option><option value="compact">Compact</option></select></div><DesktopControls /><footer>HOSTLIGHT · EARLY PREVIEW</footer></aside>
- <main><header><div><small>{{view==='support'?'SUPPORT':view==='backups'?'MONITOR BACKUPS':view==='alerts'?'WEBHOOK ALERTS':view==='history'?'INCIDENT HISTORY':'NETWORK OVERVIEW'}}</small><h1>{{view==='support'?'A little context makes troubleshooting easier.':view==='backups'?'Take your monitoring setup with you.':view==='alerts'?'Know when availability changes.':view==='history'?'Every outage has a timeline.':'Your network, at a glance.'}}</h1><p>{{view==='support'?'Review app health. Share only what is needed.':view==='backups'?'Back up definitions. Review imports. Keep existing monitors intact.':view==='alerts'?'Connect Hostlight to your incident workflow.':view==='history'?'Review availability changes, recovery, and monitoring gaps.':'Watch availability. Catch changes. Stay in control.'}}</p></div><div v-if="view==='monitors'" class="header-actions"><button @click="editBulk()">Add multiple</button><button class="primary" @click="edit()">＋ Add monitor</button></div></header>
-<VisualAlerts />
+<aside><div class="brand"><img :src="hostlightLogo" alt="" width="36" height="36"> Hostlight</div><div class="workspace"><small>WORKSPACE</small><strong>Local network</strong><span>Desktop monitoring</span></div><button class="nav" :aria-current="view==='monitors'?'page':undefined" @click="navigate('monitors')">▦ Monitors <span>{{targets.length}}</span></button><button class="nav" :aria-current="view==='history'?'page':undefined" @click="navigate('history')">◷ Incident history</button><p class="sidebar-note">● Checks run on this computer<br>Keep Hostlight running. Hiding to tray is OK.</p><div class="sidebar-secondary"><button class="nav" :aria-current="view==='settings'?'page':undefined" @click="navigate('settings')">⚙ Settings</button><button class="nav" :aria-current="view==='about'?'page':undefined" @click="navigate('about')">ⓘ About Hostlight</button></div><footer>HOSTLIGHT · EARLY PREVIEW</footer></aside>
+ <main><header><div><small>{{view==='settings'?'PREFERENCES':view==='about'?'ABOUT HOSTLIGHT':view==='history'?'INCIDENT HISTORY':'NETWORK OVERVIEW'}}</small><h1 tabindex="-1" ref="pageHeading">{{view==='settings'?'Make Hostlight work your way.':view==='about'?'About Hostlight':view==='history'?'Every outage has a timeline.':'Your network, at a glance.'}}</h1><p>{{view==='settings'?'Manage alerts, appearance, monitoring, and desktop behavior.':view==='about'?'Local monitoring. Useful context when you need support.':view==='history'?'Review availability changes, recovery, and monitoring gaps.':'Watch availability. Catch changes. Stay in control.'}}</p></div><div v-if="view==='monitors'" class="header-actions"><button @click="editBulk()">Add multiple</button><button class="primary" @click="edit()">＋ Add monitor</button></div></header>
  <div class="notice">Ping, TCP &amp; HTTP monitoring · Targets and pause settings are saved automatically. Checks resume when you reopen Hostlight.</div><div v-if="configuration.error" class="error" role="alert">{{configuration.error}} Settings file: {{configuration.path}}</div><div v-if="!api()" class="notice">Browser preview. Launch through Wails for live checks.</div><div v-if="error&&!editing" class="error" role="alert">{{error}}</div>
  <div v-if="configuration.historyError" class="error" role="alert">{{configuration.historyError}}</div>
  <IncidentHistory v-if="view==='history'" />
- <WebhookAlerts v-else-if="view==='alerts'" />
- <MonitorBackups v-else-if="view==='backups'" @changed="refresh" />
- <SupportInfo v-else-if="view==='support'" />
+ <section v-else-if="view==='settings'" class="preferences-page">
+ <nav class="preferences-tabs" aria-label="Settings sections"><button v-for="section in settingsSections" :key="section.id" :aria-current="settingsSection===section.id?'page':undefined" @click="settingsSection=section.id">{{section.label}}</button></nav>
+ <section v-if="settingsSection==='general'" class="preferences-general"><h2>Appearance and desktop</h2><div class="appearance"><label for="theme">Appearance</label><select id="theme" v-model="theme"><option value="dark">Dark</option><option value="light">Light</option></select><label for="density">Card spacing</label><select id="density" v-model="density"><option value="comfortable">Comfortable</option><option value="compact">Compact</option></select></div><div ref="visualPreferences"></div><SchedulingControls /><DesktopControls /></section>
+ <WebhookAlerts v-else-if="settingsSection==='webhooks'" />
+ <HistoryPreferences v-else-if="settingsSection==='history'" />
+ <MonitorBackups v-else-if="settingsSection==='backups'" @changed="refresh" />
+ </section>
+ <section v-else-if="view==='about'"><h2>Hostlight</h2><p>A Windows-first desktop utility for monitoring hosts and services. Monitoring is local and stops when you quit; this version is not a Windows service.</p><SupportInfo /></section>
  <template v-else>
  <section class="metrics"><button @click="filter='all'"><span>Total monitors</span><strong>{{targets.length}}</strong><small>Across your workspace</small></button><button @click="filter='up'"><span>● Available</span><strong>{{count('up')}}</strong><small>Services responding</small></button><button @click="filter='down'"><span>● Unavailable</span><strong>{{count('down')}}</strong><small>Failure threshold reached</small></button><button @click="filter='paused'"><span>● Paused</span><strong>{{count('paused')}}</strong><small>Checks temporarily stopped</small></button></section>
  <SavedViews :filters="{search,status:filter,group:selectedGroup}" @apply="applyView" />
@@ -103,7 +122,9 @@ onUnmounted(()=>clearInterval(timer))
  <section v-if="!targets.length" class="empty"><div>⌁</div><h2>A clear view starts with one monitor.</h2><p>Ping a host, check a TCP port, or monitor an HTTP health endpoint.<br>No scripts or configuration files needed.</p><button class="primary" @click="edit()">＋ Add your first monitor</button><p><small>Start with your gateway's IP address. Ping needs no port.</small></p></section>
  <section v-else-if="!visible.length" class="empty"><h2>No matching monitors</h2><p>Try another search or filter.</p></section>
  <section v-else class="grid"><article v-for="t in visible" :key="t.id"><div class="card-heading"><small>{{t.type==='icmp'?'PING / ICMP':t.type==='http'?'HTTP / HTTPS':`TCP / ${t.port}`}}</small><span class="state" :class="t.state">● {{t.state==='up'?'Available':t.state==='down'?'Unavailable':t.state==='paused'?'Paused':t.state==='error'?'Check error':'Checking'}}</span></div><h3>{{t.name}}</h3><p class="address">{{t.host}}<span v-if="t.group"> · {{t.group}}</span></p><p v-if="silenceBadges.has(t.id)" class="silence-badge" :class="{active:silenceActive(t.id)}" :title="silenceBadges.get(t.id)?.reason">{{silenceLabel(t.id)}}</p><CertificateExpiry v-if="t.type==='http'" :expires="t.certificateExpires" :minimum-days="t.tlsMinDays" :now="now" /><div class="reading"><strong>{{t.checked && checkSucceeded(t)?t.latency.toFixed(1):'—'}}</strong><small>ms · {{t.type==='icmp'?'last echo reply':t.type==='http'?(t.bodyMode?'last complete response check':'last matching response headers'):'last successful connection'}}</small></div><p class="diagnostic" :title="checkDiagnostic(t)">{{checkDiagnostic(t)}}</p><div class="card-footer"><small>Every {{t.interval}}s</small><div><button @click="edit(t)">Edit</button><button title="Maintenance and alert snoozing" @click="silencing=t">Silence alerts</button><button @click="action(t)">{{t.state==='paused'?'Resume':'Pause'}}</button><button class="danger" @click="action(t,true)">Remove</button></div></div></article></section>
- <p class="bottom-note">Ping checks echo replies; TCP checks port reachability; HTTP checks response status. A firewall may block ping even when services are available.</p><p v-if="configuration.path" class="bottom-note">Settings: {{configuration.path}}</p></template></main>
+ <p class="bottom-note">Ping checks echo replies; TCP checks port reachability; HTTP checks response status. A firewall may block ping even when services are available.</p><p v-if="configuration.path" class="bottom-note">Settings: {{configuration.path}}</p></template>
+ <VisualAlerts :preferences="view==='settings'&&settingsSection==='general'" :controls-target="visualPreferences" />
+ </main>
  <AlertSilences v-if="silencing" :target="silencing" :silences="silences" @close="silencing=null" @changed="refresh" />
  <div v-if="editing" class="backdrop" @click.self="editing=false">
   <section class="modal" role="dialog" aria-modal="true" aria-labelledby="editor-title" @keydown.esc="editing=false">

@@ -30,6 +30,8 @@ export function GetDesktopStatus():Promise<main.DesktopStatus>;
 
 export function GetIncidents(arg1:string,arg2:string,arg3:number,arg4:number):Promise<main.HistoryPage>;
 
+export function GetSchedulingSettings():Promise<main.SchedulingStatus>;
+
 export function GetSupportReport():Promise<main.SupportReport>;
 
 export function GetTargets():Promise<Array<main.Target>>;
@@ -51,6 +53,8 @@ export function PreviewBulk(arg1:string,arg2:main.Target):Promise<Array<main.Bul
 export function QuitHostlight():Promise<void>;
 
 export function ResumeTarget(arg1:string):Promise<void>;
+
+export function SaveSchedulingSettings(arg1:main.SchedulingSettings):Promise<void>;
 
 export function SaveTarget(arg1:main.Target):Promise<void>;
 

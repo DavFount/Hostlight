@@ -1,5 +1,18 @@
 # Hostlight
 
+Settings contains appearance, visual alerts, scheduling, desktop behavior,
+webhook setup/testing/delivery logs, and monitor backups. About Hostlight contains
+support information and sanitized diagnostic exports. Native File/View/Help menus
+provide navigation; Ctrl+, opens Settings and Ctrl+Q explicitly quits.
+
+Check scheduling is configurable from Settings → General: 1–128 simultaneous checks
+(default 32) and a 0–5000 ms first-check spread (default 250 ms). Saved changes
+apply after quitting and reopening, not hiding to tray. The spread applies on
+start/resume; intervals are delays after completion, not fixed-rate deadlines.
+Busy checks wait for capacity; HTTP previews share the same limit. Increasing
+concurrency increases network/CPU load, not a guaranteed supported target count.
+These application settings are not included in monitor backups.
+
 [![Windows verification](https://github.com/DavFount/Hostlight/actions/workflows/verify.yml/badge.svg?branch=main)](https://github.com/DavFount/Hostlight/actions/workflows/verify.yml)
 
 ## Automated checks and releases

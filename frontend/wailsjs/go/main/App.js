@@ -58,6 +58,10 @@ export function GetIncidents(arg1, arg2, arg3, arg4) {
   return window['go']['main']['App']['GetIncidents'](arg1, arg2, arg3, arg4);
 }
 
+export function GetSchedulingSettings() {
+  return window['go']['main']['App']['GetSchedulingSettings']();
+}
+
 export function GetSupportReport() {
   return window['go']['main']['App']['GetSupportReport']();
 }
@@ -100,6 +104,10 @@ export function QuitHostlight() {
 
 export function ResumeTarget(arg1) {
   return window['go']['main']['App']['ResumeTarget'](arg1);
+}
+
+export function SaveSchedulingSettings(arg1) {
+  return window['go']['main']['App']['SaveSchedulingSettings'](arg1);
 }
 
 export function SaveTarget(arg1) {

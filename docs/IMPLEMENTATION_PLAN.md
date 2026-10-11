@@ -193,7 +193,11 @@ real monitoring is connected.
 - [x] Implement cancellable ICMP/TCP probe adapters with stale-result protection.
 - [x] Resolve hostnames; document ICMP IPv4 preference and IPv6-only/scoped-address support.
 - [x] Bound concurrent probes to 32 and prevent overlapping checks per monitor.
-- [ ] Add staggered starts and configurable concurrency/capacity limits; document scheduling behavior.
+- [x] Add deterministic staggered starts (default 250 ms, configurable 0–5000 ms)
+  and saved concurrency limits (1–128, default 32), applied after a full restart.
+  HTTP previews share the active limit. Intervals begin after completion; checks
+  wait for capacity without overlap or catch-up bursts.
+- [ ] Measure supported target capacity and verify scheduling controls in the desktop UI.
 - [x] Implement tested failure/recovery state decisions and backend incident/alert transitions.
 - [ ] Implement sequenced frontend transition events if replacing snapshot polling.
 - [x] Wire per-target and filtered bulk pause/resume into the live UI.
@@ -263,6 +267,13 @@ Tests cover retries, restart recovery, timeouts, redaction, and terminal failure
 
 ## Milestone 5 — Desktop workflow and configuration portability
 
+- [x] Keep primary navigation focused on monitors and incident history; group
+  appearance, scheduling, desktop behavior, history retention, webhook configuration/delivery logs/tests,
+  and monitor backups under Settings. Put support diagnostics in About Hostlight.
+- [x] Add native File/View/Help menus with settings, backups, page navigation,
+  explicit Quit, and About Hostlight; clean up frontend navigation listeners.
+- [ ] Verify native menu navigation/shortcuts and the reorganized pages in Wails.
+
 - [x] Add saved dark-default/light themes and card-density preferences.
 - [x] Add a consistent vector Hostlight logo, sidebar/favicon branding, and generated multi-resolution Windows executable icons.
 - [x] Add search/status/group filters and transactional bulk actions.
@@ -293,6 +304,8 @@ Tests cover retries, restart recovery, timeouts, redaction, and terminal failure
   restarting Explorer. Other platforms retain ordinary close-to-exit behavior.
 - [ ] Manually verify Wails close/hide/restore, checks and webhook delivery while
   hidden, second-launch restore, real Explorer restart, and explicit quit cleanup.
+- [x] User confirmed minimizing to the system tray works (2026-10-11).
+  This does not establish the remaining hidden-monitoring and lifecycle checks.
 - [x] Add versioned monitor configuration import/export with preview and validation.
 - [x] Exclude credentials and live history from configuration exports by default.
 - [ ] Offer explicit portable mode with writable-path checks and clear credential behavior.
@@ -395,8 +408,8 @@ slice extends the original first-release scope by explicit user direction.
 
 ## Verification strategy
 
-Latest completed implementation-slice checks (2026-10-10): `go test ./...`,
-`go vet ./...`, 79 frontend tests, frontend production/type-check build, and
+Latest completed implementation-slice checks (2026-10-11): `go test ./...`,
+`go vet ./...`, 83 frontend tests, frontend production/type-check build, and
 `wails build` passed. This is a development verification record, not completion
 of milestone 6. The checklist reconciliation itself changes documentation only;
 it does not establish new manual desktop, standard-user, or load-test evidence.

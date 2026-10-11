@@ -1,6 +1,7 @@
 import {afterEach,beforeEach,describe,expect,it,vi} from 'vitest'
 import {flushPromises,mount,type VueWrapper} from '@vue/test-utils'
 import IncidentHistory from './IncidentHistory.vue'
+import HistoryPreferences from './HistoryPreferences.vue'
 
 const incident={id:1,name:'Office gateway',host:'192.168.1.1',group:'Office',type:'icmp',port:0,opened:'2026-10-09T12:00:00Z',ended:'2026-10-09T12:01:05Z',lastSeen:'2026-10-09T12:01:05Z',status:'interrupted',reason:'Monitoring paused',durationSeconds:65}
 const page=()=>({items:[incident],total:1,error:'',path:'C:/settings/history.db',retentionDays:90})
@@ -24,7 +25,7 @@ describe('incident history',()=>{
   expect(wrapper.text()).toContain('Exported to C:/exports/incidents.csv')
  })
  it('does not remove retained data if the reduction is canceled',async()=>{
-  wrapper=mount(IncidentHistory);await flushPromises();vi.stubGlobal('confirm',vi.fn().mockReturnValue(false))
+  wrapper=mount(HistoryPreferences);await flushPromises();vi.stubGlobal('confirm',vi.fn().mockReturnValue(false))
   await wrapper.find('.history-settings select').setValue('7');await flushPromises()
   expect(api.SetHistoryRetention).not.toHaveBeenCalled()
   expect((wrapper.find('.history-settings select').element as HTMLSelectElement).value).toBe('90')
@@ -37,7 +38,7 @@ describe('incident history',()=>{
   expect(api.GetIncidents).toHaveBeenLastCalledWith('','resolved',7,0)
  })
  it('saves a confirmed retention reduction',async()=>{
-  wrapper=mount(IncidentHistory);await flushPromises();vi.stubGlobal('confirm',vi.fn().mockReturnValue(true))
+  wrapper=mount(HistoryPreferences);await flushPromises();vi.stubGlobal('confirm',vi.fn().mockReturnValue(true))
   api.GetIncidents.mockResolvedValue({...page(),retentionDays:7})
   await wrapper.find('.history-settings select').setValue('7');await flushPromises()
   expect(api.SetHistoryRetention).toHaveBeenCalledWith(7)

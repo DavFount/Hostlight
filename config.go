@@ -11,10 +11,11 @@ import (
 
 // Configuration contains definitions only. Live results are never restored as evidence.
 type configuration struct {
-	CloseToTray bool          `json:"closeToTray,omitempty"`
-	Version     int           `json:"version"`
-	NextID      uint64        `json:"nextId,omitempty"`
-	Targets     []savedTarget `json:"targets"`
+	Scheduling  *SchedulingSettings `json:"scheduling,omitempty"`
+	CloseToTray bool                `json:"closeToTray,omitempty"`
+	Version     int                 `json:"version"`
+	NextID      uint64              `json:"nextId,omitempty"`
+	Targets     []savedTarget       `json:"targets"`
 }
 type savedTarget struct {
 	Target Target `json:"target"`
@@ -29,6 +30,7 @@ func (a *App) persistLocked() error {
 		return nil
 	} // In-memory fixtures.
 	cfg := configuration{Version: 4, NextID: a.next, CloseToTray: a.desktop.closeToTray, Targets: make([]savedTarget, 0, len(a.targets))}
+	cfg.Scheduling = &a.scheduling
 	for _, m := range a.targets {
 		t := m.target
 		paused := t.State == "paused"
@@ -94,6 +96,10 @@ func (a *App) loadConfiguration() {
 		return
 	}
 	// Validate the entire file before restoring any monitors.
+	if cfg.Scheduling != nil && !validScheduling(*cfg.Scheduling) {
+		a.configError = "Saved scheduling settings are invalid. The original file has been preserved."
+		return
+	}
 	if cfg.NextID > a.next {
 		a.next = cfg.NextID
 	}
@@ -110,6 +116,11 @@ func (a *App) loadConfiguration() {
 		}
 	}
 	a.desktop.closeToTray = cfg.CloseToTray
+	if cfg.Scheduling != nil {
+		a.scheduling = *cfg.Scheduling
+		a.activeScheduling = *cfg.Scheduling
+		a.slots = make(chan struct{}, cfg.Scheduling.Concurrency)
+	}
 	for _, s := range cfg.Targets {
 		t := s.Target
 		if t.Type == "" {

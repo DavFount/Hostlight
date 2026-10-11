@@ -2,9 +2,9 @@
 import {onMounted,onUnmounted,ref,watch} from 'vue'
 type Incident={id:number;name:string;host:string;group:string;type:string;port:number;opened:string;ended:string;lastSeen:string;status:string;reason:string;durationSeconds:number}
 type HistoryPage={items:Incident[];total:number;error:string;path:string;retentionDays:number}
-type API={GetIncidents:(search:string,status:string,days:number,offset:number)=>Promise<HistoryPage>;SetHistoryRetention:(days:number)=>Promise<void>;ExportIncidents:(search:string,status:string,days:number)=>Promise<string>}
+type API={GetIncidents:(search:string,status:string,days:number,offset:number)=>Promise<HistoryPage>;ExportIncidents:(search:string,status:string,days:number)=>Promise<string>}
 const api=()=>(window as unknown as {go?:{main:{App:API}}}).go?.main.App
-const search=ref(''),status=ref('all'),days=ref(30),offset=ref(0),retention=ref(90)
+const search=ref(''),status=ref('all'),days=ref(30),offset=ref(0)
 const page=ref<HistoryPage>({items:[],total:0,error:'',path:'',retentionDays:90})
 const error=ref(''),exported=ref(''),loading=ref(false),saving=ref(false)
 let poll:ReturnType<typeof setInterval>,debounce:ReturnType<typeof setTimeout>,generation=0
@@ -14,16 +14,10 @@ function statusLabel(value:string){return value==='open'?'Unavailable':value==='
 async function refresh(){
  if(!api())return
  const request=++generation;loading.value=true
- try{const result=await api()!.GetIncidents(search.value,status.value,days.value,offset.value);if(request!==generation)return;page.value=result;if(!saving.value)retention.value=result.retentionDays||90;error.value=''}catch(e){if(request===generation)error.value=String(e)}finally{if(request===generation)loading.value=false}
+ try{const result=await api()!.GetIncidents(search.value,status.value,days.value,offset.value);if(request!==generation)return;page.value=result;error.value=''}catch(e){if(request===generation)error.value=String(e)}finally{if(request===generation)loading.value=false}
 }
 watch([search,status,days],()=>{offset.value=0;generation++;clearTimeout(debounce);debounce=setTimeout(refresh,200)})
 watch(offset,refresh)
-async function setRetention(){
- const value=retention.value
- if(value<page.value.retentionDays&&!confirm(`Keep only ${value} days of completed history? Older completed incidents will be removed.`)){retention.value=page.value.retentionDays;return}
- saving.value=true
- try{await api()!.SetHistoryRetention(value);offset.value=0;await refresh()}catch(e){error.value=String(e);retention.value=page.value.retentionDays}finally{saving.value=false}
-}
 async function exportCSV(){saving.value=true;exported.value='';try{exported.value=await api()!.ExportIncidents(search.value,status.value,days.value)}catch(e){error.value=String(e)}finally{saving.value=false}}
 onMounted(()=>{refresh();poll=setInterval(refresh,5000)})
 onUnmounted(()=>{generation++;clearInterval(poll);clearTimeout(debounce)})
@@ -47,6 +41,6 @@ onUnmounted(()=>{generation++;clearInterval(poll);clearTimeout(debounce)})
   </div>
   <div v-else class="empty"><div>◷</div><h2>{{loading?'Loading history…':'No incidents to show'}}</h2><p>Outages appear after a monitor reaches its failure threshold.<br>Try another filter if you are looking for an older incident.</p></div>
   <div class="history-pagination"><button :disabled="offset===0||loading" @click="offset=Math.max(0,offset-100)">Previous</button><span v-if="page.total">{{offset+1}}–{{Math.min(offset+100,page.total)}} of {{page.total}}</span><button :disabled="offset+100>=page.total||loading" @click="offset+=100">Next</button></div>
-  <div class="history-settings"><label>Keep completed history for <select v-model.number="retention" :disabled="saving||!api()" @change="setRetention"><option :value="7">7 days</option><option :value="30">30 days</option><option :value="90">90 days</option><option :value="365">1 year</option><option v-if="![7,30,90,365].includes(retention)" :value="retention">{{retention}} days</option></select></label><p>Interrupted means monitoring stopped or observations were missing. It does not confirm recovery. Duration ends at the last observation, so time while Hostlight is closed is excluded.</p><p class="bottom-note">Completed history is also capped at approximately 50,000 records. Active incidents are kept.</p><p v-if="page.path" class="bottom-note">History: {{page.path}}</p></div>
+  <div class="history-settings"><p>Interrupted means monitoring stopped or observations were missing. It does not confirm recovery. Duration ends at the last observation, so time while Hostlight is closed is excluded.</p><p class="bottom-note">Completed history is also capped at approximately 50,000 records. Active incidents are kept.</p><p v-if="page.path" class="bottom-note">History: {{page.path}}</p></div>
  </section>
 </template>

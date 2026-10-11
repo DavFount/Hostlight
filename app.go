@@ -16,27 +16,31 @@ import (
 
 // App struct
 type App struct {
-	monitorImport *pendingMonitorImport
-	ctx           context.Context
-	mu            sync.Mutex
-	targets       map[string]*monitor
-	next          uint64
-	configPath    string
-	configError   string
-	slots         chan struct{}
-	dial          func(context.Context, string, time.Duration) (net.Conn, error)
-	ping          func(context.Context, string, time.Duration) (float64, error)
-	history       *incidentStore
-	historyError  string
-	closing       bool
-	alertCancel   context.CancelFunc
-	alertDone     chan struct{}
-	desktop       desktopState
+	monitorImport    *pendingMonitorImport
+	ctx              context.Context
+	mu               sync.Mutex
+	targets          map[string]*monitor
+	next             uint64
+	configPath       string
+	configError      string
+	slots            chan struct{}
+	scheduling       SchedulingSettings
+	activeScheduling SchedulingSettings
+	dial             func(context.Context, string, time.Duration) (net.Conn, error)
+	ping             func(context.Context, string, time.Duration) (float64, error)
+	history          *incidentStore
+	historyError     string
+	closing          bool
+	alertCancel      context.CancelFunc
+	alertDone        chan struct{}
+	desktop          desktopState
 }
 
 // NewApp creates a new App application struct
 func NewApp() *App {
 	a := &App{targets: make(map[string]*monitor), slots: make(chan struct{}, 32)}
+	a.scheduling = SchedulingSettings{Concurrency: 32, SpreadMilliseconds: 250}
+	a.activeScheduling = a.scheduling
 	a.ping = pingHost
 	a.dial = func(ctx context.Context, address string, timeout time.Duration) (net.Conn, error) {
 		d := net.Dialer{Timeout: timeout}
@@ -286,6 +290,12 @@ func (a *App) ResumeTarget(id string) error {
 	return a.SetTargetsPaused([]string{id}, false)
 }
 func (a *App) run(ctx context.Context, m *monitor, t Target) {
+	a.mu.Lock()
+	spread := a.activeScheduling.SpreadMilliseconds
+	a.mu.Unlock()
+	if !waitForProbe(ctx, probeStartDelay(t.ID, spread)) {
+		return
+	}
 	rules := statusRules{failures: t.Failures, recovery: t.Recovery}
 	for {
 		select {

@@ -373,6 +373,54 @@ export namespace main {
 	}
 	
 	
+	export class SchedulingSettings {
+	    concurrency: number;
+	    spreadMilliseconds: number;
+	
+	    static createFrom(source: any = {}) {
+	        return new SchedulingSettings(source);
+	    }
+	
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.concurrency = source["concurrency"];
+	        this.spreadMilliseconds = source["spreadMilliseconds"];
+	    }
+	}
+	export class SchedulingStatus {
+	    saved: SchedulingSettings;
+	    active: SchedulingSettings;
+	    restartRequired: boolean;
+	
+	    static createFrom(source: any = {}) {
+	        return new SchedulingStatus(source);
+	    }
+	
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.saved = this.convertValues(source["saved"], SchedulingSettings);
+	        this.active = this.convertValues(source["active"], SchedulingSettings);
+	        this.restartRequired = source["restartRequired"];
+	    }
+	
+		convertValues(a: any, classs: any, asMap: boolean = false): any {
+		    if (!a) {
+		        return a;
+		    }
+		    if (a.slice && a.map) {
+		        return (a as any[]).map(elem => this.convertValues(elem, classs));
+		    } else if ("object" === typeof a) {
+		        if (asMap) {
+		            for (const key of Object.keys(a)) {
+		                a[key] = new classs(a[key]);
+		            }
+		            return a;
+		        }
+		        return new classs(a);
+		    }
+		    return a;
+		}
+	}
 	export class SupportReport {
 	    format: string;
 	    version: number;

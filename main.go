@@ -22,6 +22,7 @@ func main() {
 		Height:    820,
 		MinWidth:  760,
 		MinHeight: 580,
+		Menu:      app.applicationMenu(),
 		AssetServer: &assetserver.Options{
 			Assets: assets,
 		},

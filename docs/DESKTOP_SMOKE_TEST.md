@@ -25,6 +25,14 @@ executable. Browser previews cannot validate native dialogs, tray, or shutdown.
 - [ ] Reject invalid settings without starting checks or overwriting valid entries.
 - [ ] Edit/pause/resume; restart and confirm definitions and pause state persist.
 - [ ] Switch light/dark and compact/comfortable; confirm preferences persist.
+- [ ] Sidebar contains Monitors, Incident history, Settings, and About Hostlight;
+      preferences do not crowd primary navigation. Settings contains General,
+      webhook setup/testing/deliveries, history retention, and monitor backups.
+- [ ] File/View/Help menu clicks and Ctrl+, / Ctrl+1 / Ctrl+2 reach the correct
+      pages; Ctrl+Q quits even with close-to-tray enabled. About shows diagnostics.
+- [ ] Visual alerts continue across page changes; controls appear under General.
+- [ ] Save scheduling limits; active values stay unchanged until Quit/reopen,
+      then saved values become active. Hiding to tray must not apply changes.
 
 ## Availability, incidents, and alerting
 
