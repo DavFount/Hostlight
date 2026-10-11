@@ -25,6 +25,8 @@ const configuration=ref({path:'',error:'',historyError:''}),view=ref('monitors')
 const settingsSection=ref('general'),pageHeading=ref<HTMLElement>()
 const visualPreferences=ref<HTMLElement|null>(null)
 const settingsSections=[{id:'general',label:'General'},{id:'webhooks',label:'Webhook alerts'},{id:'history',label:'History'},{id:'backups',label:'Monitor backups'}]
+const generalSections=[{id:'settings-appearance',label:'Appearance'},{id:'settings-visual',label:'Visual alerts'},{id:'settings-scheduling',label:'Check scheduling'},{id:'settings-desktop',label:'Desktop behavior'}]
+function jumpToSetting(id:string){const section=document.getElementById(id);section?.focus({preventScroll:true});section?.scrollIntoView?.({block:'start'})}
 function navigate(destination:string){
  if(!['monitors','history','settings','about','backups'].includes(destination))return
  editing.value=false;silencing.value=null
@@ -101,14 +103,21 @@ onUnmounted(()=>clearInterval(timer))
 </script>
 <template>
 <div class="shell" :class="density">
-<aside><div class="brand"><img :src="hostlightLogo" alt="" width="36" height="36"> Hostlight</div><div class="workspace"><small>WORKSPACE</small><strong>Local network</strong><span>Desktop monitoring</span></div><button class="nav" :aria-current="view==='monitors'?'page':undefined" @click="navigate('monitors')">▦ Monitors <span>{{targets.length}}</span></button><button class="nav" :aria-current="view==='history'?'page':undefined" @click="navigate('history')">◷ Incident history</button><p class="sidebar-note">● Checks run on this computer<br>Keep Hostlight running. Hiding to tray is OK.</p><div class="sidebar-secondary"><button class="nav" :aria-current="view==='settings'?'page':undefined" @click="navigate('settings')">⚙ Settings</button><button class="nav" :aria-current="view==='about'?'page':undefined" @click="navigate('about')">ⓘ About Hostlight</button></div><footer>HOSTLIGHT · EARLY PREVIEW</footer></aside>
+<aside><div class="brand"><img :src="hostlightLogo" alt="" width="36" height="36"> Hostlight</div><div class="workspace"><small>WORKSPACE</small><strong>Local network</strong><span>Desktop monitoring</span></div><button class="nav" :aria-current="view==='monitors'?'page':undefined" @click="navigate('monitors')">▦ Monitors <span>{{targets.length}}</span></button><button class="nav" :aria-current="view==='history'?'page':undefined" @click="navigate('history')">◷ Incident history</button><p class="sidebar-note">● Checks run on this computer<br>Keep Hostlight running. Hiding to tray is OK.</p><footer>HOSTLIGHT · EARLY PREVIEW</footer></aside>
  <main><header><div><small>{{view==='settings'?'PREFERENCES':view==='about'?'ABOUT HOSTLIGHT':view==='history'?'INCIDENT HISTORY':'NETWORK OVERVIEW'}}</small><h1 tabindex="-1" ref="pageHeading">{{view==='settings'?'Make Hostlight work your way.':view==='about'?'About Hostlight':view==='history'?'Every outage has a timeline.':'Your network, at a glance.'}}</h1><p>{{view==='settings'?'Manage alerts, appearance, monitoring, and desktop behavior.':view==='about'?'Local monitoring. Useful context when you need support.':view==='history'?'Review availability changes, recovery, and monitoring gaps.':'Watch availability. Catch changes. Stay in control.'}}</p></div><div v-if="view==='monitors'" class="header-actions"><button @click="editBulk()">Add multiple</button><button class="primary" @click="edit()">＋ Add monitor</button></div></header>
  <div class="notice">Ping, TCP &amp; HTTP monitoring · Targets and pause settings are saved automatically. Checks resume when you reopen Hostlight.</div><div v-if="configuration.error" class="error" role="alert">{{configuration.error}} Settings file: {{configuration.path}}</div><div v-if="!api()" class="notice">Browser preview. Launch through Wails for live checks.</div><div v-if="error&&!editing" class="error" role="alert">{{error}}</div>
  <div v-if="configuration.historyError" class="error" role="alert">{{configuration.historyError}}</div>
  <IncidentHistory v-if="view==='history'" />
  <section v-else-if="view==='settings'" class="preferences-page">
  <nav class="preferences-tabs" aria-label="Settings sections"><button v-for="section in settingsSections" :key="section.id" :aria-current="settingsSection===section.id?'page':undefined" @click="settingsSection=section.id">{{section.label}}</button></nav>
- <section v-if="settingsSection==='general'" class="preferences-general"><h2>Appearance and desktop</h2><div class="appearance"><label for="theme">Appearance</label><select id="theme" v-model="theme"><option value="dark">Dark</option><option value="light">Light</option></select><label for="density">Card spacing</label><select id="density" v-model="density"><option value="comfortable">Comfortable</option><option value="compact">Compact</option></select></div><div ref="visualPreferences"></div><SchedulingControls /><DesktopControls /></section>
+ <div v-if="settingsSection==='general'" class="preferences-general">
+ <nav class="settings-contents" aria-label="General settings contents"><span>ON THIS PAGE</span><a v-for="section in generalSections" :key="section.id" :href="'#'+section.id" @click.prevent="jumpToSetting(section.id)">{{section.label}}</a></nav>
+ <div class="settings-sections">
+ <section id="settings-appearance" class="settings-panel" tabindex="-1" aria-labelledby="appearance-heading"><h2 id="appearance-heading">Appearance</h2><div class="appearance"><label for="theme">Appearance</label><select id="theme" v-model="theme"><option value="dark">Dark</option><option value="light">Light</option></select><label for="density">Card spacing</label><select id="density" v-model="density"><option value="comfortable">Comfortable</option><option value="compact">Compact</option></select></div></section>
+ <section id="settings-visual" class="settings-panel" tabindex="-1" aria-labelledby="visual-heading"><h2 id="visual-heading">Visual alerts</h2><div ref="visualPreferences"></div></section>
+ <section id="settings-scheduling" class="settings-panel" tabindex="-1" aria-label="Check scheduling"><SchedulingControls /></section>
+ <section id="settings-desktop" class="settings-panel" tabindex="-1" aria-label="Desktop behavior"><DesktopControls /></section>
+ </div></div>
  <WebhookAlerts v-else-if="settingsSection==='webhooks'" />
  <HistoryPreferences v-else-if="settingsSection==='history'" />
  <MonitorBackups v-else-if="settingsSection==='backups'" @changed="refresh" />

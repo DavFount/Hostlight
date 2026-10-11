@@ -4,6 +4,9 @@ Settings contains appearance, visual alerts, scheduling, desktop behavior,
 webhook setup/testing/delivery logs, and monitor backups. About Hostlight contains
 support information and sanitized diagnostic exports. Native File/View/Help menus
 provide navigation; Ctrl+, opens Settings and Ctrl+Q explicitly quits.
+The sidebar is reserved for monitoring features. Open Settings from File and
+About Hostlight from Help. General settings are visible without expanding panels;
+section links jump to appearance, visual alerts, scheduling, and desktop behavior.
 
 Check scheduling is configurable from Settings → General: 1–128 simultaneous checks
 (default 32) and a 0–5000 ms first-check spread (default 250 ms). Saved changes

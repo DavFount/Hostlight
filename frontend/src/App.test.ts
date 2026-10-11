@@ -6,14 +6,24 @@ const target={id:'1',name:'Gateway',host:'192.0.2.1',group:'Office',type:'icmp',
 const silence={id:'window-1',targetId:'1',kind:'maintenance',starts:'2026-10-09T11:00:00Z',ends:'2026-10-09T14:00:00Z',reason:'Planned upgrade'}
 const api={GetTargets:vi.fn(),GetConfigurationStatus:vi.fn(),GetAlertSilences:vi.fn()}
 let wrapper:VueWrapper
+let menuNavigate:(destination:string)=>void=()=>{}
+beforeEach(()=>{(window as any).runtime={EventsOnMultiple:vi.fn((_name:string,callback:(destination:string)=>void)=>{menuNavigate=callback;return ()=>{}})}})
+afterEach(()=>{delete (window as any).runtime})
 beforeEach(()=>{vi.clearAllMocks();vi.useFakeTimers({toFake:['Date']});vi.setSystemTime(new Date('2026-10-09T12:00:00Z'));api.GetTargets.mockResolvedValue([target]);api.GetConfigurationStatus.mockResolvedValue({path:'',error:'',historyError:''});api.GetAlertSilences.mockResolvedValue([silence]);Object.assign(window,{go:{main:{App:api}}})})
 afterEach(()=>{wrapper?.unmount();vi.useRealTimers()})
 describe('monitor alert controls',()=>{
  it('routes native menu navigation to settings and about and removes the listener',async()=>{
   let navigate:(destination:string)=>void=()=>{};const remove=vi.fn()
   ;(window as any).runtime={EventsOnMultiple:vi.fn((_name:string,callback:(destination:string)=>void)=>{navigate=callback;return remove})}
-  wrapper=mount(App);await flushPromises();navigate('settings');await flushPromises()
+  wrapper=mount(App,{attachTo:document.body});await flushPromises();navigate('settings');await flushPromises()
   expect(wrapper.find('.preferences-general .visual-controls').exists()).toBe(true)
+  expect(wrapper.find('aside').text()).not.toContain('Settings')
+  expect(wrapper.find('aside').text()).not.toContain('About Hostlight')
+  expect(wrapper.find('.preferences-general details').exists()).toBe(false)
+  expect(wrapper.find('.visual-controls input[type="checkbox"]').exists()).toBe(true)
+  expect(wrapper.findAll('.settings-contents a')).toHaveLength(4)
+  await wrapper.get('.settings-contents a[href="#settings-visual"]').trigger('click')
+  expect(document.activeElement?.id).toBe('settings-visual')
   navigate('monitors');await flushPromises();expect(wrapper.find('.preferences-general').exists()).toBe(false)
   navigate('backups');await flushPromises()
   expect(wrapper.find('h1').text()).toContain('Make Hostlight');expect(wrapper.find('.preferences-tabs [aria-current="page"]').text()).toBe('Monitor backups')
@@ -31,7 +41,7 @@ describe('monitor alert controls',()=>{
  it('hides failed TCP latency and explains elapsed failure time even before down threshold',async()=>{api.GetTargets.mockResolvedValue([{...target,type:'tcp',port:443,state:'up',latency:12.9,message:'Connection refused'}]);wrapper=mount(App);await flushPromises();expect(wrapper.find('.reading strong').text()).toBe('—');expect(wrapper.find('.diagnostic').text()).toContain('failed after 12.9 ms');expect(wrapper.find('.state').text()).toContain('Available')})
  it('shows successful TCP latency while recovery evidence is still pending',async()=>{api.GetTargets.mockResolvedValue([{...target,type:'tcp',port:443,latency:25.2,message:'TCP connection successful'}]);wrapper=mount(App);await flushPromises();expect(wrapper.find('.reading strong').text()).toBe('25.2');expect(wrapper.find('.reading small').text()).toContain('last successful connection')})
  it('styles active silencing as a warning but not upcoming maintenance',async()=>{wrapper=mount(App);await flushPromises();expect(wrapper.find('.silence-badge').classes()).toContain('active');wrapper.unmount();api.GetAlertSilences.mockResolvedValue([{...silence,starts:'2026-10-09T13:00:00Z'}]);wrapper=mount(App);await flushPromises();expect(wrapper.find('.silence-badge').classes()).not.toContain('active')})
- it('persists compact layout from settings, keeping preferences off the sidebar',async()=>{wrapper=mount(App);await flushPromises();expect(wrapper.find('aside #density').exists()).toBe(false);await wrapper.findAll('aside button').find(b=>b.text().includes('Settings'))!.trigger('click');await wrapper.find('#density').setValue('compact');expect(wrapper.find('.shell').classes()).toContain('compact');expect(localStorage.getItem('hostlight.density')).toBe('compact');localStorage.removeItem('hostlight.density')})
+ it('persists compact layout from settings, keeping preferences off the sidebar',async()=>{wrapper=mount(App);await flushPromises();expect(wrapper.find('aside #density').exists()).toBe(false);menuNavigate('settings');await flushPromises();await wrapper.find('#density').setValue('compact');expect(wrapper.find('.shell').classes()).toContain('compact');expect(localStorage.getItem('hostlight.density')).toBe('compact');localStorage.removeItem('hostlight.density')})
  it('shows suppression separately from availability and opens monitor-specific controls',async()=>{wrapper=mount(App);await flushPromises();const card=wrapper.find('.grid article');expect(card.find('.state').text()).toContain('Unavailable');expect(card.find('.silence-badge').text()).toContain('Alerts silenced until');await card.findAll('button').find(b=>b.text()==='Silence alerts')!.trigger('click');expect(wrapper.find('[role="dialog"]').text()).toContain('Gateway');expect(wrapper.find('[role="dialog"]').text()).toContain('Planned upgrade')})
  it('labels upcoming maintenance without calling it active',async()=>{api.GetAlertSilences.mockResolvedValue([{...silence,starts:'2026-10-09T13:00:00Z'}]);wrapper=mount(App);await flushPromises();expect(wrapper.find('.silence-badge').text()).toContain('Maintenance scheduled:');expect(wrapper.find('.silence-badge').text()).not.toContain('silenced until')})
  it('keeps the monitor overview available if alert storage fails',async()=>{api.GetAlertSilences.mockRejectedValue('Storage unavailable');wrapper=mount(App);await flushPromises();expect(wrapper.find('.grid article').text()).toContain('Gateway');expect(wrapper.find('[role="alert"]').text()).toContain('Alert controls unavailable')})

@@ -272,6 +272,9 @@ Tests cover retries, restart recovery, timeouts, redaction, and terminal failure
   and monitor backups under Settings. Put support diagnostics in About Hostlight.
 - [x] Add native File/View/Help menus with settings, backups, page navigation,
   explicit Quit, and About Hostlight; clean up frontend navigation listeners.
+- [x] Remove duplicate sidebar Settings/About and settings-page Quit commands.
+  Keep File/Help and tray actions; show General settings sections without collapsed
+  controls, with responsive section links and keyboard-focusable scroll targets.
 - [ ] Verify native menu navigation/shortcuts and the reorganized pages in Wails.
 
 - [x] Add saved dark-default/light themes and card-density preferences.
