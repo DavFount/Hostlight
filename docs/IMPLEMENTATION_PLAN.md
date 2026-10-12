@@ -1,6 +1,6 @@
 # Hostlight implementation plan
 
-Status reviewed: 2026-10-10. Implementation underway; not release-qualified.
+Status reviewed: 2026-10-12. Implementation underway; not release-qualified.
 The Windows preview includes ICMP/TCP/HTTP monitoring, target management and bulk paste,
 saved configuration, dark/light themes, incident history, scoped webhook delivery,
 per-monitor alert suppression, and reviewed monitor backup/import.
@@ -14,12 +14,14 @@ Update this checklist with each implementation slice before requesting a commit.
 
 Implementation note: target settings currently use an atomically replaced, versioned
 JSON file in the OS user configuration directory. SQLite now stores incident history;
-recent charts use a bounded session-only sample window. Persistent sample history
-and charts across aggregated time ranges remain planned. This keeps configuration readable and separate from
+recent charts use a bounded session-only sample window. SQLite also stores bounded
+minute summaries for saved probe-history charts across aggregated time ranges.
+This keeps configuration readable and separate from
 high-volume monitoring data. Existing settings must remain importable when storage evolves.
 
 Incident history implementation: `modernc.org/sqlite` supplies a pure-Go driver,
-with schema version 5 (including persisted alert suppression and paused-outage accounting), a background writer, paged queries, CSV export, and configurable
+with schema version 6 (including persisted alert suppression, paused-outage accounting,
+and probe-minute summaries), a background writer, paged queries, CSV export, and configurable
 retention. Go 1.26 is now the minimum version. Outages are segmented at
 edits, deletion, errors, shutdown/restart, and long observation gaps; interrupted
 records end at the last observation. Pauses now preserve the current outage within
@@ -268,7 +270,11 @@ limits are configurable and failures do not stall unrelated targets.
 - [x] Create versioned SQLite migrations and transactional incident/alert storage.
 - [x] Save target/group/pause configuration in versioned JSON and theme/density in local storage.
 - [x] Persist observed incidents and monitoring interruptions.
-- [ ] Persist bounded probe samples and define sample aggregation.
+- [x] Persist per-monitor/session minute summaries of completed availability
+  checks, failures, and successful duration sum/min/max in SQLite schema 6, using
+  the existing bounded background writer and incident transaction. Retain seven
+  days with hourly age cleanup and a hard global cap of 50,000 summaries. Do not
+  store response bodies, per-check diagnostics, or setup-error samples.
 - [x] Implement configurable incident retention, record limits, and scheduled cleanup.
 - [x] Add history filters, incident duration, date ranges, paging, and CSV export.
 - [x] Add an expandable session-only SVG chart of the last 100 completed
@@ -284,8 +290,29 @@ limits are configurable and failures do not stall unrelated targets.
   windows, line breaks after pause/setup errors, successful-only latency averages,
   and layouts in both themes and densities.
   User confirmed all remaining checks passed on 2026-10-12.
-- [ ] Extend charts to persisted samples and aggregated time ranges; retain
-  precisely labeled failed-check statistics rather than implying packet loss.
+- [x] Add saved probe-history charts in Incident history, with monitor selection
+  (including deleted monitors while retained), last-hour/24-hour/7-day ranges,
+  weighted successful mean and min/max, failed-check percentage, elapsed-time
+  positioning, and accessible interval values. Show no observations as gaps;
+  never join aggregate intervals with a continuous line. Include prior edits and
+  sessions for the same monitor ID and disclose mixed check types.
+- [x] User verified saved history includes previous edits and remains after
+  deletion, while a replacement monitor has separate history (2026-10-12).
+  Test 3 (#3) retained its Google/Yahoo observations after deletion; Test 4 (#6)
+  shows separate successful Yahoo observations. Screenshots also confirm mixed
+  failure counts, passing results, and monitor selection in the dark theme.
+- [x] User verified saved probe history survives restart, existing incidents and
+  settings remain intact, counts do not increase while paused (including a
+  setup-error monitor), and keyboard operation works (2026-10-12).
+- [x] User verified no-data selector behavior: monitors are absent until saved
+  observations exist (2026-10-12). This covers initial no-data behavior; an empty
+  date range for a monitor with older retained data was not separately exercised.
+- [x] User screenshot verifies all-failed chart rendering: All Fail (#8) shows
+  3 completed checks, 3 failed, 100.00% failed, a full-height failure bar, and no
+  successful-duration marks (2026-10-12).
+- [x] Complete saved probe-history checks for active setup-error exclusion,
+  range switching, interval-table values/access, and both themes at narrow sizes.
+  User confirmed all remaining listed checks passed on 2026-10-12.
 - [x] Store data in the OS application-data directory and display the configuration location.
 - [x] Surface database/queue failures and interrupt unfinished incidents after restart.
 
@@ -501,6 +528,20 @@ slice extends the original first-release scope by explicit user direction.
 
 ## Verification strategy
 
+Persistent probe-history slice (2026-10-12): 131 frontend tests, frontend
+production/type checks, full Go tests/vet, and Windows Wails build passed.
+Storage tests cover minute
+aggregation, weighted means, successful-only durations, monitor isolation,
+restart persistence, schema-5 migration preserving incidents, hard global cap,
+and seven-day retention. Legacy v1–v5 migration fixtures reconstruct their old
+schemas and pass the full regression suite. User confirmed the listed desktop
+acceptance checks passed on 2026-10-12: restart persistence, existing incidents
+and settings, edit/deletion retention and replacement isolation, paused counts,
+initial no-data behavior, all-failed rendering, active setup-error exclusion,
+range switching, interval-table access, keyboard operation, and both themes at
+narrow sizes. Raw recent charts and session totals still reset
+on edit/restart; saved minute summaries are separate and remain subject to retention.
+
 Recent chart slice (2026-10-12): 126 frontend tests, frontend production/type
 checks, Go tests/vet, and Windows Wails build passed. Coverage includes ring
 ordering/eviction, detached API snapshots, pause/edit lifecycle, setup/gap line
@@ -615,6 +656,7 @@ completed bootstrap sequence is retained as historical context, not the next tas
 | Secrets | Current-user Windows DPAPI encrypted blobs; not Credential Manager references | Cross-platform support or portable credentials are required |
 | Frontend updates | One-second snapshots with Vue composition state; Pinia/router not installed | Shared state, update load, or navigation complexity warrants a change |
 | First platform | Windows | Windows acceptance criteria pass |
+| Probe charts | Native SVG with accessible summaries/tables; bounded recent samples and persisted minute summaries | Chart interaction requirements exceed the small bounded plots |
 | Monitoring ownership | Go process independent of views | Headless execution is implemented |
 | Alert delivery | Durable queue, at-least-once semantics | External integrations require additional guarantees |
 

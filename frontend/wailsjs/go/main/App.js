@@ -66,6 +66,14 @@ export function GetIncidents(arg1, arg2, arg3, arg4) {
   return window['go']['main']['App']['GetIncidents'](arg1, arg2, arg3, arg4);
 }
 
+export function GetProbeHistory(arg1, arg2) {
+  return window['go']['main']['App']['GetProbeHistory'](arg1, arg2);
+}
+
+export function GetProbeHistoryMonitors() {
+  return window['go']['main']['App']['GetProbeHistoryMonitors']();
+}
+
 export function GetRecentProbeSamples(arg1) {
   return window['go']['main']['App']['GetRecentProbeSamples'](arg1);
 }

@@ -88,6 +88,8 @@ func TestCheckStatisticsExcludeSetupErrorsAndCancelledResults(t *testing.T) {
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			a := NewApp()
+			s := historyFixture(t)
+			a.history = s
 			a.configPath = ""
 			a.activeScheduling.SpreadMilliseconds = 0
 			ctx, cancel := context.WithCancel(context.Background())
@@ -120,6 +122,15 @@ func TestCheckStatisticsExcludeSetupErrorsAndCancelledResults(t *testing.T) {
 			}
 			if samples, err := a.GetRecentProbeSamples("1"); err != nil || len(samples) != tc.want.Checks {
 				t.Fatalf("sample inclusion differs from completed checks: %+v %v", samples, err)
+			}
+			for len(s.events) > 0 {
+				if err := s.apply(<-s.events); err != nil {
+					t.Fatal(err)
+				}
+			}
+			var saved int
+			if err := s.db.QueryRow("SELECT COALESCE(SUM(checks),0) FROM probe_minutes").Scan(&saved); err != nil || saved != tc.want.Checks {
+				t.Fatalf("persisted inclusion differs: %d %v", saved, err)
 			}
 		})
 	}

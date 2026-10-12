@@ -146,3 +146,12 @@ verification artifacts, not production releases.
 - Pause/resume: samples remain, no samples arrive while paused, and the latency line breaks after resume. DNS/setup errors add no chart samples and break the next successful segment.
 - Edit/restart: chart samples reset. Recovering failures appear as crosses with no connecting successful-latency line through them.
 - Verify keyboard expansion, check-values table scrolling, and readable narrow cards in both themes and densities. Chart refresh can lag statistics by up to five seconds.
+
+## Saved probe history
+
+- In Incident history, expand Probe history. Choose passing, mixed-result, and all-failed monitors; compare saved counts with observations over the selected range. Failed checks must not contribute latency.
+- Switch Last hour / Last 24 hours / Last 7 days and monitors rapidly. No stale results should overwrite the current selection. Check Interval values and storage-health messages.
+- Restart Hostlight: saved probe history remains while card session totals and raw recent charts reset. Existing incidents and webhook settings still load after the schema upgrade.
+- Edit and then delete a disposable monitor: retained observations remain selectable for its ID. A replacement with the same name must have separate history.
+- DNS/setup errors, cancelled probes, paused time, and observation gaps add no saved checks. Empty ranges show no observations rather than zero latency.
+- Verify keyboard expansion/selection/table scrolling and narrow layouts in both themes. Saved charts refresh every 30 seconds, independently of live totals.

@@ -372,7 +372,11 @@ func (a *App) run(ctx context.Context, m *monitor, t Target) {
 				m.target.Message = err.Error()
 				m.target.State = rules.apply(m.target.State, false)
 			}
-			a.recordHistoryLocked(m.target, "result", previous)
+			var sample *storedProbeSample
+			if !localError {
+				sample = &storedProbeSample{Session: m.checks.started.Format(time.RFC3339Nano), Failed: err != nil, Latency: latency}
+			}
+			a.recordProbeHistoryLocked(m.target, previous, sample, finished)
 		}
 		a.mu.Unlock()
 		timer := time.NewTimer(time.Duration(t.Interval) * time.Second)

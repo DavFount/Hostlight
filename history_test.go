@@ -165,7 +165,7 @@ func TestHistoryFiltersRetentionAndMigration(t *testing.T) {
 		t.Fatal("invalid date range accepted")
 	}
 	var version int
-	if err = s.db.QueryRow("PRAGMA user_version").Scan(&version); err != nil || version != 5 {
+	if err = s.db.QueryRow("PRAGMA user_version").Scan(&version); err != nil || version != 6 {
 		t.Fatal("schema version missing")
 	}
 	path := filepath.Join(t.TempDir(), "future.db")

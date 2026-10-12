@@ -413,6 +413,82 @@ export namespace main {
 	}
 	
 	
+	export class ProbeHistoryBucket {
+	    time: string;
+	    checks: number;
+	    failed: number;
+	    meanMS: number;
+	    minMS: number;
+	    maxMS: number;
+	    types: string;
+	
+	    static createFrom(source: any = {}) {
+	        return new ProbeHistoryBucket(source);
+	    }
+	
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.time = source["time"];
+	        this.checks = source["checks"];
+	        this.failed = source["failed"];
+	        this.meanMS = source["meanMS"];
+	        this.minMS = source["minMS"];
+	        this.maxMS = source["maxMS"];
+	        this.types = source["types"];
+	    }
+	}
+	export class ProbeHistoryMonitor {
+	    id: string;
+	    name: string;
+	
+	    static createFrom(source: any = {}) {
+	        return new ProbeHistoryMonitor(source);
+	    }
+	
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.id = source["id"];
+	        this.name = source["name"];
+	    }
+	}
+	export class ProbeHistoryPage {
+	    items: ProbeHistoryBucket[];
+	    bucketMinutes: number;
+	    error: string;
+	    from: string;
+	    until: string;
+	
+	    static createFrom(source: any = {}) {
+	        return new ProbeHistoryPage(source);
+	    }
+	
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.items = this.convertValues(source["items"], ProbeHistoryBucket);
+	        this.bucketMinutes = source["bucketMinutes"];
+	        this.error = source["error"];
+	        this.from = source["from"];
+	        this.until = source["until"];
+	    }
+	
+		convertValues(a: any, classs: any, asMap: boolean = false): any {
+		    if (!a) {
+		        return a;
+		    }
+		    if (a.slice && a.map) {
+		        return (a as any[]).map(elem => this.convertValues(elem, classs));
+		    } else if ("object" === typeof a) {
+		        if (asMap) {
+		            for (const key of Object.keys(a)) {
+		                a[key] = new classs(a[key]);
+		            }
+		            return a;
+		        }
+		        return new classs(a);
+		    }
+		    return a;
+		}
+	}
 	export class ProbeSample {
 	    time: string;
 	    failed: boolean;

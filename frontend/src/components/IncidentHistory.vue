@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import {onMounted,onUnmounted,ref,watch} from 'vue'
+import ProbeHistory from './ProbeHistory.vue'
 type Incident={id:number;name:string;host:string;group:string;type:string;port:number;opened:string;ended:string;lastSeen:string;status:string;reason:string;durationSeconds:number}
 type HistoryPage={items:Incident[];total:number;error:string;path:string;retentionDays:number}
 type API={GetIncidents:(search:string,status:string,days:number,offset:number)=>Promise<HistoryPage>;ExportIncidents:(search:string,status:string,days:number)=>Promise<string>}
@@ -25,6 +26,7 @@ onUnmounted(()=>{generation++;clearInterval(poll);clearTimeout(debounce)})
 
 <template>
  <section class="incident-history">
+  <ProbeHistory />
   <div class="history-toolbar">
    <input v-model="search" aria-label="Search incident history" placeholder="Search monitor, host, or group…">
    <select v-model="status" aria-label="Incident status"><option value="all">All outcomes</option><option value="open">Unavailable</option><option value="resolved">Recovered</option><option value="interrupted">Interrupted</option></select>

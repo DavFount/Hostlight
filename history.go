@@ -43,6 +43,7 @@ type historyEvent struct {
 	kind     string
 	at       time.Time
 	previous string
+	sample   *storedProbeSample
 }
 type incidentStore struct {
 	visual  visualFeed
@@ -71,7 +72,7 @@ func openIncidentStore(path string, now time.Time) (*incidentStore, error) {
 	if err = db.QueryRow("PRAGMA user_version").Scan(&version); err != nil {
 		return fail(err)
 	}
-	if version > 5 {
+	if version > 6 {
 		return fail(fmt.Errorf("History database version is newer than this application supports"))
 	}
 	if version == 0 {
@@ -137,6 +138,17 @@ func openIncidentStore(path string, now time.Time) (*incidentStore, error) {
 			return fail(err)
 		}
 	}
+	if version < 6 {
+		if _, err = db.Exec(`BEGIN;
+ CREATE TABLE probe_minutes(id INTEGER PRIMARY KEY, target_id TEXT NOT NULL, session TEXT NOT NULL, name TEXT NOT NULL, probe_type TEXT NOT NULL, minute INTEGER NOT NULL,
+ checks INTEGER NOT NULL, failed INTEGER NOT NULL, latency_sum REAL NOT NULL, latency_min REAL, latency_max REAL,
+ UNIQUE(target_id,session,minute));
+ CREATE INDEX probe_minute_time ON probe_minutes(minute);
+ CREATE INDEX probe_target_time ON probe_minutes(target_id,minute);
+ PRAGMA user_version=6; COMMIT;`); err != nil {
+			return fail(err)
+		}
+	}
 	// An unfinished prior session cannot establish outage duration while closed.
 	if _, err = db.Exec("UPDATE incidents SET status='interrupted', ended=last_seen, reason=reason || ' · Monitoring interrupted by application restart' WHERE status='open'"); err != nil {
 		return fail(err)
@@ -183,6 +195,11 @@ func (s *incidentStore) apply(e historyEvent) error {
 		return err
 	}
 	defer tx.Rollback()
+	if e.sample != nil {
+		if err := storeProbeMinute(ctx, tx, e); err != nil {
+			return err
+		}
+	}
 	if e.kind == "Monitoring paused" {
 		_, err = tx.ExecContext(ctx, "UPDATE incidents SET paused=1 WHERE target_id=? AND status='open'", t.ID)
 		if err != nil {
@@ -276,6 +293,9 @@ func (s *incidentStore) retention() (int, error) {
 	return days, err
 }
 func (s *incidentStore) prune(now time.Time) error {
+	if _, err := s.db.Exec("DELETE FROM probe_minutes WHERE minute<?", now.Add(-7*24*time.Hour).Unix()/60); err != nil {
+		return err
+	}
 	days, err := s.retention()
 	if err != nil {
 		return err
@@ -377,6 +397,17 @@ func (a *App) recordHistoryLocked(t Target, kind string, previous ...string) {
 	}
 	select {
 	case a.history.events <- historyEvent{target: t, kind: kind, at: time.Now(), previous: prior}:
+	default:
+		a.history.setFailure(fmt.Errorf("History queue is full. Some observations were not recorded; history may contain gaps"))
+	}
+}
+
+func (a *App) recordProbeHistoryLocked(t Target, previous string, sample *storedProbeSample, at time.Time) {
+	if a.history == nil || a.closing {
+		return
+	}
+	select {
+	case a.history.events <- historyEvent{target: t, kind: "result", previous: previous, at: at, sample: sample}:
 	default:
 		a.history.setFailure(fmt.Errorf("History queue is full. Some observations were not recorded; history may contain gaps"))
 	}

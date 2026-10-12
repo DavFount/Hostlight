@@ -193,7 +193,7 @@ func TestWebhookMigrationPreservesVersionTwoConfigurationAndQueue(t *testing.T) 
 		t.Fatal(err)
 	}
 	// Reconstruct the exact v2 shape that an existing installation has on disk.
-	if _, err := s.db.Exec(`DROP INDEX delivery_destination; ALTER TABLE deliveries DROP COLUMN destination_id; ALTER TABLE deliveries DROP COLUMN destination_name; ALTER TABLE deliveries DROP COLUMN target_id; DROP TABLE alert_silences; DROP TABLE webhook_destinations; ALTER TABLE incidents DROP COLUMN excluded_ms; ALTER TABLE incidents DROP COLUMN paused; PRAGMA user_version=2;`); err != nil {
+	if _, err := s.db.Exec(`DROP INDEX delivery_destination; ALTER TABLE deliveries DROP COLUMN destination_id; ALTER TABLE deliveries DROP COLUMN destination_name; ALTER TABLE deliveries DROP COLUMN target_id; DROP TABLE alert_silences; DROP TABLE webhook_destinations; ALTER TABLE incidents DROP COLUMN excluded_ms; ALTER TABLE incidents DROP COLUMN paused; DROP TABLE probe_minutes; PRAGMA user_version=2;`); err != nil {
 		t.Fatal(err)
 	}
 	if _, err := s.db.Exec("INSERT INTO webhook_config VALUES(1,1,?)", secret); err != nil {

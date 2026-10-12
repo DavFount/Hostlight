@@ -15,7 +15,7 @@ func TestVersionFourMigrationPreservesHistory(t *testing.T) {
 	at := time.Now()
 	applyHistory(t, s, target, "result", at)
 	id := historyItems(t, s)[0].ID
-	if _, err := s.db.Exec("ALTER TABLE incidents DROP COLUMN excluded_ms; ALTER TABLE incidents DROP COLUMN paused; PRAGMA user_version=4"); err != nil {
+	if _, err := s.db.Exec("ALTER TABLE incidents DROP COLUMN excluded_ms; ALTER TABLE incidents DROP COLUMN paused; DROP TABLE probe_minutes; PRAGMA user_version=4"); err != nil {
 		t.Fatal(err)
 	}
 	path := s.path
@@ -30,7 +30,7 @@ func TestVersionFourMigrationPreservesHistory(t *testing.T) {
 		t.Fatalf("migration lost history: %+v", items)
 	}
 	var version int
-	if err = migrated.db.QueryRow("PRAGMA user_version").Scan(&version); err != nil || version != 5 {
+	if err = migrated.db.QueryRow("PRAGMA user_version").Scan(&version); err != nil || version != 6 {
 		t.Fatal("migration version", version, err)
 	}
 }

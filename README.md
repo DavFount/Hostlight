@@ -216,6 +216,26 @@ measures connection time, ICMP measures echo-reply time, and HTTP uses the same
 header/full-body timing as its card reading. Failed-check percentages are not uptime
 or packet loss; local setup errors remain excluded.
 
+In **Incident history**, expand **Probe history** for saved observations across
+restarts. Choose a monitor and the last hour, 24 hours, or seven days. The upper
+plot shows successful check-duration min/max and a weighted mean; the lower plot
+shows failed-check percentages. Positions represent elapsed time. Empty intervals
+have no observations, and separate intervals are not joined by a line. Expand
+**Interval values** for exact counts and duration summaries.
+
+Storage uses one summary per monitor/session/minute, retaining seven days with
+hourly cleanup and a hard global cap of 50,000 summaries. Busy workspaces can
+therefore retain less than seven days. The displayed ranges aggregate to 1, 12,
+or 84 minutes; range edges have minute precision. Summaries include earlier edits
+and sessions for the same monitor ID, and deleted monitors remain selectable while
+their summaries are retained. Duration semantics follow each check type, so edits
+that change check types can produce mixed intervals, identified in the values table.
+DNS/setup errors, cancelled probes, pauses, and monitoring gaps add no observations.
+Saved charts refresh every 30 seconds while expanded and can lag live card totals.
+Probe summaries are separate from incident retention settings and are not included
+in monitor backups or incident CSV exports. Schema 6 preserves existing incident
+history; older builds do not support the upgraded database.
+
 ## HTTP/HTTPS monitoring
 
 Choose **HTTP / HTTPS** when adding a monitor, enter a full URL such as

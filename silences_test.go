@@ -210,7 +210,7 @@ func TestSnoozePersistsAndVersionThreeMigrationPreservesQueuedTargets(t *testing
 		t.Fatalf("snooze did not survive restart: %+v %v", windows, err)
 	}
 	// Reconstruct v3's pre-silencing database shape and verify its upgrade.
-	if _, err = reopened.db.Exec("DROP TABLE alert_silences; ALTER TABLE deliveries DROP COLUMN target_id; UPDATE deliveries SET status='pending',result='Waiting to send'; ALTER TABLE incidents DROP COLUMN excluded_ms; ALTER TABLE incidents DROP COLUMN paused; PRAGMA user_version=3"); err != nil {
+	if _, err = reopened.db.Exec("DROP TABLE alert_silences; ALTER TABLE deliveries DROP COLUMN target_id; UPDATE deliveries SET status='pending',result='Waiting to send'; ALTER TABLE incidents DROP COLUMN excluded_ms; ALTER TABLE incidents DROP COLUMN paused; DROP TABLE probe_minutes; PRAGMA user_version=3"); err != nil {
 		t.Fatal(err)
 	}
 	reopened.db.Close()

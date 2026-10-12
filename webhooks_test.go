@@ -187,7 +187,7 @@ func TestWebhookDoesNotFollowRedirectsOrRetryPermanentFailures(t *testing.T) {
 func TestWebhookMigrationFromVersionOne(t *testing.T) {
 	s := historyFixture(t)
 	path := s.path
-	if _, err := s.db.Exec("DROP TABLE webhook_config; DROP TABLE webhook_destinations; DROP TABLE alert_silences; DROP TABLE deliveries; PRAGMA user_version=1"); err != nil {
+	if _, err := s.db.Exec("DROP TABLE webhook_config; DROP TABLE webhook_destinations; DROP TABLE alert_silences; DROP TABLE deliveries; DROP TABLE probe_minutes; PRAGMA user_version=1"); err != nil {
 		t.Fatal(err)
 	}
 	target := fixtureTarget()
