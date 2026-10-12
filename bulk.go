@@ -115,7 +115,7 @@ func (a *App) AddBulk(input string, defaults Target) (int, error) {
 		t.State = "unknown"
 		t.Message = "Waiting for checks"
 		ctx, cancel := context.WithCancel(a.ctx)
-		m := &monitor{target: t, cancel: cancel}
+		m := &monitor{target: t, cancel: cancel, checks: newCheckWindow()}
 		a.targets[t.ID] = m
 		added = append(added, m)
 		contexts = append(contexts, ctx)

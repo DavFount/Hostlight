@@ -39,6 +39,13 @@ executable. Browser previews cannot validate native dialogs, tray, or shutdown.
 
 ## Availability, incidents, and alerting
 
+- [ ] Verify session availability totals continue beyond 100 while recent checks
+      remain capped. Passed + failed must equal session availability checks.
+      Use an invalid `.invalid` hostname to confirm DNS/setup errors increase
+      separately without changing the failure percentage. On disposable monitors,
+      pause/resume preserves totals/start time; edit/full restart resets both.
+      Confirm the displayed start includes a local date/time and statistics remain
+      readable in light/dark and compact/comfortable layouts.
 - [ ] On disposable reachable and refused TCP monitors, check recent failed-check
       counts and percentages. Counts reflect each completed check, even before
       availability thresholds change the status; the window stops growing at 100.

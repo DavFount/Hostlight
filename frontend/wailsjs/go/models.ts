@@ -112,16 +112,26 @@ export namespace main {
 	    id: string;
 	    checks: number;
 	    failed: number;
-	
+	    started: string;
+	    sessionChecks: number;
+	    sessionPassed: number;
+	    sessionFailed: number;
+	    setupErrors: number;
+
 	    static createFrom(source: any = {}) {
 	        return new CheckStatistics(source);
 	    }
-	
+
 	    constructor(source: any = {}) {
 	        if ('string' === typeof source) source = JSON.parse(source);
 	        this.id = source["id"];
 	        this.checks = source["checks"];
 	        this.failed = source["failed"];
+	        this.started = source["started"];
+	        this.sessionChecks = source["sessionChecks"];
+	        this.sessionPassed = source["sessionPassed"];
+	        this.sessionFailed = source["sessionFailed"];
+	        this.setupErrors = source["setupErrors"];
 	    }
 	}
 	export class ConfigurationStatus {

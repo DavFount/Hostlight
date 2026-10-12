@@ -16,14 +16,15 @@ import SchedulingControls from './components/SchedulingControls.vue'
 import HistoryPreferences from './components/HistoryPreferences.vue'
 import CheckDiagnostic from './components/CheckDiagnostic.vue'
 import CheckStatistics from './components/CheckStatistics.vue'
+import type {CheckStatisticsData} from './checkStatistics'
 import type {MonitorFilters} from './savedViews'
 type Silence={id:string;targetId:string;kind:string;starts:string;ends:string;reason:string}
 type Target={id:string;name:string;host:string;type:'icmp'|'tcp'|'http';port:number;group:string;interval:number;timeout:number;failures:number;recovery:number;state:string;latency:number;message:string;checked:string;expectedStatus?:number;bodyMode?:string;bodyExpected?:string;jsonPointer?:string;jsonType?:string;tlsMinDays?:number;certificateExpires?:string}
 type BulkRow={line:number;target:Target;error:string}
-type API={GetCheckStatistics?:()=>Promise<{id:string;checks:number;failed:number}[]>;GetAlertSilences:()=>Promise<Silence[]>;GetTargets:()=>Promise<Target[]>;GetConfigurationStatus:()=>Promise<{path:string;error:string;historyError:string}>;SaveTarget:(t:Target)=>Promise<void>;DeleteTarget:(id:string)=>Promise<void>;PauseTarget:(id:string)=>Promise<void>;ResumeTarget:(id:string)=>Promise<void>;PreviewBulk:(input:string,defaults:Target)=>Promise<BulkRow[]>;AddBulk:(input:string,defaults:Target)=>Promise<number>;SetTargetsPaused:(ids:string[],paused:boolean)=>Promise<void>}
+type API={GetCheckStatistics?:()=>Promise<(CheckStatisticsData&{id:string})[]>;GetAlertSilences:()=>Promise<Silence[]>;GetTargets:()=>Promise<Target[]>;GetConfigurationStatus:()=>Promise<{path:string;error:string;historyError:string}>;SaveTarget:(t:Target)=>Promise<void>;DeleteTarget:(id:string)=>Promise<void>;PauseTarget:(id:string)=>Promise<void>;ResumeTarget:(id:string)=>Promise<void>;PreviewBulk:(input:string,defaults:Target)=>Promise<BulkRow[]>;AddBulk:(input:string,defaults:Target)=>Promise<number>;SetTargetsPaused:(ids:string[],paused:boolean)=>Promise<void>}
 const api=()=>(window as unknown as {go?:{main:{App:API}}}).go?.main.App
 const targets=ref<Target[]>([]),search=ref(''),filter=ref('all'),error=ref(''),editing=ref(false),busy=ref(false)
-const checkStatistics=ref<Record<string,{checks:number;failed:number}>>({})
+const checkStatistics=ref<Record<string,CheckStatisticsData>>({})
 const configuration=ref({path:'',error:'',historyError:''}),view=ref('monitors')
 const settingsSection=ref('general'),pageHeading=ref<HTMLElement>()
 const visualPreferences=ref<HTMLElement|null>(null)

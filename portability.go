@@ -275,7 +275,7 @@ func (a *App) CommitMonitorImport(token string, startMonitors bool) (MonitorImpo
 			result.Paused++
 		}
 		ctx, cancel := context.WithCancel(a.ctx)
-		m := &monitor{target: t, cancel: cancel}
+		m := &monitor{target: t, cancel: cancel, checks: newCheckWindow()}
 		a.targets[t.ID] = m
 		added = append(added, m)
 		contexts = append(contexts, ctx)

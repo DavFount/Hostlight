@@ -213,7 +213,7 @@ real monitoring is connected.
   the rolling window capped at 100 checks (2026-10-12).
 - [ ] Manually verify resume continuity, edit/restart resets, and card layout in
   both themes and densities.
-- [ ] Next implementation slice: add per-monitor session totals alongside the
+- [x] Add per-monitor session totals alongside the
   recent 100-check window for overnight stability checks. Show completed
   availability checks, successes, failures, failure percentage, and an explicit
   session start timestamp. Track DNS/local setup errors separately; cancelled or
@@ -221,6 +221,14 @@ real monitoring is connected.
   Pause/resume preserves totals; edits and full application restarts reset totals
   and their start timestamp. Label the session scope and reset behavior clearly;
   persistence across restarts and uptime claims are outside this slice.
+- [ ] Manually verify session totals beyond 100 checks, independent recent/session
+  percentages, separate DNS/setup-error counts, preserved totals/start time across
+  pause/resume, edit/restart resets, and readable layouts in both themes/densities.
+- [x] Compact session statistics into labeled Passed/Failed/Failure rate columns
+  and one recent-check row. Put start/reset/exclusion details behind Session details;
+  keep nonzero setup-error counts visible in the collapsed summary. User confirmed
+  the revised dark-theme card layout is clearer (2026-10-12); screenshot shows the
+  Session details keyboard focus outline. Light-theme/density checks remain open.
 - [ ] Add elapsed observed outage duration to monitor cards.
 - [x] Discard stale results after edits, deletion, pause, and shutdown.
 - [ ] Verify network changes and sleep/resume, including fresh threshold counters after gaps.
@@ -442,13 +450,21 @@ slice extends the original first-release scope by explicit user direction.
 
 ## Verification strategy
 
+Session-total statistics slice (2026-10-12): Go tests/vet, 109 frontend tests,
+frontend production/type-check build, and Windows Wails build passed. Tests cover
+20,000 successes plus 20 failures, independent recent-window eviction, separate
+setup-error counts, pause/resume preservation, edit/configuration-reload resets,
+local start-time display, nonzero failure percentages below 0.01%, and collapsed
+details that preserve their open state during polling updates. Manual
+session-total and layout checks remain on the desktop smoke checklist.
+
 Recent-check statistics slice (2026-10-12): Go tests/vet, 105 frontend tests,
 the frontend production/type-check build, and the Windows Wails build passed. Coverage includes bounded
 window eviction, pause/resume continuity, reset on edit, excluded setup/cancelled
 results, and unavailable-versus-empty statistics. User confirmed pause behavior,
 increasing counts, and the 100-check cap (2026-10-12). Resume continuity,
 edit/restart resets, and theme/density layout verification remain open. Session
-totals are planned for the next slice and are not part of this implementation.
+totals were deferred from this rolling-window slice to the subsequent slice.
 
 Failure-message slice (2026-10-12): 101 frontend tests and the frontend
 production/type-check build and Windows Wails build passed. Component coverage includes preserved raw

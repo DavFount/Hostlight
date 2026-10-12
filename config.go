@@ -139,7 +139,7 @@ func (a *App) loadConfiguration() {
 			t.Message = "Monitoring paused"
 		}
 		ctx, cancel := context.WithCancel(a.ctx)
-		m := &monitor{target: t, cancel: cancel}
+		m := &monitor{target: t, cancel: cancel, checks: newCheckWindow()}
 		a.targets[t.ID] = m
 		if !s.Paused {
 			go a.run(ctx, m, t)

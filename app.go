@@ -240,7 +240,7 @@ func (a *App) saveTarget(t Target, resume bool) error {
 		t.Message = "Monitoring paused"
 	}
 	ctx, cancel := context.WithCancel(a.ctx)
-	m := &monitor{target: t, cancel: cancel}
+	m := &monitor{target: t, cancel: cancel, checks: newCheckWindow()}
 	a.targets[t.ID] = m
 	if err := a.persistLocked(); err != nil {
 		cancel()
@@ -342,6 +342,8 @@ func (a *App) run(ctx context.Context, m *monitor, t Target) {
 		localError := errors.As(err, &dns) || errors.As(err, &local)
 		if !localError {
 			m.checks.record(err != nil)
+		} else {
+			m.checks.recordSetupError()
 		}
 		if localError {
 			rules.good = 0

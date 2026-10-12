@@ -13,9 +13,9 @@ beforeEach(()=>{vi.clearAllMocks();vi.useFakeTimers({toFake:['Date']});vi.setSys
 afterEach(()=>{wrapper?.unmount();vi.useRealTimers()})
 describe('monitor alert controls',()=>{
  it('displays per-monitor statistics and reports unavailable data without implying zero failures',async()=>{
-  api.GetCheckStatistics.mockResolvedValueOnce([{id:'1',checks:4,failed:1}]).mockRejectedValueOnce(new Error('unavailable'))
+  api.GetCheckStatistics.mockResolvedValueOnce([{id:'1',checks:4,failed:1,started:'2026-10-12T00:00:00Z',sessionChecks:4,sessionPassed:3,sessionFailed:1,setupErrors:0}]).mockRejectedValueOnce(new Error('unavailable'))
   wrapper=mount(App);await flushPromises()
-  expect(wrapper.get('.check-statistics').text()).toContain('1 / 4 failed checks · 25.0%')
+  expect(wrapper.get('.check-statistics').text()).toContain('1 / 4 failed · 25.0%')
   wrapper.unmount();wrapper=mount(App);await flushPromises()
   expect(wrapper.get('.check-statistics').text()).toContain('unavailable')
   expect(wrapper.get('.grid article').text()).toContain('Gateway')

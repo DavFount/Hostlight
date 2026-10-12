@@ -185,11 +185,18 @@ messages remain intact; these explanations do not change availability thresholds
 or incident/webhook records.
 
 Cards also show failed checks as a count and percentage over the last 100 completed
-availability checks in this session. These are individual results, independent of
+availability checks, plus session-wide availability totals, passed/failed counts,
+failure percentage, and the monitor session's local start date/time. Session totals
+continue beyond 100 checks without storing every result. These are individual results, independent of
 the failure/recovery thresholds. HTTP status, body, and certificate-policy mismatches
 count as failures; DNS and local setup errors, cancelled checks, and paused time
-add no observations. Pause/resume keeps the window; editing a monitor or restarting
-the app resets it. These counts are not uptime or ICMP packet-loss measurements,
+add no availability observations. DNS/local setup errors have a separate session
+counter and are excluded from the failure percentage. Pause/resume keeps both sets
+of counts and the start time; editing a monitor or restarting the app resets them.
+Cards use compact Passed/Failed/Failure rate columns and a recent-check summary.
+Expand **Session details** for the start time, setup-error count, and reset rules;
+nonzero setup errors also appear in its collapsed summary.
+These counts are not uptime or ICMP packet-loss measurements,
 are not saved/exported, and may update one snapshot apart from the status card.
 
 ## HTTP/HTTPS monitoring
