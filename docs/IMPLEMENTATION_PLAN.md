@@ -454,6 +454,16 @@ continues when minimized. Closing behavior is explicit and platform-tested.
   refused port, DNS failure, invalid settings, adapter loss, sleep/resume, and restart.
 - [ ] Benchmark an initial 200-target workload at one-second intervals on a recorded
   Windows reference machine; measure CPU, memory, scheduling delay, and UI responsiveness.
+- [x] Add and run an isolated, opt-in 200-monitor Windows TCP loopback workload
+  with real SQLite storage, controlled failures/recoveries, delivered webhooks,
+  process CPU, sampled Go heap/queue/goroutines, cadence overhead, and API timing.
+  Recorded 11,811 checks in 60 seconds (59–60 per monitor), 20 resolved incidents,
+  and 40 delivered webhooks without storage errors (2026-10-12).
+  User's local repeat passed with 12,000 checks (60 per monitor), 40 delivered
+  webhooks, queue peak 76/1,024, and snapshot API P95 4.008 ms. User reported
+  normal browser/ticket-work responsiveness during the run (2026-10-12).
+  See `docs/LOAD_VERIFICATION.md`; this does not establish desktop responsiveness,
+  process working set, remote-network capacity, or an extended soak.
 - [ ] Run an extended soak and verify retention, queue bounds, and cleanup.
 - [x] Add manual-dispatch release automation: tested Windows ZIP, embedded version,
   SHA-256 checksums, draft-first upload/publication, and GitHub-created tags without
@@ -527,6 +537,15 @@ management, and request chaining are not committed scope. The delivered HTTP
 slice extends the original first-release scope by explicit user direction.
 
 ## Verification strategy
+
+Load-verification slice (2026-10-12): isolated 60-second 200-monitor TCP workload
+passed, including actual persistent summaries, bounded queue health, outage and
+recovery transitions, and 40 delivered local webhook events. The opt-in Windows
+test is skipped during ordinary verification. Measured backend results and their
+scope are recorded in `docs/LOAD_VERIFICATION.md`; desktop/load-soak gates remain open.
+The shared `scripts/verify.ps1` pipeline also passed: formatting, 131 frontend
+tests, production/type checks, Go tests/vet, release-tool checks, and Windows
+desktop build. The load test is opt-in and skipped by the ordinary suite.
 
 Persistent probe-history slice (2026-10-12): 131 frontend tests, frontend
 production/type checks, full Go tests/vet, and Windows Wails build passed.

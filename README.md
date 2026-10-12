@@ -630,6 +630,13 @@ Commit dependency lockfiles (`go.sum` and `frontend/package-lock.json`) and buil
 resources. Dependencies, compiled bundles, executable output, logs, and local
 environment secrets are excluded by `.gitignore`.
 
+## Load verification
+
+For the isolated 200-monitor backend workload and longer soak command, see
+[Windows load verification](docs/LOAD_VERIFICATION.md). The recorded loopback
+baseline measures scheduler/storage/webhook behavior; desktop responsiveness and
+remote-network capacity require separate checks.
+
 ## References
 
 - [Wails documentation](https://wails.io/docs/introduction/)
