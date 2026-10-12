@@ -3,6 +3,16 @@ import {flushPromises,mount} from '@vue/test-utils'
 import VisualAlerts from './VisualAlerts.vue'
 afterEach(()=>{vi.useRealTimers();localStorage.clear();delete (window as any).go})
 describe('visual alerts',()=>{
+ it('explains a platform failure in outage popups and retains its details',async()=>{
+  vi.useFakeTimers()
+  const reason='dial tcp 192.0.2.10:443: connect: connection refused'
+  const get=vi.fn().mockResolvedValueOnce({cursor:0,items:[],dropped:false}).mockResolvedValueOnce({cursor:1,items:[{sequence:1,name:'Router',reason,event:'down',time:new Date().toISOString()}],dropped:false})
+  ;(window as any).go={main:{App:{GetVisualAlerts:get}}}
+  const w=mount(VisualAlerts);await flushPromises();await vi.advanceTimersByTimeAsync(1000)
+  expect(w.get('.visual-popup .diagnostic').text()).toContain('connection was refused')
+  expect(w.get('.visual-popup details p').text()).toBe(reason)
+  w.unmount()
+ })
  it('keeps polling alerts when preferences are hidden',async()=>{
   vi.useFakeTimers();const get=vi.fn().mockResolvedValueOnce({cursor:0,items:[],dropped:false}).mockResolvedValue({cursor:1,items:[{sequence:1,name:'Router',event:'down',time:new Date().toISOString()}],dropped:false})
   ;(window as any).go={main:{App:{GetVisualAlerts:get}}}

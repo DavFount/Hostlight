@@ -290,8 +290,12 @@ Tests cover retries, restart recovery, timeouts, redaction, and terminal failure
   updates, rename/delete controls, validation, and persistence tests.
 - [ ] Add customizable layout beyond card density.
 - [ ] Manually verify saved-view switching, restart persistence, and missing-group behavior.
-- [ ] Replace raw platform check errors in cards/popups with plain-language reasons
-  while retaining the original diagnostic in expandable technical details.
+- [x] Explain recognized platform check errors in cards/popups using plain-language
+  reasons, retaining original diagnostics in expandable technical details. Cover
+  refused connections, timeouts, routing, DNS, permissions, and ping setup failures;
+  unknown messages remain intact and HTTP diagnostics retain their safe wording.
+- [ ] Manually verify failure explanations and keyboard-accessible technical details
+  in cards/popups, both themes, and compact/comfortable layouts.
 - [ ] Add desktop notifications and mute controls where supported.
 - [x] Add session-only in-app outage/recovery popups with four corner positions,
   persisted enable/duration controls, preview, dismissal, and bounded transition feed.
@@ -417,6 +421,11 @@ management, and request chaining are not committed scope. The delivered HTTP
 slice extends the original first-release scope by explicit user direction.
 
 ## Verification strategy
+
+Failure-message slice (2026-10-12): 101 frontend tests and the frontend
+production/type-check build and Windows Wails build passed. Component coverage includes preserved raw
+diagnostics, escaped markup, card threshold state, and outage popup explanations.
+Native layout and keyboard verification remain on the desktop smoke checklist.
 
 CI follow-up (2026-10-12): Go sources now require LF checkouts via
 `.gitattributes` so Windows CRLF conversion does not fail `gofmt` checks.

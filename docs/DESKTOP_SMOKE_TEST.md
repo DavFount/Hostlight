@@ -40,6 +40,14 @@ executable. Browser previews cannot validate native dialogs, tray, or shutdown.
 ## Availability, incidents, and alerting
 
 - [ ] Brief failure below the configured threshold does not declare an outage.
+- [ ] Use a disposable TCP monitor at `127.0.0.1` on a confirmed unused port:
+      refused connections show a plain-language reason and expandable Technical
+      details preserve the original diagnostic. Failed latency remains a dash.
+      Check the outage popup after its failure threshold and use Tab/Enter to
+      expand details. Verify wrapping in both themes and card densities.
+- [ ] Recover or pause that monitor; successful/paused messages remain readable
+      and stale technical details disappear. HTTP status/body/certificate messages
+      retain their existing detail. Do not stop production services to test this.
 - [ ] Confirmed failure creates one incident; repeated failures do not duplicate it.
 - [ ] Confirmed recovery resolves that incident; duration matches observed time.
 - [ ] Pause a down monitor; resume while still down, then recover. Preserve the

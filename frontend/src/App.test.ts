@@ -12,6 +12,15 @@ afterEach(()=>{delete (window as any).runtime})
 beforeEach(()=>{vi.clearAllMocks();vi.useFakeTimers({toFake:['Date']});vi.setSystemTime(new Date('2026-10-09T12:00:00Z'));api.GetTargets.mockResolvedValue([target]);api.GetConfigurationStatus.mockResolvedValue({path:'',error:'',historyError:''});api.GetAlertSilences.mockResolvedValue([silence]);Object.assign(window,{go:{main:{App:api}}})})
 afterEach(()=>{wrapper?.unmount();vi.useRealTimers()})
 describe('monitor alert controls',()=>{
+ it('explains raw TCP errors without changing threshold state and retains technical details',async()=>{
+  const message='dial tcp 192.0.2.1:443: connectex: No connection could be made because the target machine actively refused it.'
+  api.GetTargets.mockResolvedValue([{...target,type:'tcp',state:'up',message,latency:12.9}])
+  wrapper=mount(App);await flushPromises()
+  expect(wrapper.get('.diagnostic').text()).toContain('connection was refused')
+  expect(wrapper.get('.diagnostic-details p').text()).toBe(message)
+  expect(wrapper.get('.state').text()).toContain('Available')
+  expect(wrapper.get('.reading strong').text()).toBe('—')
+ })
  it('routes native menu navigation to settings and about and removes the listener',async()=>{
   let navigate:(destination:string)=>void=()=>{};const remove=vi.fn()
   ;(window as any).runtime={EventsOnMultiple:vi.fn((_name:string,callback:(destination:string)=>void)=>{navigate=callback;return remove})}

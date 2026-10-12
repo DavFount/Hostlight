@@ -178,6 +178,12 @@ ICMP on macOS/Linux, metric history/charts, and advanced platform
 error handling are still planned.
 This preview is intended for development and evaluation.
 
+Monitor cards and outage popups explain recognized connection, timeout, routing,
+DNS, permission, and ping setup failures in plain language. Expand **Technical
+details** to read the original diagnostic when an explanation is shown. Unknown
+messages remain intact; these explanations do not change availability thresholds
+or incident/webhook records.
+
 ## HTTP/HTTPS monitoring
 
 Choose **HTTP / HTTPS** when adding a monitor, enter a full URL such as
