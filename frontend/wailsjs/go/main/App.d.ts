@@ -34,6 +34,8 @@ export function GetDesktopStatus():Promise<main.DesktopStatus>;
 
 export function GetIncidents(arg1:string,arg2:string,arg3:number,arg4:number):Promise<main.HistoryPage>;
 
+export function GetRecentProbeSamples(arg1:string):Promise<Array<main.ProbeSample>>;
+
 export function GetSchedulingSettings():Promise<main.SchedulingStatus>;
 
 export function GetSupportReport():Promise<main.SupportReport>;

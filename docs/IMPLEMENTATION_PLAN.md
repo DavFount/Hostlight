@@ -14,7 +14,8 @@ Update this checklist with each implementation slice before requesting a commit.
 
 Implementation note: target settings currently use an atomically replaced, versioned
 JSON file in the OS user configuration directory. SQLite now stores incident history;
-sample history and charts remain planned. This keeps configuration readable and separate from
+recent charts use a bounded session-only sample window. Persistent sample history
+and charts across aggregated time ranges remain planned. This keeps configuration readable and separate from
 high-volume monitoring data. Existing settings must remain importable when storage evolves.
 
 Incident history implementation: `modernc.org/sqlite` supplies a pure-Go driver,
@@ -270,7 +271,21 @@ limits are configurable and failures do not stall unrelated targets.
 - [ ] Persist bounded probe samples and define sample aggregation.
 - [x] Implement configurable incident retention, record limits, and scheduled cleanup.
 - [x] Add history filters, incident duration, date ranges, paging, and CSV export.
-- [ ] Add recent latency/loss charts and precisely labeled statistics.
+- [x] Add an expandable session-only SVG chart of the last 100 completed
+  availability checks, successful latency mean/maximum, and failed-check markers.
+  Fetch only expanded charts, provide accessible summaries and a check-values
+  table, and break lines at failures, pauses, setup errors, and observation gaps.
+  Use equal check spacing with timestamps, not an implied elapsed-time axis.
+- [x] User verified updating recent charts capped at 100 while session totals
+  continue, DNS/setup-error exclusion, pause/resume preserving data, edit resets,
+  and working keyboard interaction (2026-10-12). Screenshots show dark-theme
+  TCP/ICMP charts and a single fresh TCP sample after editing.
+- [x] Complete recent-chart desktop checks for restart resets, mixed/all-failed
+  windows, line breaks after pause/setup errors, successful-only latency averages,
+  and layouts in both themes and densities.
+  User confirmed all remaining checks passed on 2026-10-12.
+- [ ] Extend charts to persisted samples and aggregated time ranges; retain
+  precisely labeled failed-check statistics rather than implying packet loss.
 - [x] Store data in the OS application-data directory and display the configuration location.
 - [x] Surface database/queue failures and interrupt unfinished incidents after restart.
 
@@ -485,6 +500,18 @@ management, and request chaining are not committed scope. The delivered HTTP
 slice extends the original first-release scope by explicit user direction.
 
 ## Verification strategy
+
+Recent chart slice (2026-10-12): 126 frontend tests, frontend production/type
+checks, Go tests/vet, and Windows Wails build passed. Coverage includes ring
+ordering/eviction, detached API snapshots, pause/edit lifecycle, setup/gap line
+breaks, successful-only latency summaries, empty/all-failed/error states, stale
+response rejection, and stopping polling when collapsed. User verified chart
+updates/capping, setup-error exclusion, pause/resume preservation, edit resets,
+and keyboard interaction on 2026-10-12. User also confirmed all remaining desktop
+checks passed: restart resets, mixed/all-failed windows, line breaks,
+successful-only averages, and both themes and densities.
+Samples are session-only;
+persistent sample storage and aggregation remain unfinished first-release work.
 
 Observation-gap slice (2026-10-12): Go tests/vet and Windows Wails build
 (including frontend production/type checks) passed. Additional targeted tests

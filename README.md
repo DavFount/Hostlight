@@ -204,6 +204,18 @@ nonzero setup errors also appear in its collapsed summary.
 These counts are not uptime or ICMP packet-loss measurements,
 are not saved/exported, and may update one snapshot apart from the status card.
 
+Expand **Recent chart** to see the last 100 completed availability checks, with
+successful latency, failed-check markers, and mean/maximum successful latency.
+The horizontal axis spaces checks equally rather than measuring elapsed time;
+timestamps and an expandable **Check values** table provide individual results.
+Failures never appear as zero-millisecond successes. Lines break at failures,
+pauses, local setup errors, and monitoring gaps. Charts refresh every five seconds
+while expanded, preserve samples across pause/resume, and reset on edit/restart.
+Samples are bounded in memory and are not persisted or exported. TCP latency
+measures connection time, ICMP measures echo-reply time, and HTTP uses the same
+header/full-body timing as its card reading. Failed-check percentages are not uptime
+or packet loss; local setup errors remain excluded.
+
 ## HTTP/HTTPS monitoring
 
 Choose **HTTP / HTTPS** when adding a monitor, enter a full URL such as

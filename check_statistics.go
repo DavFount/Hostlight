@@ -1,12 +1,18 @@
 package main
 
-import "time"
+import (
+	"fmt"
+	"math"
+	"time"
+)
 
 const recentCheckLimit = 100
 
 // A bounded, session-only window. Local setup errors are not availability checks.
 type checkWindow struct {
 	failed        [recentCheckLimit]bool
+	samples       [recentCheckLimit]ProbeSample
+	breakBefore   bool
 	count         int
 	next          int
 	fails         int
@@ -27,9 +33,14 @@ func (w *checkWindow) start() {
 func (w *checkWindow) recordSetupError() {
 	w.start()
 	w.setupErrors++
+	w.breakBefore = true
 }
 
 func (w *checkWindow) record(failed bool) {
+	w.recordSample(failed, 0, time.Now())
+}
+
+func (w *checkWindow) recordSample(failed bool, latency float64, at time.Time) {
 	w.start()
 	w.sessionChecks++
 	if failed {
@@ -43,10 +54,40 @@ func (w *checkWindow) record(failed bool) {
 		w.count++
 	}
 	w.failed[w.next] = failed
+	if failed || math.IsNaN(latency) || math.IsInf(latency, 0) || latency < 0 {
+		latency = 0
+	}
+	w.samples[w.next] = ProbeSample{Time: at.UTC().Format(time.RFC3339Nano), Failed: failed, LatencyMS: latency, BreakBefore: w.breakBefore}
+	w.breakBefore = false
 	if failed {
 		w.fails++
 	}
 	w.next = (w.next + 1) % recentCheckLimit
+}
+
+type ProbeSample struct {
+	Time        string  `json:"time"`
+	Failed      bool    `json:"failed"`
+	LatencyMS   float64 `json:"latencyMS"`
+	BreakBefore bool    `json:"breakBefore"`
+}
+
+// GetRecentProbeSamples returns a detached oldest-first window for one expanded
+// chart. Samples are session-only and bounded to the same 100 checks as statistics.
+func (a *App) GetRecentProbeSamples(id string) ([]ProbeSample, error) {
+	a.mu.Lock()
+	defer a.mu.Unlock()
+	m, ok := a.targets[id]
+	if !ok {
+		return nil, fmt.Errorf("Monitor no longer exists")
+	}
+	w := &m.checks
+	out := make([]ProbeSample, 0, w.count)
+	start := (w.next - w.count + recentCheckLimit) % recentCheckLimit
+	for i := 0; i < w.count; i++ {
+		out = append(out, w.samples[(start+i)%recentCheckLimit])
+	}
+	return out, nil
 }
 
 type CheckStatistics struct {

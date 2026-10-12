@@ -66,6 +66,10 @@ export function GetIncidents(arg1, arg2, arg3, arg4) {
   return window['go']['main']['App']['GetIncidents'](arg1, arg2, arg3, arg4);
 }
 
+export function GetRecentProbeSamples(arg1) {
+  return window['go']['main']['App']['GetRecentProbeSamples'](arg1);
+}
+
 export function GetSchedulingSettings() {
   return window['go']['main']['App']['GetSchedulingSettings']();
 }

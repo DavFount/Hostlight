@@ -168,6 +168,7 @@ func (a *App) SetTargetsPaused(ids []string, paused bool) error {
 		}
 		ctx, cancel := context.WithCancel(a.ctx)
 		a.targets[id] = &monitor{target: t, cancel: cancel, checks: m.checks}
+		a.targets[id].checks.breakBefore = true
 		contexts[id] = ctx
 	}
 	if len(old) == 0 {

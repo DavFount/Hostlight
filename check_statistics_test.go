@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"net"
+	"reflect"
 	"testing"
 	"time"
 )
@@ -49,6 +50,7 @@ func TestCheckStatisticsSurvivePauseAndResetOnEdit(t *testing.T) {
 	m.checks.started = time.Date(2020, 1, 1, 0, 0, 0, 0, time.UTC)
 	a.targets["1"] = m
 	before := a.GetCheckStatistics()[0]
+	beforeSamples, _ := a.GetRecentProbeSamples("1")
 	defer a.shutdown(context.Background())
 	for _, paused := range []bool{true, false, true} {
 		if err := a.SetTargetsPaused([]string{"1"}, paused); err != nil {
@@ -57,6 +59,9 @@ func TestCheckStatisticsSurvivePauseAndResetOnEdit(t *testing.T) {
 		if got := a.GetCheckStatistics()[0]; got != before {
 			t.Fatalf("pause/resume changed checks: %+v", got)
 		}
+		if got, err := a.GetRecentProbeSamples("1"); err != nil || !reflect.DeepEqual(got, beforeSamples) {
+			t.Fatalf("pause/resume changed samples: %+v %v", got, err)
+		}
 	}
 	target.Name = "Edited"
 	if err := a.SaveTarget(target); err != nil {
@@ -64,6 +69,9 @@ func TestCheckStatisticsSurvivePauseAndResetOnEdit(t *testing.T) {
 	}
 	if got := a.GetCheckStatistics()[0]; got.Checks != 0 || got.Failed != 0 || got.SessionChecks != 0 || got.SetupErrors != 0 || got.Started == before.Started {
 		t.Fatalf("edit retained old observations: %+v", got)
+	}
+	if got, err := a.GetRecentProbeSamples("1"); err != nil || len(got) != 0 {
+		t.Fatalf("edit retained samples: %+v %v", got, err)
 	}
 }
 
@@ -109,6 +117,9 @@ func TestCheckStatisticsExcludeSetupErrorsAndCancelledResults(t *testing.T) {
 			a.run(ctx, m, m.target)
 			if got := a.GetCheckStatistics()[0]; got != tc.want {
 				t.Fatalf("cancelled result counted: %+v", got)
+			}
+			if samples, err := a.GetRecentProbeSamples("1"); err != nil || len(samples) != tc.want.Checks {
+				t.Fatalf("sample inclusion differs from completed checks: %+v %v", samples, err)
 			}
 		})
 	}

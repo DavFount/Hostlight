@@ -413,6 +413,24 @@ export namespace main {
 	}
 	
 	
+	export class ProbeSample {
+	    time: string;
+	    failed: boolean;
+	    latencyMS: number;
+	    breakBefore: boolean;
+	
+	    static createFrom(source: any = {}) {
+	        return new ProbeSample(source);
+	    }
+	
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.time = source["time"];
+	        this.failed = source["failed"];
+	        this.latencyMS = source["latencyMS"];
+	        this.breakBefore = source["breakBefore"];
+	    }
+	}
 	export class SchedulingSettings {
 	    concurrency: number;
 	    spreadMilliseconds: number;

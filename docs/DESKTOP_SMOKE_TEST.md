@@ -138,3 +138,11 @@ verification artifacts, not production releases.
 - Repeat with an unavailable disposable monitor: its previous incident ends as interrupted at its last observation. Continued failure starts a new incident only after fresh failure evidence.
 - Confirm session totals survive the gap and no recovery notification/webhook is fabricated for the interrupted incident.
 - Disconnect/reconnect the network and verify actual completed failures still count normally; a network failure alone does not imply a monitoring gap.
+
+## Recent probe charts
+
+- Expand Recent chart for passing, failing, and mixed-result monitors. Confirm successful latency mean/max excludes failures and failed-check percentage matches the same recent window.
+- Let the window exceed 100 checks: chart and table stay capped while session totals continue.
+- Pause/resume: samples remain, no samples arrive while paused, and the latency line breaks after resume. DNS/setup errors add no chart samples and break the next successful segment.
+- Edit/restart: chart samples reset. Recovering failures appear as crosses with no connecting successful-latency line through them.
+- Verify keyboard expansion, check-values table scrolling, and readable narrow cards in both themes and densities. Chart refresh can lag statistics by up to five seconds.

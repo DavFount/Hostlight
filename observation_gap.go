@@ -20,6 +20,7 @@ func (a *App) resetObservationGap(m *monitor, rules *statusRules, last, started,
 	}
 	a.recordHistoryLocked(m.target, "Monitoring gap: no observations received")
 	rules.good, rules.bad = 0, 0
+	m.checks.breakBefore = true
 	m.target.State = "unknown"
 	m.target.Checked = ""
 	m.target.Latency = 0

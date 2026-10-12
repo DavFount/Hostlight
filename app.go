@@ -346,7 +346,7 @@ func (a *App) run(ctx context.Context, m *monitor, t Target) {
 			var local *probeSetupError
 			localError := errors.As(err, &dns) || errors.As(err, &local)
 			if !localError {
-				m.checks.record(err != nil)
+				m.checks.recordSample(err != nil, latency, finished)
 			} else {
 				m.checks.recordSetupError()
 			}
