@@ -43,6 +43,8 @@ schedules and global/group maintenance controls remain future work.
 Build a focused desktop utility for monitoring multiple hosts and services at a
 glance, with trustworthy outage detection, useful history, and webhook alerts.
 Preserve vmPing's fast workflow: paste targets, start monitoring, see what changes.
+Hostlight will remain free and open source. Paid code signing is deferred and
+does not block continued development or clearly labeled unsigned releases.
 
 Windows is the first release platform. Keep the monitoring core portable and
 verify macOS/Linux support separately before claiming those platforms are supported.
@@ -160,7 +162,8 @@ UI detects a gap. Bound frontend logs and chart buffers.
 - [x] Establish Go formatting, Go tests/vet, and frontend component tests/type checks.
 - [x] Add Windows GitHub Actions and a shared fail-fast local verification script
   for formatting, Go tests/vet, package helper tests, frontend tests/build, and Wails build.
-- [ ] Record the first successful hosted CI run after pushing the workflows.
+- [x] Record the first successful hosted CI run after pushing the workflows.
+  User confirmed GitHub Actions verification completed successfully (2026-10-12).
 - [x] Implement native Windows IP Helper ICMP and document the choice in README.
 - [x] Test cancellation, DNS/address selection, IPv4/IPv6 localhost, and error classification.
 - [ ] Record standard-user and adapter/permission failure checks on Windows.
@@ -345,11 +348,15 @@ continues when minimized. Closing behavior is explicit and platform-tested.
 - [x] Add manual-dispatch release automation: tested Windows ZIP, embedded version,
   SHA-256 checksums, draft-first upload/publication, and GitHub-created tags without
   local tag/push commands. Default to prerelease; never overwrite existing versions.
-- [ ] Verify the first hosted publication and downloaded release artifacts.
-- [ ] Add an installer, curated release notes, and code signing before declaring
-  the final distribution experience complete.
+- [x] Verify the first hosted publication and basic downloaded-package startup.
+  User confirmed the 0.1.0 prerelease runs as expected from the extracted ZIP
+  (2026-10-12). This does not establish checksum/version, fresh-machine, or soak checks.
+- [ ] Add an installer and curated release notes.
+- [ ] Revisit optional code signing when funding or a suitable free option is available;
+  keep unsigned distribution explicitly labeled in the meantime.
 - [ ] Verify fresh-machine startup, WebView2 requirements, upgrade, and uninstall behavior.
-- [ ] Decide distribution format and code-signing approach before public release.
+- [x] Use standalone ZIP distribution for the initial prerelease; defer paid code
+  signing while keeping Hostlight free and open source (2026-10-12).
 - [ ] Document supported platforms, configuration location, limits, and known issues.
 
 Acceptance: release checks pass on the supported Windows platform, no critical
@@ -414,7 +421,10 @@ slice extends the original first-release scope by explicit user direction.
 CI follow-up (2026-10-12): Go sources now require LF checkouts via
 `.gitattributes` so Windows CRLF conversion does not fail `gofmt` checks.
 Verification builds frontend assets before Go tests because `main.go` embeds
-`frontend/dist`. A successful hosted run remains an outstanding gate.
+`frontend/dist`. User confirmed GitHub Actions verification completed successfully
+on 2026-10-12 and the app ran via `wails dev` and was verified locally.
+This records successful local use; individual startup/bindings/shutdown, menu,
+tray lifecycle, and release-matrix checks remain open until specifically recorded.
 
 Latest completed implementation-slice checks (2026-10-11): `go test ./...`,
 `go vet ./...`, 83 frontend tests, frontend production/type-check build, and

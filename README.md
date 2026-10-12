@@ -44,7 +44,9 @@ Repository/tag-protection policies must permit the workflow token to create rele
 
 The ZIP contains the executable and launch notes; it is **not an installer**.
 Settings remain in `%APPDATA%\Hostlight`. Packages are unsigned and require
-WebView2; signing and fresh-machine/upgrade/soak verification remain release gates.
+WebView2. Code signing is deferred; unsigned releases will remain clearly labeled.
+Fresh-machine/upgrade/soak verification remain release gates.
+Hostlight will remain free and open source.
 Nothing is published merely by pushing to `main`; those pushes produce CI builds.
 For automatic version selection later, release-PR automation can build on this flow.
 
