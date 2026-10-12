@@ -207,10 +207,7 @@ func (s *incidentStore) apply(e historyEvent) error {
 		if paused > 0 {
 			return tx.Commit()
 		}
-		gap := 2 * time.Duration(t.Interval+t.Timeout) * time.Second
-		if gap < 30*time.Second {
-			gap = 30 * time.Second
-		}
+		gap := observationGapLimit(t)
 		if _, err := tx.ExecContext(ctx, "UPDATE incidents SET status='interrupted', ended=last_seen, reason=reason || ' · Monitoring gap: no observations received' WHERE target_id=? AND status='open' AND last_seen<?", t.ID, e.at.Add(-gap).UnixMilli()); err != nil {
 			return err
 		}

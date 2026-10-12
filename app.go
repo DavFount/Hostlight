@@ -298,6 +298,7 @@ func (a *App) run(ctx context.Context, m *monitor, t Target) {
 		return
 	}
 	rules := statusRules{failures: t.Failures, recovery: t.Recovery}
+	lastObservation := time.Now()
 	for {
 		select {
 		case a.slots <- struct{}{}:
@@ -333,41 +334,46 @@ func (a *App) run(ctx context.Context, m *monitor, t Target) {
 			a.mu.Unlock()
 			return
 		}
-		previous := m.target.State
-		m.target.Checked = time.Now().UTC().Format(time.RFC3339)
-		m.target.Latency = latency
-		m.target.CertificateExpires = certificateExpires
-		var dns *net.DNSError
-		var local *probeSetupError
-		localError := errors.As(err, &dns) || errors.As(err, &local)
-		if !localError {
-			m.checks.record(err != nil)
-		} else {
-			m.checks.recordSetupError()
-		}
-		if localError {
-			rules.good = 0
-			rules.bad = 0
-			m.target.State = "error"
-			if dns != nil {
-				m.target.Message = "DNS lookup failed. Check the hostname and local DNS connection."
+		finished := time.Now()
+		discard := a.resetObservationGap(m, &rules, lastObservation, started, finished)
+		lastObservation = finished
+		if !discard {
+			previous := m.target.State
+			m.target.Checked = finished.UTC().Format(time.RFC3339)
+			m.target.Latency = latency
+			m.target.CertificateExpires = certificateExpires
+			var dns *net.DNSError
+			var local *probeSetupError
+			localError := errors.As(err, &dns) || errors.As(err, &local)
+			if !localError {
+				m.checks.record(err != nil)
+			} else {
+				m.checks.recordSetupError()
+			}
+			if localError {
+				rules.good = 0
+				rules.bad = 0
+				m.target.State = "error"
+				if dns != nil {
+					m.target.Message = "DNS lookup failed. Check the hostname and local DNS connection."
+				} else {
+					m.target.Message = err.Error()
+				}
+			} else if err == nil {
+				m.target.Message = "TCP connection successful"
+				if t.Type == "icmp" {
+					m.target.Message = "Ping reply received"
+				}
+				if t.Type == "http" {
+					m.target.Message = httpMessage
+				}
+				m.target.State = rules.apply(m.target.State, true)
 			} else {
 				m.target.Message = err.Error()
+				m.target.State = rules.apply(m.target.State, false)
 			}
-		} else if err == nil {
-			m.target.Message = "TCP connection successful"
-			if t.Type == "icmp" {
-				m.target.Message = "Ping reply received"
-			}
-			if t.Type == "http" {
-				m.target.Message = httpMessage
-			}
-			m.target.State = rules.apply(m.target.State, true)
-		} else {
-			m.target.Message = err.Error()
-			m.target.State = rules.apply(m.target.State, false)
+			a.recordHistoryLocked(m.target, "result", previous)
 		}
-		a.recordHistoryLocked(m.target, "result", previous)
 		a.mu.Unlock()
 		timer := time.NewTimer(time.Duration(t.Interval) * time.Second)
 		select {

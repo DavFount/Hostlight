@@ -130,3 +130,11 @@ verification artifacts, not production releases.
 - Pause for at least 30 seconds: the duration holds. Resume and confirm paused time is excluded while checks continue.
 - Recover the monitor and confirm the duration disappears. Edit a failing monitor and confirm its old incident duration is cleared.
 - Check compact/comfortable density and both themes. DNS/setup errors alone must not display an outage duration.
+
+## Fresh evidence after monitoring gaps
+
+- Set failure/recovery thresholds above one, with interval 5 seconds and timeout 3 seconds. Sleep Windows for at least one minute, then resume.
+- Confirm status uses fresh checks to establish availability. A probe spanning sleep must not increment session totals or create a synthetic failed sample.
+- Repeat with an unavailable disposable monitor: its previous incident ends as interrupted at its last observation. Continued failure starts a new incident only after fresh failure evidence.
+- Confirm session totals survive the gap and no recovery notification/webhook is fabricated for the interrupted incident.
+- Disconnect/reconnect the network and verify actual completed failures still count normally; a network failure alone does not imply a monitoring gap.

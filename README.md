@@ -312,6 +312,10 @@ Only one desktop instance runs at a time to keep monitoring and storage ownershi
 - A restart or long observation gap also interrupts the previous incident.
   A gap means no results for more than the greater of 30 seconds or twice the
   sum of the configured interval and timeout. A continued outage starts a new observed segment.
+  Live status returns to Checking and failure/recovery thresholds start fresh.
+  A probe spanning that gap is discarded rather than counted as a failed check;
+  completed session totals are preserved. A fresh probe completed after the gap
+  can contribute the first observation toward the new threshold.
 - Durations measure the observed status period, not an SLA or proof of continuous
   downtime. Initial failures before the failure threshold are not counted.
 

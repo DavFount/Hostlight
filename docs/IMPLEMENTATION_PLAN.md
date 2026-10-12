@@ -245,7 +245,17 @@ real monitoring is connected.
   User confirmed all checks passed on 2026-10-12, including recovery/edit clearing
   and no outage duration for DNS/setup errors alone.
 - [x] Discard stale results after edits, deletion, pause, and shutdown.
-- [ ] Verify network changes and sleep/resume, including fresh threshold counters after gaps.
+- [x] Reset live status and failure/recovery threshold counters after an observation
+  gap, using the same boundary as incident history: greater than 30 seconds or
+  twice the sum of interval and timeout, whichever is larger. Interrupt the old
+  incident; discard checks spanning a gap
+  without incrementing statistics. Preserve completed session totals and require
+  fresh threshold evidence without fabricating a recovery across the gap.
+- [x] Verify network changes and sleep/resume in Wails, including fresh threshold
+  counters after gaps and no synthetic failed sample from a probe spanning sleep.
+  User confirmed the slice's manual checks passed on 2026-10-12: session totals
+  preserved, old outages interrupted, no fabricated recovery popups/webhooks,
+  and actual completed failures counted during network disconnection/reconnection.
 
 Acceptance: controlled success/failure sequences produce exactly the expected
 transitions. Stopping or editing a target cannot apply stale results. A sustained
@@ -475,6 +485,15 @@ management, and request chaining are not committed scope. The delivered HTTP
 slice extends the original first-release scope by explicit user direction.
 
 ## Verification strategy
+
+Observation-gap slice (2026-10-12): Go tests/vet and Windows Wails build
+(including frontend production/type checks) passed. Additional targeted tests
+passed for fresh threshold evidence, exact gap boundaries, discarded spanning
+checks, preserved session totals, interrupted duration, and absence of fabricated
+recovery popups/webhooks. User confirmed Windows sleep/resume and network-change
+manual checks passed on 2026-10-12, including fresh threshold evidence, preserved
+session totals, interrupted outage history, and no fabricated recovery alerts.
+This is elapsed-observation-gap handling, not native power-event detection.
 
 Observed outage card slice (2026-10-12): Go tests/vet, 123 frontend tests,
 frontend production/type-check build, and Windows Wails build passed. Additional
