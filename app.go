@@ -16,24 +16,25 @@ import (
 
 // App struct
 type App struct {
-	monitorImport    *pendingMonitorImport
-	ctx              context.Context
-	mu               sync.Mutex
-	targets          map[string]*monitor
-	next             uint64
-	configPath       string
-	configError      string
-	slots            chan struct{}
-	scheduling       SchedulingSettings
-	activeScheduling SchedulingSettings
-	dial             func(context.Context, string, time.Duration) (net.Conn, error)
-	ping             func(context.Context, string, time.Duration) (float64, error)
-	history          *incidentStore
-	historyError     string
-	closing          bool
-	alertCancel      context.CancelFunc
-	alertDone        chan struct{}
-	desktop          desktopState
+	monitorImport        *pendingMonitorImport
+	ctx                  context.Context
+	mu                   sync.Mutex
+	targets              map[string]*monitor
+	next                 uint64
+	configPath           string
+	configError          string
+	developmentWorkspace string
+	slots                chan struct{}
+	scheduling           SchedulingSettings
+	activeScheduling     SchedulingSettings
+	dial                 func(context.Context, string, time.Duration) (net.Conn, error)
+	ping                 func(context.Context, string, time.Duration) (float64, error)
+	history              *incidentStore
+	historyError         string
+	closing              bool
+	alertCancel          context.CancelFunc
+	alertDone            chan struct{}
+	desktop              desktopState
 }
 
 // NewApp creates a new App application struct
@@ -46,7 +47,15 @@ func NewApp() *App {
 		d := net.Dialer{Timeout: timeout}
 		return d.DialContext(ctx, "tcp", address)
 	}
-	if dir, err := os.UserConfigDir(); err == nil {
+	if override := os.Getenv("HOSTLIGHT_DEV_DATA_DIR"); override != "" {
+		dir, err := developmentDataDirectory(override, applicationVersion)
+		if err != nil {
+			a.configError = err.Error()
+			return a
+		}
+		a.developmentWorkspace = dir
+		a.configPath = filepath.Join(dir, "targets.json")
+	} else if dir, err := os.UserConfigDir(); err == nil {
 		a.configPath = filepath.Join(dir, "Hostlight", "targets.json")
 	} else {
 		a.configError = err.Error()

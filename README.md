@@ -632,6 +632,10 @@ environment secrets are excluded by `.gitignore`.
 
 ## Load verification
 
+Run `./scripts/desktop-load.ps1` to open a development workspace with 200 local
+TCP monitors and isolated settings/history/WebView preferences. Close other
+`wails dev` sessions first. See the guide below for outage controls and checks.
+
 For the isolated 200-monitor backend workload and longer soak command, see
 [Windows load verification](docs/LOAD_VERIFICATION.md). The recorded loopback
 baseline measures scheduler/storage/webhook behavior; desktop responsiveness and

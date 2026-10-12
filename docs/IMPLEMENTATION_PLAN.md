@@ -483,6 +483,20 @@ Acceptance: release checks pass on the supported Windows platform, no critical
 monitoring/alerting defects remain, and the README reflects implemented behavior.
 Treat 200 targets as an initial benchmark, not a supported capacity claim until measured.
 
+Desktop load fixture slice (2026-10-12): added a disposable 200-monitor loopback
+workspace, separate development data/WebView/instance identity, and controlled
+20-endpoint outage/recovery commands. Automated isolation/configuration/socket
+checks cover the helper. Shared verification passed (131 frontend tests, Go
+tests/vet, release-tool checks, and Windows Wails build); a standalone helper
+smoke test connected to all 200 endpoints. After adjusting fixture socket cleanup,
+the user confirmed responsive desktop/background work with 200 monitors; visible
+cards showed 424 successes each, zero failures, and incident history was empty
+(approximately seven minutes). Short desktop responsiveness passed. Extended soak,
+recorded desktop CPU/working set remain pending. Fixture outage/recovery passed:
+the user's CSV contained exactly 20 resolved incidents for Load 001–020, each
+with 44 seconds observed duration, and none for Load 021–200;
+follow `docs/LOAD_VERIFICATION.md` before marking the full benchmark complete.
+
 ## HTTP monitoring — delivered slices
 
 - [x] Add full HTTP/HTTPS URL validation, exact expected status (default 200), and GET probes.

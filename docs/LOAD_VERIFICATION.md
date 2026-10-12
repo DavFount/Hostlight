@@ -50,12 +50,36 @@ activity when comparing runs.
 
 ## Desktop follow-up
 
-Use a disposable workspace for 200 authorized local targets at one-second
-intervals. Record machine details, scheduling settings, process working set and
-CPU in Task Manager, and behavior while searching, filtering, expanding charts,
-switching pages, minimizing/restoring, and pausing/resuming shown monitors. Check
-that status/history remain fresh and unrelated monitors continue during failures.
-Do not import a test workload into a workspace containing important monitors.
+Close any existing `wails dev` session, then run from the repository:
+
+```powershell
+./scripts/desktop-load.ps1
+```
+
+Requires Go, Node/npm, and Wails on PATH. The script creates 200 loopback TCP
+listeners and a fresh temporary profile, then launches Wails dev. The title must
+say **Hostlight — Development workspace**. Configuration, SQLite history,
+WebView preferences, and the instance lock are separate from your normal app.
+The development-only `HOSTLIGHT_DEV_DATA_DIR` override requires an absolute
+directory and is rejected by versioned release builds.
+
+- Confirm 200 monitors become available and counters keep increasing.
+- Search/filter, expand recent charts, switch to history, and minimize/restore.
+- Pause shown monitors; confirm counts stop, then resume and confirm they advance.
+- Use the printed `control.txt` commands in a second terminal: `down` fails the
+  first 20 endpoints; `up` recovers them. Allow several seconds for thresholds.
+  Confirm the other 180 continue and incident/history views reflect the outage.
+- Record machine details, Hostlight and WebView CPU/working set in Task Manager,
+  run duration, and any delays while doing normal desktop work.
+- Quit the test app and exit Wails dev. Reopen the normal app and confirm your
+  original monitors/settings/history remain intact.
+
+The helper stops when the script exits or after one hour (use `-Hours 8` for a
+longer session, maximum 24). After expiry endpoints stop responding; end the test
+before interpreting those failures. Temporary files are retained at the printed
+path for inspection. This fixture does not exercise webhook delivery; the backend
+workload above covers that. Desktop performance and extended soak remain pending
+until results are recorded.
 
 ## Recorded baseline
 
@@ -82,6 +106,26 @@ The workload passed with no reported storage/queue errors.
 Desktop measurements and the extended soak remain pending.
 
 ## User local repeat
+
+Desktop follow-up: user reported responsive UI with 200 monitors on 2026-10-12.
+Screenshots also showed unplanned Windows socket-address errors across monitors
+outside the controlled outage group. This confirms observed responsiveness, but
+does not qualify a clean sustained connection run. The disposable TCP helper now
+resets accepted sockets on close to avoid accumulating TIME_WAIT sockets.
+
+The user repeated the desktop run after that change on 2026-10-12. Screenshots
+show 200 monitors, 424 successful checks and zero failures on each visible card
+(approximately seven minutes at one-second intervals), and zero incidents with
+no search/outcome restrictions. The user continued background work and reported
+no noticeable slowness. The unexpected socket-address incidents did not recur in
+this observed run. This passes the short desktop responsiveness follow-up;
+desktop process/WebView CPU and working set were not recorded, and an extended
+soak remains a separate check.
+
+Controlled outage/recovery also passed on 2026-10-12. The user's incident CSV
+contained exactly 20 resolved incidents, one each for Load 001–020, with 44
+seconds observed duration each and connection-refused reasons followed by
+recovery threshold reached. No incidents for Load 021–200 appeared in the export.
 
 User confirmed PASS on 2026-10-12 using Windows amd64, Go 1.27.2, the same
 reported CPU identifier, 48 logical processors, and GOMAXPROCS 48.
