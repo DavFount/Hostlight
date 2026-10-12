@@ -42,6 +42,10 @@ export function ExportSupportReport() {
   return window['go']['main']['App']['ExportSupportReport']();
 }
 
+export function GetActiveOutages() {
+  return window['go']['main']['App']['GetActiveOutages']();
+}
+
 export function GetAlertSilences() {
   return window['go']['main']['App']['GetAlertSilences']();
 }

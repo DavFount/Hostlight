@@ -22,6 +22,8 @@ export function ExportMonitorBackup():Promise<string>;
 
 export function ExportSupportReport():Promise<string>;
 
+export function GetActiveOutages():Promise<Array<main.ActiveOutage>>;
+
 export function GetAlertSilences():Promise<Array<main.AlertSilence>>;
 
 export function GetCheckStatistics():Promise<Array<main.CheckStatistics>>;

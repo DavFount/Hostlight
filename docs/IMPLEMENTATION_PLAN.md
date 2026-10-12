@@ -235,7 +235,15 @@ real monitoring is connected.
   the revised dark-theme card layout is clearer (2026-10-12); screenshot shows the
   Session details keyboard focus outline. User subsequently confirmed both themes,
   densities, keyboard expansion, and details staying open during updates.
-- [ ] Add elapsed observed outage duration to monitor cards.
+- [x] Add elapsed observed outage duration to monitor cards, using open incident
+  records through the last observation and excluding paused time. Keep the value
+  held while paused; show pending evidence after resume and hide resolved/error
+  states. Do not extrapolate a wall-clock timer between observations.
+- [x] Manually verify card outage duration advances with checks, holds while
+  paused, excludes the pause after resume, and disappears after recovery/edit;
+  compare against incident history in both themes and densities.
+  User confirmed all checks passed on 2026-10-12, including recovery/edit clearing
+  and no outage duration for DNS/setup errors alone.
 - [x] Discard stale results after edits, deletion, pause, and shutdown.
 - [ ] Verify network changes and sleep/resume, including fresh threshold counters after gaps.
 
@@ -467,6 +475,14 @@ management, and request chaining are not committed scope. The delivered HTTP
 slice extends the original first-release scope by explicit user direction.
 
 ## Verification strategy
+
+Observed outage card slice (2026-10-12): Go tests/vet, 123 frontend tests,
+frontend production/type-check build, and Windows Wails build passed. Additional
+targeted Go tests passed for gap and edit interruption. Coverage verifies paused
+time exclusion, held observations, recovery removal, unavailable storage, and
+duration formatting. User confirmed all desktop acceptance checks passed on
+2026-10-12: history agreement, pause/resume exclusion, recovery/edit clearing,
+DNS/setup-error behavior, and both themes and densities.
 
 Custom confirmation slice (2026-10-12): 121 frontend tests, frontend
 production/type-check build, and Windows Wails build passed. Coverage includes monitor/webhook deletion,

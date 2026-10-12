@@ -1,5 +1,19 @@
 export namespace main {
 	
+	export class ActiveOutage {
+	    id: string;
+	    durationSeconds: number;
+	
+	    static createFrom(source: any = {}) {
+	        return new ActiveOutage(source);
+	    }
+	
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.id = source["id"];
+	        this.durationSeconds = source["durationSeconds"];
+	    }
+	}
 	export class AlertSilence {
 	    id: string;
 	    targetId: string;

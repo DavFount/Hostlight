@@ -123,3 +123,10 @@ Record measured load/soak results, fresh-machine WebView2 startup, upgrade/unins
 artifact versioning/checksums, and signing/distribution decisions separately. A
 200-target benchmark is not a capacity claim. CI binaries are unsigned development
 verification artifacts, not production releases.
+
+## Observed outage duration
+
+- Use a disposable failing monitor and compare its observed outage duration with incident history. It advances with observations, not every wall-clock second.
+- Pause for at least 30 seconds: the duration holds. Resume and confirm paused time is excluded while checks continue.
+- Recover the monitor and confirm the duration disappears. Edit a failing monitor and confirm its old incident duration is cleared.
+- Check compact/comfortable density and both themes. DNS/setup errors alone must not display an outage duration.
