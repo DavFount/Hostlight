@@ -4,7 +4,7 @@ import App from './App.vue'
 import hostlightLogo from './assets/hostlight.svg'
 const target={id:'1',name:'Gateway',host:'192.0.2.1',group:'Office',type:'icmp',port:0,interval:5,timeout:3,failures:3,recovery:2,state:'down',latency:0,message:'Request timed out',checked:'2026-10-09T12:00:00Z'}
 const silence={id:'window-1',targetId:'1',kind:'maintenance',starts:'2026-10-09T11:00:00Z',ends:'2026-10-09T14:00:00Z',reason:'Planned upgrade'}
-const api={GetTargets:vi.fn(),GetConfigurationStatus:vi.fn(),GetAlertSilences:vi.fn()}
+const api={GetTargets:vi.fn(),GetConfigurationStatus:vi.fn(),GetAlertSilences:vi.fn(),GetCheckStatistics:vi.fn().mockResolvedValue([])}
 let wrapper:VueWrapper
 let menuNavigate:(destination:string)=>void=()=>{}
 beforeEach(()=>{(window as any).runtime={EventsOnMultiple:vi.fn((_name:string,callback:(destination:string)=>void)=>{menuNavigate=callback;return ()=>{}})}})
@@ -12,6 +12,14 @@ afterEach(()=>{delete (window as any).runtime})
 beforeEach(()=>{vi.clearAllMocks();vi.useFakeTimers({toFake:['Date']});vi.setSystemTime(new Date('2026-10-09T12:00:00Z'));api.GetTargets.mockResolvedValue([target]);api.GetConfigurationStatus.mockResolvedValue({path:'',error:'',historyError:''});api.GetAlertSilences.mockResolvedValue([silence]);Object.assign(window,{go:{main:{App:api}}})})
 afterEach(()=>{wrapper?.unmount();vi.useRealTimers()})
 describe('monitor alert controls',()=>{
+ it('displays per-monitor statistics and reports unavailable data without implying zero failures',async()=>{
+  api.GetCheckStatistics.mockResolvedValueOnce([{id:'1',checks:4,failed:1}]).mockRejectedValueOnce(new Error('unavailable'))
+  wrapper=mount(App);await flushPromises()
+  expect(wrapper.get('.check-statistics').text()).toContain('1 / 4 failed checks · 25.0%')
+  wrapper.unmount();wrapper=mount(App);await flushPromises()
+  expect(wrapper.get('.check-statistics').text()).toContain('unavailable')
+  expect(wrapper.get('.grid article').text()).toContain('Gateway')
+ })
  it('explains raw TCP errors without changing threshold state and retains technical details',async()=>{
   const message='dial tcp 192.0.2.1:443: connectex: No connection could be made because the target machine actively refused it.'
   api.GetTargets.mockResolvedValue([{...target,type:'tcp',state:'up',message,latency:12.9}])

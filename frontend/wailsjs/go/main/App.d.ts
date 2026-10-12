@@ -24,6 +24,8 @@ export function ExportSupportReport():Promise<string>;
 
 export function GetAlertSilences():Promise<Array<main.AlertSilence>>;
 
+export function GetCheckStatistics():Promise<Array<main.CheckStatistics>>;
+
 export function GetConfigurationStatus():Promise<main.ConfigurationStatus>;
 
 export function GetDesktopStatus():Promise<main.DesktopStatus>;

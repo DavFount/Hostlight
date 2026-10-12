@@ -108,6 +108,22 @@ export namespace main {
 		    return a;
 		}
 	}
+	export class CheckStatistics {
+	    id: string;
+	    checks: number;
+	    failed: number;
+	
+	    static createFrom(source: any = {}) {
+	        return new CheckStatistics(source);
+	    }
+	
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.id = source["id"];
+	        this.checks = source["checks"];
+	        this.failed = source["failed"];
+	    }
+	}
 	export class ConfigurationStatus {
 	    path: string;
 	    error: string;

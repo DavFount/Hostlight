@@ -46,6 +46,10 @@ export function GetAlertSilences() {
   return window['go']['main']['App']['GetAlertSilences']();
 }
 
+export function GetCheckStatistics() {
+  return window['go']['main']['App']['GetCheckStatistics']();
+}
+
 export function GetConfigurationStatus() {
   return window['go']['main']['App']['GetConfigurationStatus']();
 }

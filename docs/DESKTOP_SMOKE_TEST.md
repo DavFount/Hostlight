@@ -39,6 +39,12 @@ executable. Browser previews cannot validate native dialogs, tray, or shutdown.
 
 ## Availability, incidents, and alerting
 
+- [ ] On disposable reachable and refused TCP monitors, check recent failed-check
+      counts and percentages. Counts reflect each completed check, even before
+      availability thresholds change the status; the window stops growing at 100.
+      Pause freezes counts, resume keeps them, and edit/full restart resets them.
+      DNS/setup errors do not count as availability failures. Check both themes
+      and card densities; HTTP policy mismatches count as failed checks.
 - [ ] Brief failure below the configured threshold does not declare an outage.
 - [ ] Use a disposable TCP monitor at `127.0.0.1` on a confirmed unused port:
       refused connections show a plain-language reason and expandable Technical

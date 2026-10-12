@@ -205,7 +205,23 @@ real monitoring is connected.
 - [ ] Implement sequenced frontend transition events if replacing snapshot polling.
 - [x] Wire per-target and filtered bulk pause/resume into the live UI.
 - [x] Show last check, latency, and diagnostic errors; show incident durations in history.
-- [ ] Add loss statistics and elapsed outage duration to monitor cards.
+- [x] Add bounded, session-only recent failed-check statistics to monitor cards:
+  last 100 completed availability checks, excluding DNS/local setup errors and
+  cancelled/stale results. Pause/resume preserves the window; edits/restarts reset
+  it. Label failed checks rather than packet loss or uptime, including HTTP policy failures.
+- [x] User verified increasing recent-check counts, working pause behavior, and
+  the rolling window capped at 100 checks (2026-10-12).
+- [ ] Manually verify resume continuity, edit/restart resets, and card layout in
+  both themes and densities.
+- [ ] Next implementation slice: add per-monitor session totals alongside the
+  recent 100-check window for overnight stability checks. Show completed
+  availability checks, successes, failures, failure percentage, and an explicit
+  session start timestamp. Track DNS/local setup errors separately; cancelled or
+  stale results add nothing. Use counters rather than retaining every sample.
+  Pause/resume preserves totals; edits and full application restarts reset totals
+  and their start timestamp. Label the session scope and reset behavior clearly;
+  persistence across restarts and uptime claims are outside this slice.
+- [ ] Add elapsed observed outage duration to monitor cards.
 - [x] Discard stale results after edits, deletion, pause, and shutdown.
 - [ ] Verify network changes and sleep/resume, including fresh threshold counters after gaps.
 
@@ -296,6 +312,10 @@ Tests cover retries, restart recovery, timeouts, redaction, and terminal failure
   unknown messages remain intact and HTTP diagnostics retain their safe wording.
 - [ ] Manually verify failure explanations and keyboard-accessible technical details
   in cards/popups, both themes, and compact/comfortable layouts.
+  Partial user verification (2026-10-12): screenshot confirms a refused localhost
+  TCP check displays the explanation, failed-latency dash, and collapsed Technical
+  details control. User reports keyboard interaction works as expected and Ctrl+Q
+  closes the window. Popup, theme/density, and pause/recovery checks remain open.
 - [ ] Add desktop notifications and mute controls where supported.
 - [x] Add session-only in-app outage/recovery popups with four corner positions,
   persisted enable/duration controls, preview, dismissal, and bounded transition feed.
@@ -421,6 +441,14 @@ management, and request chaining are not committed scope. The delivered HTTP
 slice extends the original first-release scope by explicit user direction.
 
 ## Verification strategy
+
+Recent-check statistics slice (2026-10-12): Go tests/vet, 105 frontend tests,
+the frontend production/type-check build, and the Windows Wails build passed. Coverage includes bounded
+window eviction, pause/resume continuity, reset on edit, excluded setup/cancelled
+results, and unavailable-versus-empty statistics. User confirmed pause behavior,
+increasing counts, and the 100-check cap (2026-10-12). Resume continuity,
+edit/restart resets, and theme/density layout verification remain open. Session
+totals are planned for the next slice and are not part of this implementation.
 
 Failure-message slice (2026-10-12): 101 frontend tests and the frontend
 production/type-check build and Windows Wails build passed. Component coverage includes preserved raw

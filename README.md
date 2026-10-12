@@ -1,5 +1,7 @@
 # Hostlight
 
+[![Windows verification](https://github.com/DavFount/Hostlight/actions/workflows/verify.yml/badge.svg?branch=main)](https://github.com/DavFount/Hostlight/actions/workflows/verify.yml)
+
 Settings contains appearance, visual alerts, scheduling, desktop behavior,
 webhook setup/testing/delivery logs, and monitor backups. About Hostlight contains
 support information and sanitized diagnostic exports. Native File/View/Help menus
@@ -15,8 +17,6 @@ start/resume; intervals are delays after completion, not fixed-rate deadlines.
 Busy checks wait for capacity; HTTP previews share the same limit. Increasing
 concurrency increases network/CPU load, not a guaranteed supported target count.
 These application settings are not included in monitor backups.
-
-[![Windows verification](https://github.com/DavFount/Hostlight/actions/workflows/verify.yml/badge.svg?branch=main)](https://github.com/DavFount/Hostlight/actions/workflows/verify.yml)
 
 ## Automated checks and releases
 
@@ -183,6 +183,14 @@ DNS, permission, and ping setup failures in plain language. Expand **Technical
 details** to read the original diagnostic when an explanation is shown. Unknown
 messages remain intact; these explanations do not change availability thresholds
 or incident/webhook records.
+
+Cards also show failed checks as a count and percentage over the last 100 completed
+availability checks in this session. These are individual results, independent of
+the failure/recovery thresholds. HTTP status, body, and certificate-policy mismatches
+count as failures; DNS and local setup errors, cancelled checks, and paused time
+add no observations. Pause/resume keeps the window; editing a monitor or restarting
+the app resets it. These counts are not uptime or ICMP packet-loss measurements,
+are not saved/exported, and may update one snapshot apart from the status card.
 
 ## HTTP/HTTPS monitoring
 

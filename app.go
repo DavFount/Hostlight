@@ -150,6 +150,7 @@ type Target struct {
 type monitor struct {
 	target Target
 	cancel context.CancelFunc
+	checks checkWindow
 }
 
 func validate(t Target) error {
@@ -339,6 +340,9 @@ func (a *App) run(ctx context.Context, m *monitor, t Target) {
 		var dns *net.DNSError
 		var local *probeSetupError
 		localError := errors.As(err, &dns) || errors.As(err, &local)
+		if !localError {
+			m.checks.record(err != nil)
+		}
 		if localError {
 			rules.good = 0
 			rules.bad = 0

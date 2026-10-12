@@ -167,7 +167,7 @@ func (a *App) SetTargetsPaused(ids []string, paused bool) error {
 			t.Latency = 0
 		}
 		ctx, cancel := context.WithCancel(a.ctx)
-		a.targets[id] = &monitor{target: t, cancel: cancel}
+		a.targets[id] = &monitor{target: t, cancel: cancel, checks: m.checks}
 		contexts[id] = ctx
 	}
 	if len(old) == 0 {
