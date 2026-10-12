@@ -1,0 +1,2 @@
+# gofmt emits LF; keep Windows checkouts consistent with the formatter.
+*.go text eol=lf

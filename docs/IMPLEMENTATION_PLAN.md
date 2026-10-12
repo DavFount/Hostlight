@@ -411,6 +411,11 @@ slice extends the original first-release scope by explicit user direction.
 
 ## Verification strategy
 
+CI follow-up (2026-10-12): Go sources now require LF checkouts via
+`.gitattributes` so Windows CRLF conversion does not fail `gofmt` checks.
+Verification builds frontend assets before Go tests because `main.go` embeds
+`frontend/dist`. A successful hosted run remains an outstanding gate.
+
 Latest completed implementation-slice checks (2026-10-11): `go test ./...`,
 `go vet ./...`, 83 frontend tests, frontend production/type-check build, and
 `wails build` passed. This is a development verification record, not completion

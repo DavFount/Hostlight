@@ -26,10 +26,7 @@ try {
         throw "Run gofmt on: $($unformatted -join ', ')"
     }
 
-    Invoke-Checked 'go' @('test', './...', '-count=1', '-timeout=3m')
-    Invoke-Checked 'go' @('vet', './...')
-    & (Join-Path $PSScriptRoot 'test-release-tools.ps1')
-
+    # main.go embeds frontend/dist, so build assets before compiling Go on a fresh checkout.
     Push-Location -LiteralPath (Join-Path $taskRoot 'frontend')
     try {
         Invoke-Checked 'npm.cmd' @('ci')
@@ -38,6 +35,10 @@ try {
     } finally {
         Pop-Location
     }
+
+    Invoke-Checked 'go' @('test', './...', '-count=1', '-timeout=3m')
+    Invoke-Checked 'go' @('vet', './...')
+    & (Join-Path $PSScriptRoot 'test-release-tools.ps1')
 
     if (-not $SkipDesktopBuild) {
         # Use the already-built frontend and don't let Wails update module files.
