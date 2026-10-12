@@ -211,8 +211,8 @@ real monitoring is connected.
   it. Label failed checks rather than packet loss or uptime, including HTTP policy failures.
 - [x] User verified increasing recent-check counts, working pause behavior, and
   the rolling window capped at 100 checks (2026-10-12).
-- [ ] Manually verify resume continuity, edit/restart resets, and card layout in
-  both themes and densities.
+- [x] User verified resume continuity, edit/restart resets, and card layout in
+  both themes and densities (2026-10-12).
 - [x] Add per-monitor session totals alongside the
   recent 100-check window for overnight stability checks. Show completed
   availability checks, successes, failures, failure percentage, and an explicit
@@ -221,14 +221,20 @@ real monitoring is connected.
   Pause/resume preserves totals; edits and full application restarts reset totals
   and their start timestamp. Label the session scope and reset behavior clearly;
   persistence across restarts and uptime claims are outside this slice.
-- [ ] Manually verify session totals beyond 100 checks, independent recent/session
-  percentages, separate DNS/setup-error counts, preserved totals/start time across
+- [x] User verified session totals beyond 100 checks, independent recent/session
+  percentages, preserved totals/start time across
   pause/resume, edit/restart resets, and readable layouts in both themes/densities.
+  Light-theme screenshot shows 109 session checks with recent counts capped at
+  100, for both successful and refused-connection monitors (2026-10-12).
+- [x] User verified separate DNS/setup-error counts using `missing-host.invalid`:
+  screenshot shows 2 setup errors, 0 availability checks, and no failure percentage
+  (dash), with Check error status (2026-10-12).
 - [x] Compact session statistics into labeled Passed/Failed/Failure rate columns
   and one recent-check row. Put start/reset/exclusion details behind Session details;
   keep nonzero setup-error counts visible in the collapsed summary. User confirmed
   the revised dark-theme card layout is clearer (2026-10-12); screenshot shows the
-  Session details keyboard focus outline. Light-theme/density checks remain open.
+  Session details keyboard focus outline. User subsequently confirmed both themes,
+  densities, keyboard expansion, and details staying open during updates.
 - [ ] Add elapsed observed outage duration to monitor cards.
 - [x] Discard stale results after edits, deletion, pause, and shutdown.
 - [ ] Verify network changes and sleep/resume, including fresh threshold counters after gaps.
@@ -293,6 +299,18 @@ so event IDs support receiver deduplication. Webhook failures never block probes
 Tests cover retries, restart recovery, timeouts, redaction, and terminal failures.
 
 ## Milestone 5 — Desktop workflow and configuration portability
+
+- [x] Add a reusable in-app confirmation/alert dialog component to replace browser
+  native dialogs. Start with monitor deletion, webhook destination deletion, and
+  history-retention reduction; use consistent light/dark styling, clear action
+  labels, and destructive-action emphasis. Support accessible dialog naming,
+  keyboard focus trapping/restoration, Escape/cancel, safe initial focus, and
+  prevention of duplicate submissions. Verify cancellation leaves data unchanged
+  and confirmation performs the intended action once. Keep native file dialogs.
+- [x] Manually verify custom confirmations in Wails: Cancel/Escape, safe initial
+  focus, Tab/Shift+Tab containment, restored focus, one confirmed operation,
+  background interaction blocking, and both themes at narrow window sizes.
+  User confirmed all manual checks passed on 2026-10-12.
 
 - [x] Keep primary navigation focused on monitors and incident history; group
   appearance, scheduling, desktop behavior, history retention, webhook configuration/delivery logs/tests,
@@ -450,13 +468,25 @@ slice extends the original first-release scope by explicit user direction.
 
 ## Verification strategy
 
+Custom confirmation slice (2026-10-12): 121 frontend tests, frontend
+production/type-check build, and Windows Wails build passed. Coverage includes monitor/webhook deletion,
+retention cancellation/confirmation/failure, duplicate-submit protection, safe
+initial focus, restored focus after busy-state changes, escaped content, optional
+acknowledgement mode, and cancellation on navigation/unmount. User confirmed all
+desktop manual acceptance checks passed on 2026-10-12, including native WebView
+focus containment, cancellation, focus restoration, background interaction blocking,
+single confirmed operations, and both themes at narrow window sizes.
+
 Session-total statistics slice (2026-10-12): Go tests/vet, 109 frontend tests,
 frontend production/type-check build, and Windows Wails build passed. Tests cover
 20,000 successes plus 20 failures, independent recent-window eviction, separate
 setup-error counts, pause/resume preservation, edit/configuration-reload resets,
 local start-time display, nonzero failure percentages below 0.01%, and collapsed
-details that preserve their open state during polling updates. Manual
-session-total and layout checks remain on the desktop smoke checklist.
+details that preserve their open state during polling updates. User confirmed the
+session-total, pause/resume, edit/restart, keyboard, and theme/density checks;
+screenshot confirms 109 session checks versus 100 recent checks (2026-10-12).
+User also verified separate DNS/setup-error counting: `missing-host.invalid`
+shows 2 setup errors with 0 availability checks and a dash for failure rate.
 
 Recent-check statistics slice (2026-10-12): Go tests/vet, 105 frontend tests,
 the frontend production/type-check build, and the Windows Wails build passed. Coverage includes bounded

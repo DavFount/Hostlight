@@ -117,11 +117,11 @@ export namespace main {
 	    sessionPassed: number;
 	    sessionFailed: number;
 	    setupErrors: number;
-
+	
 	    static createFrom(source: any = {}) {
 	        return new CheckStatistics(source);
 	    }
-
+	
 	    constructor(source: any = {}) {
 	        if ('string' === typeof source) source = JSON.parse(source);
 	        this.id = source["id"];

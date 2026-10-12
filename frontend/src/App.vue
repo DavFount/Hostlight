@@ -16,6 +16,8 @@ import SchedulingControls from './components/SchedulingControls.vue'
 import HistoryPreferences from './components/HistoryPreferences.vue'
 import CheckDiagnostic from './components/CheckDiagnostic.vue'
 import CheckStatistics from './components/CheckStatistics.vue'
+import ConfirmationDialog from './components/ConfirmationDialog.vue'
+import {useConfirmation} from './confirmation'
 import type {CheckStatisticsData} from './checkStatistics'
 import type {MonitorFilters} from './savedViews'
 type Silence={id:string;targetId:string;kind:string;starts:string;ends:string;reason:string}
@@ -24,6 +26,7 @@ type BulkRow={line:number;target:Target;error:string}
 type API={GetCheckStatistics?:()=>Promise<(CheckStatisticsData&{id:string})[]>;GetAlertSilences:()=>Promise<Silence[]>;GetTargets:()=>Promise<Target[]>;GetConfigurationStatus:()=>Promise<{path:string;error:string;historyError:string}>;SaveTarget:(t:Target)=>Promise<void>;DeleteTarget:(id:string)=>Promise<void>;PauseTarget:(id:string)=>Promise<void>;ResumeTarget:(id:string)=>Promise<void>;PreviewBulk:(input:string,defaults:Target)=>Promise<BulkRow[]>;AddBulk:(input:string,defaults:Target)=>Promise<number>;SetTargetsPaused:(ids:string[],paused:boolean)=>Promise<void>}
 const api=()=>(window as unknown as {go?:{main:{App:API}}}).go?.main.App
 const targets=ref<Target[]>([]),search=ref(''),filter=ref('all'),error=ref(''),editing=ref(false),busy=ref(false)
+const {dialog,ask,settle}=useConfirmation()
 const checkStatistics=ref<Record<string,CheckStatisticsData>>({})
 const configuration=ref({path:'',error:'',historyError:''}),view=ref('monitors')
 const settingsSection=ref('general'),pageHeading=ref<HTMLElement>()
@@ -33,6 +36,7 @@ const generalSections=[{id:'settings-appearance',label:'Appearance'},{id:'settin
 function jumpToSetting(id:string){const section=document.getElementById(id);section?.focus({preventScroll:true});section?.scrollIntoView?.({block:'start'})}
 function navigate(destination:string){
  if(!['monitors','history','settings','about','backups'].includes(destination))return
+ settle(false)
  editing.value=false;silencing.value=null
  view.value=destination==='backups'?'settings':destination
  if(destination==='backups')settingsSection.value='backups'
@@ -100,7 +104,7 @@ async function save(){
  }catch(e){error.value=String(e)}finally{busy.value=false}
 }
 async function pauseVisible(paused:boolean){busy.value=true;error.value='';try{await api()!.SetTargetsPaused(visible.value.map(t=>t.id),paused);await refresh()}catch(e){error.value=String(e)}finally{busy.value=false}}
-async function action(t:Target,remove=false){try{if(remove){if(!confirm(`Remove ${t.name}?`))return;await api()!.DeleteTarget(t.id)}else if(t.state==='paused')await api()!.ResumeTarget(t.id);else await api()!.PauseTarget(t.id);await refresh()}catch(e){error.value=String(e)}}
+async function action(t:Target,remove=false){if(busy.value)return;busy.value=true;try{if(remove){if(!await ask({title:'Remove monitor?',message:`Remove "${t.name}"? Monitoring will stop. Existing incident history is kept.`,confirmLabel:'Remove monitor',destructive:true}))return;await api()!.DeleteTarget(t.id)}else if(t.state==='paused')await api()!.ResumeTarget(t.id);else await api()!.PauseTarget(t.id);await refresh();if(remove)await nextTick(()=>pageHeading.value?.focus())}catch(e){error.value=String(e)}finally{busy.value=false}}
 let timer:ReturnType<typeof setInterval>
 onMounted(async()=>{if(api())configuration.value=await api()!.GetConfigurationStatus();refresh();timer=setInterval(refresh,1000)})
 onUnmounted(()=>clearInterval(timer))
@@ -134,7 +138,7 @@ onUnmounted(()=>clearInterval(timer))
  <div v-if="targets.length" class="group-toolbar"><label>Group <select v-model="selectedGroup"><option :value="null">All groups</option><option value="">Ungrouped</option><option v-if="selectedGroup&amp;&amp;!groups.includes(selectedGroup)" :value="selectedGroup">{{selectedGroup}} (no current monitors)</option><option v-for="group in groups" :key="group" :value="group">{{group}}</option></select></label><span>{{visible.length}} shown</span><button :disabled="busy||!api()||!visible.some(t=>t.state!=='paused')" @click="pauseVisible(true)">Pause shown</button><button :disabled="busy||!api()||!visible.some(t=>t.state==='paused')" @click="pauseVisible(false)">Resume shown</button></div>
  <section v-if="!targets.length" class="empty"><div>⌁</div><h2>A clear view starts with one monitor.</h2><p>Ping a host, check a TCP port, or monitor an HTTP health endpoint.<br>No scripts or configuration files needed.</p><button class="primary" @click="edit()">＋ Add your first monitor</button><p><small>Start with your gateway's IP address. Ping needs no port.</small></p></section>
  <section v-else-if="!visible.length" class="empty"><h2>No matching monitors</h2><p>Try another search or filter.</p></section>
- <section v-else class="grid"><article v-for="t in visible" :key="t.id"><div class="card-heading"><small>{{t.type==='icmp'?'PING / ICMP':t.type==='http'?'HTTP / HTTPS':`TCP / ${t.port}`}}</small><span class="state" :class="t.state">● {{t.state==='up'?'Available':t.state==='down'?'Unavailable':t.state==='paused'?'Paused':t.state==='error'?'Check error':'Checking'}}</span></div><h3>{{t.name}}</h3><p class="address">{{t.host}}<span v-if="t.group"> · {{t.group}}</span></p><p v-if="silenceBadges.has(t.id)" class="silence-badge" :class="{active:silenceActive(t.id)}" :title="silenceBadges.get(t.id)?.reason">{{silenceLabel(t.id)}}</p><CertificateExpiry v-if="t.type==='http'" :expires="t.certificateExpires" :minimum-days="t.tlsMinDays" :now="now" /><div class="reading"><strong>{{t.checked && checkSucceeded(t)?t.latency.toFixed(1):'—'}}</strong><small>ms · {{t.type==='icmp'?'last echo reply':t.type==='http'?(t.bodyMode?'last complete response check':'last matching response headers'):'last successful connection'}}</small></div><CheckDiagnostic :message="t.message" :prefix="checkDiagnosticPrefix(t)" /><CheckStatistics :statistics="checkStatistics[t.id]" /><div class="card-footer"><small>Every {{t.interval}}s</small><div><button @click="edit(t)">Edit</button><button title="Maintenance and alert snoozing" @click="silencing=t">Silence alerts</button><button @click="action(t)">{{t.state==='paused'?'Resume':'Pause'}}</button><button class="danger" @click="action(t,true)">Remove</button></div></div></article></section>
+ <section v-else class="grid"><article v-for="t in visible" :key="t.id"><div class="card-heading"><small>{{t.type==='icmp'?'PING / ICMP':t.type==='http'?'HTTP / HTTPS':`TCP / ${t.port}`}}</small><span class="state" :class="t.state">● {{t.state==='up'?'Available':t.state==='down'?'Unavailable':t.state==='paused'?'Paused':t.state==='error'?'Check error':'Checking'}}</span></div><h3>{{t.name}}</h3><p class="address">{{t.host}}<span v-if="t.group"> · {{t.group}}</span></p><p v-if="silenceBadges.has(t.id)" class="silence-badge" :class="{active:silenceActive(t.id)}" :title="silenceBadges.get(t.id)?.reason">{{silenceLabel(t.id)}}</p><CertificateExpiry v-if="t.type==='http'" :expires="t.certificateExpires" :minimum-days="t.tlsMinDays" :now="now" /><div class="reading"><strong>{{t.checked && checkSucceeded(t)?t.latency.toFixed(1):'—'}}</strong><small>ms · {{t.type==='icmp'?'last echo reply':t.type==='http'?(t.bodyMode?'last complete response check':'last matching response headers'):'last successful connection'}}</small></div><CheckDiagnostic :message="t.message" :prefix="checkDiagnosticPrefix(t)" /><CheckStatistics :statistics="checkStatistics[t.id]" /><div class="card-footer"><small>Every {{t.interval}}s</small><div><button :disabled="busy" @click="edit(t)">Edit</button><button title="Maintenance and alert snoozing" @click="silencing=t">Silence alerts</button><button :disabled="busy" @click="action(t)">{{t.state==='paused'?'Resume':'Pause'}}</button><button class="danger" :disabled="busy" @click="action(t,true)">Remove</button></div></div></article></section>
  <p class="bottom-note">Ping checks echo replies; TCP checks port reachability; HTTP checks response status. A firewall may block ping even when services are available.</p><p v-if="configuration.path" class="bottom-note">Settings: {{configuration.path}}</p></template>
  <VisualAlerts :preferences="view==='settings'&&settingsSection==='general'" :controls-target="visualPreferences" />
  </main>
@@ -161,4 +165,5 @@ onUnmounted(()=>clearInterval(timer))
   </section>
  </div>
 </div>
+<ConfirmationDialog :request="dialog" :busy="busy" @resolve="settle" />
 </template>

@@ -39,6 +39,17 @@ executable. Browser previews cannot validate native dialogs, tray, or shutdown.
 
 ## Availability, incidents, and alerting
 
+- [ ] On a disposable monitor, Remove opens the styled in-app confirmation.
+      Cancel gets initial focus; Escape/Cancel keeps the monitor. Tab/Shift+Tab
+      stays inside the dialog and the background cannot be clicked. Confirmation
+      removes the monitor once; keyboard focus remains useful afterward.
+- [ ] Repeat cancellation/confirmation for a disposable webhook destination.
+      Cancel restores focus to Remove; successful deletion moves focus to Add
+      destination. Pending deliveries are cancelled only on confirmed removal.
+- [ ] In a disposable profile, reduce history retention: Cancel restores the
+      previous value, confirmation applies it once, and increasing retention needs
+      no destructive prompt. Confirmed reduction can delete older completed history.
+      Check modal layout in both themes and at a narrow window width.
 - [ ] Verify session availability totals continue beyond 100 while recent checks
       remain capped. Passed + failed must equal session availability checks.
       Use an invalid `.invalid` hostname to confirm DNS/setup errors increase

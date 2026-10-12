@@ -10,6 +10,11 @@ The sidebar is reserved for monitoring features. Open Settings from File and
 About Hostlight from Help. General settings are visible without expanding panels;
 section links jump to appearance, visual alerts, scheduling, and desktop behavior.
 
+Monitor removal, webhook destination removal, and shorter history retention use
+styled in-app confirmation dialogs. Cancel is focused first; Escape cancels, and
+keyboard focus stays within the dialog while it is open. Native file selection
+dialogs are still used for imports and exports.
+
 Check scheduling is configurable from Settings → General: 1–128 simultaneous checks
 (default 32) and a 0–5000 ms first-check spread (default 250 ms). Saved changes
 apply after quitting and reopening, not hiding to tray. The spread applies on

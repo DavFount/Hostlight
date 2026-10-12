@@ -25,9 +25,10 @@ describe('incident history',()=>{
   expect(wrapper.text()).toContain('Exported to C:/exports/incidents.csv')
  })
  it('does not remove retained data if the reduction is canceled',async()=>{
-  wrapper=mount(HistoryPreferences);await flushPromises();vi.stubGlobal('confirm',vi.fn().mockReturnValue(false))
+  wrapper=mount(HistoryPreferences);await flushPromises()
   await wrapper.find('.history-settings select').setValue('7');await flushPromises()
   expect(api.SetHistoryRetention).not.toHaveBeenCalled()
+  await wrapper.get('.confirmation-actions button').trigger('click');await flushPromises()
   expect((wrapper.find('.history-settings select').element as HTMLSelectElement).value).toBe('90')
  })
  it('applies outcome and date filters to the first page',async()=>{
@@ -38,9 +39,10 @@ describe('incident history',()=>{
   expect(api.GetIncidents).toHaveBeenLastCalledWith('','resolved',7,0)
  })
  it('saves a confirmed retention reduction',async()=>{
-  wrapper=mount(HistoryPreferences);await flushPromises();vi.stubGlobal('confirm',vi.fn().mockReturnValue(true))
+  wrapper=mount(HistoryPreferences);await flushPromises()
   api.GetIncidents.mockResolvedValue({...page(),retentionDays:7})
   await wrapper.find('.history-settings select').setValue('7');await flushPromises()
+  await wrapper.get('.confirm-destructive').trigger('click');await flushPromises()
   expect(api.SetHistoryRetention).toHaveBeenCalledWith(7)
  })
  it('pages history without changing filters',async()=>{

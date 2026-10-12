@@ -1,5 +1,9 @@
 <script setup lang="ts">
-import {computed,onMounted,onUnmounted,ref} from 'vue'
+import {computed,nextTick,onMounted,onUnmounted,ref} from 'vue'
+import ConfirmationDialog from './ConfirmationDialog.vue'
+import {useConfirmation} from '../confirmation'
+const {dialog,ask,settle}=useConfirmation()
+const addButton=ref<HTMLButtonElement>()
 type Settings={id:string;name:string;scope:'global'|'selected';groups:string[];monitorIds:string[];enabled:boolean;configured:boolean;url:string;bearer:string;signingKey:string;allowHTTP:boolean;clearBearer:boolean;clearSigningKey:boolean;hasBearer:boolean;hasSigningKey:boolean;error?:string}
 type Target={id:string;name:string;host:string;group:string}
 type Delivery={id:string;name:string;host:string;destinationName:string;event:string;created:string;attempts:number;status:string;result:string}
@@ -18,16 +22,16 @@ function edit(d?:Settings){draft.value=d?{...d,groups:[...d.groups],monitorIds:[
 function cancel(){draft.value=blank();editing.value=false}
 async function save(){busy.value=true;error.value='';notice.value='';try{await api()!.SaveWebhookDestination({...draft.value});cancel();await load();notice.value='Settings saved. Unsent deliveries for this destination were cancelled.'}catch(e){error.value=String(e)}finally{busy.value=false;refresh()}}
 async function test(d:Settings){busy.value=true;error.value='';notice.value='';try{await api()!.TestWebhookDestination(d.id);notice.value=`Test queued for ${d.name} using saved settings. Check delivery history below.`}catch(e){error.value=String(e)}finally{busy.value=false;refresh()}}
-async function remove(d:Settings){if(!confirm(`Remove webhook destination "${d.name}"? Its pending deliveries will be cancelled. Delivery history is kept.`))return;busy.value=true;error.value='';try{await api()!.DeleteWebhookDestination(d.id);if(draft.value.id===d.id)cancel();await load();notice.value='Destination removed; pending deliveries cancelled.'}catch(e){error.value=String(e)}finally{busy.value=false;refresh()}}
+async function remove(d:Settings){if(busy.value)return;busy.value=true;error.value='';let removed=false;try{if(!await ask({title:'Remove webhook destination?',message:`Remove "${d.name}"? Pending deliveries will be cancelled. Delivery history is kept.`,confirmLabel:'Remove destination',destructive:true}))return;await api()!.DeleteWebhookDestination(d.id);removed=true;if(draft.value.id===d.id)cancel();await load();notice.value='Destination removed; pending deliveries cancelled.'}catch(e){error.value=String(e)}finally{busy.value=false;if(removed)await nextTick(()=>addButton.value?.focus());refresh()}}
 onMounted(async()=>{try{await load()}catch(e){if(active)error.value=String(e)};if(!active)return;refresh();poll=setInterval(refresh,2000)})
 onUnmounted(()=>{active=false;clearInterval(poll)})
 </script>
 
 <template>
- <section class="webhook-alerts">
+ <section class="webhook-alerts"><ConfirmationDialog :request="dialog" :busy="busy" @resolve="settle" />
   <div v-if="error" class="error" role="alert">{{error}}</div>
   <p v-if="notice" role="status">{{notice}}</p>
-  <div class="section-heading"><h2>Webhook destinations</h2><button class="primary" :disabled="busy||!loaded||destinations.length>=50" @click="edit()">Add destination</button></div>
+  <div class="section-heading"><h2>Webhook destinations</h2><button ref="addButton" class="primary" :disabled="busy||!loaded||destinations.length>=50" @click="edit()">Add destination</button></div>
   <p>Global and scoped destinations are additive. Each matching destination receives one event, even when both its group and individual monitor selections match. Separate destinations are independent, even if they use the same URL.</p>
   <div class="destination-list">
    <article v-for="d in destinations" :key="d.id" class="destination-card">
