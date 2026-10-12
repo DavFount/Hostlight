@@ -450,6 +450,28 @@ continues when minimized. Closing behavior is explicit and platform-tested.
 
 ## Milestone 6 — First release verification
 
+Release-readiness follow-up (2026-10-12): user observed a full history queue
+during desktop testing. Treat this as a release blocker pending repeat testing.
+The writer now drains up to 64 queued events per transaction, preserving event
+order and publishing visual transitions only after commit. Regression coverage
+checks pause/recovery ordering, full rollback without popup publication, and
+draining 1,000 queued samples on shutdown. Queue capacity remains bounded at
+1,024 and dropped-observation warnings remain visible. Desktop soak after this
+change, remaining platform checks, and release documentation must pass before
+release qualification. Build the post-release roadmap after those gates close.
+Automated follow-up passed: full shared verification and 11,904 checks in a
+60-second backend repeat, 20 resolved incidents/40 delivered webhooks, no history
+errors, and zero queue length at one-second samples. Desktop repeat remains open.
+User desktop repeat subsequently passed the 30-minute warning-free gate:
+200 monitors shown, visible cards at 1,827–1,828 checks, no reported error.
+Visible Load 001–003 were available with 117 failures each; controlled-outage
+attribution and resolved incident confirmation after batching remain pending.
+This does not close longer soak/retention or remaining release platform gates.
+Subsequent screenshot showed 20 matching incidents and visible recovered Load
+007/019 entries with expected connection-refused/recovery-threshold reasons.
+Controlled outage/recovery desktop follow-up after batching accepted as passed;
+the screenshot is supporting evidence rather than a full incident CSV audit.
+
 - [ ] Exercise a target matrix: IP/hostname, IPv4/IPv6, reachable/unreachable,
   refused port, DNS failure, invalid settings, adapter loss, sleep/resume, and restart.
 - [ ] Benchmark an initial 200-target workload at one-second intervals on a recorded

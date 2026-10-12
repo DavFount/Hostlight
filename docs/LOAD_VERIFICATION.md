@@ -50,6 +50,39 @@ activity when comparing runs.
 
 ## Desktop follow-up
 
+Release-blocking follow-up: the user subsequently observed a history queue-full
+warning. Earlier short passes do not establish sustained history reliability.
+The history writer now batches up to 64 already-queued events per transaction;
+the queue stays bounded and does not hide past dropped observations. Restart in
+a fresh fixture workspace and repeat the desktop run, including history queries
+and outage/recovery. Record elapsed time and verify no history/storage warnings.
+If the warning returns, export sanitized About diagnostics while it is present
+to capture current queue length/capacity and storage health. Existing gaps cannot
+be reconstructed by restarting or by this change.
+
+Automated follow-up passed on 2026-10-12: shared verification (131 frontend
+tests, Go tests/vet, release-tool checks, Windows Wails build) and a 60-second
+200-monitor backend repeat. The latter completed 11,904 checks (59–60 per
+monitor), resolved 20 incidents, delivered 40 webhooks, and stored 400 minute
+summaries without reported history errors. Queue length at one-second samples
+peaked at zero; this does not measure transient peaks between samples. The run
+overlapped other verification work. Desktop repeat remains pending.
+
+Desktop batching repeat (2026-10-12): user reported no warning at 1,200 checks
+and no error at 1,827–1,828 checks per visible monitor (approximately 30.5 minutes
+at one-second intervals), with 200 monitors shown. Visible Load 001–003 cards
+were available, each with 117 failed session checks. Attribution of those
+failures to the controlled outage and confirmation of resolved incident records
+remain pending. The 30-minute warning-free desktop follow-up passed; longer soak,
+retention/cleanup verification, and other release checks remain open.
+
+The user then supplied incident-history evidence showing 20 matching incidents;
+visible Load 007 and Load 019 entries were recovered with connection-refused
+reasons and recovery threshold reached. Together with the available monitor
+cards, this supports passing the controlled outage/recovery desktop follow-up
+after batching. The screenshot does not enumerate every incident or expose all
+filter values; the earlier CSV remains the complete 20-monitor baseline.
+
 Close any existing `wails dev` session, then run from the repository:
 
 ```powershell

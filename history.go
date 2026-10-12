@@ -175,7 +175,22 @@ func (s *incidentStore) writer() {
 			if !ok {
 				return
 			}
-			if err := s.apply(e); err != nil {
+			// Drain a bounded batch in order, amortizing durable commits without
+			// adding a timer delay or blocking probes on disk I/O.
+			batch := []historyEvent{e}
+		drain:
+			for len(batch) < 64 {
+				select {
+				case next, open := <-s.events:
+					if !open {
+						break drain
+					}
+					batch = append(batch, next)
+				default:
+					break drain
+				}
+			}
+			if err := s.applyBatch(batch); err != nil {
 				s.setFailure(fmt.Errorf("History could not be saved: %w", err))
 			}
 		case now := <-ticker.C:
@@ -186,15 +201,36 @@ func (s *incidentStore) writer() {
 	}
 }
 func (s *incidentStore) apply(e historyEvent) error {
+	return s.applyBatch([]historyEvent{e})
+}
+
+func (s *incidentStore) applyBatch(events []historyEvent) error {
 	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
 	defer cancel()
-	t := e.target
-	at := e.at.UnixMilli()
 	tx, err := s.db.BeginTx(ctx, nil)
 	if err != nil {
 		return err
 	}
 	defer tx.Rollback()
+	var afterCommit []func()
+	for _, e := range events {
+		if err := s.applyEvent(ctx, tx, e, &afterCommit); err != nil {
+			return err
+		}
+	}
+	if err := tx.Commit(); err != nil {
+		return err
+	}
+	for _, publish := range afterCommit {
+		publish()
+	}
+	return nil
+}
+
+func (s *incidentStore) applyEvent(ctx context.Context, tx *sql.Tx, e historyEvent, afterCommit *[]func()) error {
+	t := e.target
+	at := e.at.UnixMilli()
+	var err error
 	if e.sample != nil {
 		if err := storeProbeMinute(ctx, tx, e); err != nil {
 			return err
@@ -205,7 +241,7 @@ func (s *incidentStore) apply(e historyEvent) error {
 		if err != nil {
 			return err
 		}
-		return tx.Commit()
+		return nil
 	}
 	if e.kind == "Monitoring resumed" {
 		// Exclude the unobserved interval since the last check, retaining the
@@ -214,7 +250,7 @@ func (s *incidentStore) apply(e historyEvent) error {
 		if err != nil {
 			return err
 		}
-		return tx.Commit()
+		return nil
 	}
 	if e.kind == "result" {
 		var paused int
@@ -222,7 +258,7 @@ func (s *incidentStore) apply(e historyEvent) error {
 			return err
 		}
 		if paused > 0 {
-			return tx.Commit()
+			return nil
 		}
 		gap := observationGapLimit(t)
 		if _, err := tx.ExecContext(ctx, "UPDATE incidents SET status='interrupted', ended=last_seen, reason=reason || ' · Monitoring gap: no observations received' WHERE target_id=? AND status='open' AND last_seen<?", t.ID, e.at.Add(-gap).UnixMilli()); err != nil {
@@ -245,7 +281,7 @@ func (s *incidentStore) apply(e historyEvent) error {
 		if _, err = tx.ExecContext(ctx, "UPDATE incidents SET last_seen=? WHERE target_id=? AND status='open'", at, t.ID); err != nil {
 			return err
 		}
-		return s.commitVisual(ctx, tx, e, visualID, "down")
+		return s.prepareVisual(ctx, tx, e, visualID, "down", afterCommit)
 	}
 	if e.kind == "result" && t.State == "up" {
 		var id, opened, excluded int64
@@ -261,7 +297,7 @@ func (s *incidentStore) apply(e historyEvent) error {
 		if _, err = tx.ExecContext(ctx, "UPDATE incidents SET status='resolved', last_seen=?, ended=?, reason=reason || ' · Recovery threshold reached' WHERE target_id=? AND status='open'", at, at, t.ID); err != nil {
 			return err
 		}
-		return s.commitVisual(ctx, tx, e, id, "up")
+		return s.prepareVisual(ctx, tx, e, id, "up", afterCommit)
 	}
 	if e.kind == "result" && t.State != "error" {
 		// Fresh threshold evidence after resume is still observed time, even
@@ -269,7 +305,7 @@ func (s *incidentStore) apply(e historyEvent) error {
 		if _, err = tx.ExecContext(ctx, "UPDATE incidents SET last_seen=? WHERE target_id=? AND status='open'", at, t.ID); err != nil {
 			return err
 		}
-		return tx.Commit()
+		return nil
 	}
 	reason := e.kind
 	if reason == "result" {
@@ -279,12 +315,11 @@ func (s *incidentStore) apply(e historyEvent) error {
 	if err != nil {
 		return err
 	}
-	if err = tx.Commit(); err != nil {
-		return err
-	}
-	s.mu.Lock()
-	delete(s.visual.outages, t.ID)
-	s.mu.Unlock()
+	*afterCommit = append(*afterCommit, func() {
+		s.mu.Lock()
+		delete(s.visual.outages, t.ID)
+		s.mu.Unlock()
+	})
 	return nil
 }
 func (s *incidentStore) retention() (int, error) {

@@ -30,9 +30,9 @@ type visualFeed struct {
 
 // The history writer calls this only for committed incident transitions. Silence
 // decisions are made in the same transaction as the incident and webhook outbox.
-func (s *incidentStore) commitVisual(ctx context.Context, tx *sql.Tx, e historyEvent, id int64, event string) error {
+func (s *incidentStore) prepareVisual(ctx context.Context, tx *sql.Tx, e historyEvent, id int64, event string, afterCommit *[]func()) error {
 	if id == 0 {
-		return tx.Commit()
+		return nil
 	}
 	silence, err := activeSilence(ctx, tx, e.target.ID, e.at)
 	if err != nil {
@@ -44,9 +44,11 @@ func (s *incidentStore) commitVisual(ctx context.Context, tx *sql.Tx, e historyE
 			return err
 		}
 	}
-	if err = tx.Commit(); err != nil {
-		return err
-	}
+	*afterCommit = append(*afterCommit, func() { s.publishVisual(e, id, event, silence, duration) })
+	return nil
+}
+
+func (s *incidentStore) publishVisual(e historyEvent, id int64, event, silence string, duration int64) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	f := &s.visual
@@ -59,7 +61,7 @@ func (s *incidentStore) commitVisual(ctx context.Context, tx *sql.Tx, e historyE
 		delete(f.outages, e.target.ID)
 	}
 	if !eligible || silence != "" {
-		return nil
+		return
 	}
 	if event == "down" {
 		f.outages[e.target.ID] = id
@@ -69,7 +71,6 @@ func (s *incidentStore) commitVisual(ctx context.Context, tx *sql.Tx, e historyE
 	if len(f.items) > 100 {
 		f.items = append([]VisualAlert(nil), f.items[len(f.items)-100:]...)
 	}
-	return nil
 }
 
 // baseline avoids stale popups when the UI opens, even on a quiet session.
