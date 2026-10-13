@@ -418,7 +418,10 @@ Tests cover retries, restart recovery, timeouts, redaction, and terminal failure
 - [x] Add named local saved views for search, status, and group filters with explicit
   updates, rename/delete controls, validation, and persistence tests.
 - Deferred: customizable layout beyond card density; saved views are already implemented.
-- [ ] Manually verify saved-view switching, restart persistence, and missing-group behavior.
+- [x] User confirmed all saved-view desktop checks passed (2026-10-13): switching,
+  updates, rename/restart persistence, missing-group handling, and deletion.
+  Deleting a saved view retains the active filters; clearing filters restores
+  all monitors, as expected.
 - [x] Explain recognized platform check errors in cards/popups using plain-language
   reasons, retaining original diagnostics in expandable technical details. Cover
   refused connections, timeouts, routing, DNS, permissions, and ping setup failures;
@@ -475,7 +478,13 @@ Tests cover retries, restart recovery, timeouts, redaction, and terminal failure
   allowlisted runtime/platform, health flags, aggregate counts, and queue sizes;
   no monitor addresses, names, secrets, paths, raw errors, or logs. Protect live
   storage export paths and test privacy, storage failures, and cancelled exports.
-- [ ] Manually verify support refresh and native diagnostic save/cancel dialogs.
+- [x] User confirmed all diagnostic-export desktop checks passed (2026-10-13),
+  including support refresh and native save/cancel dialogs. Inspected exported
+  format-1 JSON: Windows amd64/runtime versions, ready configuration/history/storage,
+  aggregate monitor/state/probe counts, queue length 0/capacity 1,024, and no
+  monitor identities/hosts, credentials, personal paths, or raw errors.
+  Release is `early preview` in this local build; embedded release-version
+  verification remains a separate packaged-release check.
 
 Implementation update: **Monitor backups** provides a separate version-4 JSON
 allowlist for monitor definitions and pause preferences. Imports are add-only,
@@ -578,18 +587,33 @@ follow `docs/LOAD_VERIFICATION.md` before marking the full benchmark complete.
 - [x] Add a one-request preview that does not save monitors or create incidents/alerts.
 - [x] Add HTTP bulk input and preserve legacy configuration/backup read compatibility.
 - [x] Test local status/redirect/timeout/TLS/cancellation behavior, live recovery, and portability.
-- [ ] Manually verify HTTP outage/recovery, preview, and backup import in the Windows desktop UI.
+- [x] User verified HTTP request preview without saving or creating incidents,
+  expected status success/mismatch, and successful saved JSON monitor (2026-10-13).
+- [x] User confirmed live local HTTP outage/recovery, redirect refusal, and
+  backup/import passed (2026-10-13). Stopping/restarting the local server opens
+  and resolves an incident; redirect previews fail rather than following to 200.
+  Reimport skips existing monitors; a deleted disposable monitor imports paused
+  with its URL/status/timing settings intact and becomes available on resume.
 - [x] Add case-sensitive text containment and typed JSON-Pointer equality assertions.
 - [x] Bound body reads to 1 MiB and the probe timeout; fail oversized/incomplete responses without retaining content.
 - [x] Measure full-check timing for body rules and preserve header timing for status-only probes.
 - [x] Add version-3 settings/backups with version-1/2 read compatibility and legacy body-rule rejection.
 - [x] Test strict types, exact numeric comparison, missing fields, pointer escapes/arrays, body limits/timeouts, and round trips.
-- [ ] Manually verify text/JSON health changes and body-rule backup imports in the Windows desktop UI.
+- [x] User verified text matching/case sensitivity and JSON equality, missing
+  fields, and wrong types through request previews (2026-10-13).
+- [x] User confirmed live JSON health changes and body-rule backup/import passed
+  (2026-10-13): changing the endpoint response without editing the monitor opens
+  one outage, repeated failures do not duplicate it, and restoring the response
+  resolves the same incident. Imported JSON Pointer/type/value rules remain intact.
 - [x] Show verified leaf-certificate expiry in cards and request previews without restoring/exporting stale observations.
 - [x] Add optional 0–365-day HTTPS minimum-validity policy using normal health thresholds and alerts.
 - [x] Keep certificate trust/hostname/time validation enabled and test trusted local TLS, expiry boundaries, expired/untrusted certificates, and portability.
 - [x] Add version-4 settings/backups with version-1/2/3 read compatibility and legacy certificate-policy rejection.
-- [ ] Manually verify expiry-policy failure/recovery and certificate displays in the Windows desktop UI.
+- [x] User verified certificate expiry display and minimum-validity preview
+  failure/success, plus rejection of expired, untrusted, and hostname-mismatched
+  certificates with distinct explanations (2026-10-13).
+- [ ] Manually verify saved-monitor certificate-policy failure/recovery and
+  certificate-policy preservation through backup/import.
 - Deferred: authenticated HTTP and certificate-chain expiry policies; see roadmap.
 - Deferred: webhook response diagnostics that do not expose secrets; see roadmap track 1.
 
