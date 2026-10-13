@@ -50,6 +50,13 @@ activity when comparing runs.
 
 ## Desktop follow-up
 
+Storage follow-up (2026-10-13): the load test now pauses producers and reconciles
+saved check/failure totals with session counters for every monitor. The repeat
+passed with 11,980 measurement-period checks in 60.010 seconds, 20 resolved
+incidents, 40 delivered webhooks, 400 summaries, and sampled queue peak 0/1,024.
+See [storage verification](STORAGE_VERIFICATION.md) for retention/bounds/shutdown
+coverage and the distinction between record bounds and physical file size.
+
 Tray follow-up (2026-10-13): user left the 200-monitor workspace hidden in the
 system tray and periodically restored it successfully. Visible cards reached
 6,121 checks: 3,538 passed and 2,583 failed, with approximately 43 minutes observed

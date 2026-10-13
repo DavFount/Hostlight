@@ -140,6 +140,21 @@ chains; do not infer a chain problem from the leaf expiry alone.
 
 ## Additional backlog
 
+User request (2026-10-13): add a discoverable in-app keyboard-shortcut reference,
+preferably under Help or a small help page. List shortcuts and their actions,
+explain context-specific keys where relevant, and keep the reference synchronized
+with native menus and actual bindings. This improves discoverability without
+changing the approved webhook/service/dependency priority order.
+
+User request (2026-10-13): make version/build identification useful in support
+info. The current About report and diagnostic JSON already expose `release`,
+and release packaging embeds the requested version; ordinary local builds show
+`early preview`. Add a clear build identifier (for example commit revision and
+clean/modified source status where available), alongside release version, in
+About and sanitized diagnostics. Label development builds explicitly, avoid
+personal build paths, and verify release metadata matches the packaged artifact.
+Track this as release-support polish, separate from the three major feature tracks.
+
 No fixed ordering after the three priority tracks:
 
 - Authenticated HTTP probes and explicit redirect policies; DNS expected-answer checks.

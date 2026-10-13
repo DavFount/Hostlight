@@ -249,6 +249,26 @@ func TestWindowsLoad200(t *testing.T) {
 		err := a.history.db.QueryRow("SELECT count(*) FROM deliveries WHERE status='pending'").Scan(&count)
 		return err == nil && count == 0 && webhookRequests.Load() >= 40
 	})
+	// Freeze producers before reconciling persisted totals. Counting minute rows
+	// alone cannot detect missing observations within an otherwise present row.
+	var ids []string
+	for _, target := range a.GetTargets() {
+		ids = append(ids, target.ID)
+	}
+	if err := a.SetTargetsPaused(ids, true); err != nil {
+		t.Fatal(err)
+	}
+	statistics := a.GetCheckStatistics()
+	waitUntil("saved probe counts did not match session totals", func() bool {
+		for _, stats := range statistics {
+			var checks, failed uint64
+			err := a.history.db.QueryRow("SELECT COALESCE(SUM(checks),0), COALESCE(SUM(failed),0) FROM probe_minutes WHERE target_id=?", stats.ID).Scan(&checks, &failed)
+			if err != nil || checks != stats.SessionChecks || failed != stats.SessionFailed {
+				return false
+			}
+		}
+		return true
+	})
 	var incidents, deliveries, buckets int
 	if err := a.history.db.QueryRow("SELECT count(*) FROM incidents WHERE status='resolved'").Scan(&incidents); err != nil {
 		t.Fatal(err)
@@ -298,6 +318,7 @@ func TestWindowsLoad200(t *testing.T) {
 		"resolvedIncidents":                  incidents,
 		"deliveredWebhookDeliveries":         deliveries,
 		"storedMinuteSummaries":              buckets,
+		"persistedCountsMatchSessions":       true,
 	}
 	result, err := json.Marshal(report)
 	if err != nil {

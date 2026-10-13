@@ -18,6 +18,10 @@ below, desktop process/WebView resource measurements, extended soak with
 retention/cleanup verification, and final ZIP/fresh-machine/version/checksum
 checks. Finish supported-platform/known-limit documentation and release notes.
 Installer, paid signing, service operation, and roadmap features are deferred.
+Requested support polish: a discoverable Help/keyboard-shortcut reference and
+clear version/build identity in About/diagnostics. Release version is already
+embedded by packaging; development builds currently show `early preview` and a
+separate build identifier is not yet implemented. See `ROADMAP.md` for scope.
 
 Checklist convention: `[x]` means the stated implementation or verification is
 complete; `[ ]` means work or verification remains. Split partially delivered
@@ -224,8 +228,12 @@ real monitoring is connected.
   wait for capacity without overlap or catch-up bursts.
 - [x] Measure an initial 200-monitor loopback workload and desktop responsiveness;
   see milestone 6 and `LOAD_VERIFICATION.md` for measured scope and limitations.
-- [ ] Verify scheduling-control edits/restart application in the desktop UI;
-  record desktop CPU/working set before making supported-capacity claims.
+- [x] User verified scheduling desktop checks 1–5 (2026-10-13): saved values
+  change without changing active values, tray hide/restore does not apply them,
+  Quit/reopen activates persisted values, and restoring defaults works.
+  This requires application restart, not a Windows reboot; it is a current
+  scheduler design choice, not a Wails restriction.
+- [ ] Record desktop CPU/working set before making supported-capacity claims.
 - [x] Implement tested failure/recovery state decisions and backend incident/alert transitions.
 - Deferred architecture: implement sequenced frontend reconciliation if replacing snapshot polling.
 - [x] Wire per-target and filtered bulk pause/resume into the live UI.
@@ -405,9 +413,9 @@ Tests cover retries, restart recovery, timeouts, redaction, and terminal failure
 - [x] Remove duplicate sidebar Settings/About and settings-page Quit commands.
   Keep File/Help and tray actions; show General settings sections without collapsed
   controls, with responsive section links and keyboard-focusable scroll targets.
-- [ ] Verify native menu navigation/shortcuts and the reorganized pages in Wails.
-  Ctrl+Q and keyboard interaction were user-confirmed; remaining menu commands
-  and settings-section navigation are not individually recorded.
+- [x] User confirmed final menu checks passed (2026-10-13): Ctrl+, Settings,
+  Ctrl+1 Monitors, Ctrl+2 Incident history, Help/About, and General section links.
+  Ctrl+Q was verified previously. This covers the listed navigation checks.
 
 - [x] Add saved dark-default/light themes and card-density preferences.
 - [x] Add a consistent vector Hostlight logo, sidebar/favicon branding, and generated multi-resolution Windows executable icons.
@@ -440,8 +448,11 @@ Tests cover retries, restart recovery, timeouts, redaction, and terminal failure
   Respect maintenance/snoozing; suppress initial discovery and orphan recoveries.
 - [x] Include monitor name, host, and check failure reason in outage popups;
   include observed outage duration (excluding pauses) in recovery popups.
-- [ ] Manually verify in-app popups in both themes, persistent dismissal, timing,
-  pause/resume recovery, and silence windows using the running Wails application.
+- [x] User confirmed popup settings checks passed (2026-10-13): all four corner
+  previews, five-second auto-close, until-dismissed behavior, saved settings after
+  Quit/reopen, disabled previews, keyboard operation, narrow layout, and both themes.
+- [ ] Complete focused live popup verification for pause/resume recovery and
+  silence-window behavior; preview/settings checks do not establish these cases.
 - [x] Implement configurable corner position and auto-close/persistent dismissal
   for in-app outage/recovery popups. These are delivered by `VisualAlerts.vue`.
 - Deferred: investigate background desktop overlays/native notifications;
@@ -543,7 +554,19 @@ remaining platform/release checks remain open. See `LOAD_VERIFICATION.md`.
   User's tray run reached 6,121 checks on visible cards (2026-10-13); fixture
   expiry explains the later refused connections. No history warning is visible
   in the supplied screenshot. Resource measurements, saved-summary reconciliation,
-  and retention/cleanup evidence remain unrecorded; this does not close this gate.
+  and live desktop retention/cleanup evidence remain unrecorded; deterministic
+  storage coverage is recorded separately below. This does not close this gate.
+- [x] Automated storage qualification (2026-10-13): full Go suite/vet passed.
+  Retention tests cover expired data, the exact seven-day probe-minute boundary,
+  active incidents, pending deliveries, active-outage delivery markers, and
+  recent/future silence windows. Existing tests verify the 50,000-summary bound,
+  visible 1,024-event overflow, rollback, migration, and 1,000-sample shutdown drain.
+  The load test now reconciles each monitor's persisted check/failure totals with
+  paused session counters. See `STORAGE_VERIFICATION.md`; this does not claim
+  a physical database file-size ceiling or complete an extended desktop soak.
+  Strengthened 60-second integration run passed: 11,980 checks, 20 resolved
+  incidents, 40 delivered webhooks, 400 summaries, all per-monitor saved totals
+  matching session counters, and sampled queue peak 0/1,024 without history errors.
 - [x] Add manual-dispatch release automation: tested Windows ZIP, embedded version,
   SHA-256 checksums, draft-first upload/publication, and GitHub-created tags without
   local tag/push commands. Default to prerelease; never overwrite existing versions.
@@ -622,6 +645,13 @@ follow `docs/LOAD_VERIFICATION.md` before marking the full benchmark complete.
   editing the monitor. Disabling/changing policy by edit interrupts observation
   and does not establish this behavior. Distinguish automated TLS boundary
   coverage from this remaining manual integration check.
+  User supplied endpoint-change evidence (2026-10-13): certificate remaining
+  validity increased from 38 to 89 days under a 40-day policy; session checks
+  continued from 2 failures to 19 checks (16 failed, 3 passed), and history shows
+  recovery with 1m20s observed duration. This supports live certificate-policy
+  recovery; confirm no monitor edit/restart to close the unchanged-monitor gate.
+  The monitor began with zero successes, so initial outage/recovery notifications
+  are intentionally silent; absence of webhooks/popups is expected for discovery.
 - Deferred: authenticated HTTP and certificate-chain expiry policies; see roadmap.
 - Deferred: webhook response diagnostics that do not expose secrets; see roadmap track 1.
 
