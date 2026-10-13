@@ -643,6 +643,10 @@ remote-network capacity require separate checks.
 
 ## References
 
+Project planning: [Implementation and release checks](docs/IMPLEMENTATION_PLAN.md)
+and [post-release roadmap](docs/ROADMAP.md). The roadmap starts with webhook
+integrations, Windows service/start at boot, then dependency suppression.
+
 - [Wails documentation](https://wails.io/docs/introduction/)
 - [Vue documentation](https://vuejs.org/guide/introduction.html)
 - [Go documentation](https://go.dev/doc/)

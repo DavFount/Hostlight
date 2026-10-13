@@ -5,6 +5,20 @@ The Windows preview includes ICMP/TCP/HTTP monitoring, target management and bul
 saved configuration, dark/light themes, incident history, scoped webhook delivery,
 per-monitor alert suppression, and reviewed monitor backup/import.
 
+Current checkpoint: the history-batching fix is committed. Automated verification
+passed, and the user completed approximately 30.5 minutes with 200 desktop
+monitors without another history warning, followed by the controlled 20-monitor
+outage/recovery check. This is a bounded desktop follow-up, not an overnight soak.
+See [load evidence](LOAD_VERIFICATION.md) and the
+[prioritized roadmap](ROADMAP.md). The roadmap records user priorities; it does
+not add those features to the initial release or promise delivery dates.
+
+Remaining release qualification: record the outstanding Windows/manual checks
+below, desktop process/WebView resource measurements, extended soak with
+retention/cleanup verification, and final ZIP/fresh-machine/version/checksum
+checks. Finish supported-platform/known-limit documentation and release notes.
+Installer, paid signing, service operation, and roadmap features are deferred.
+
 Checklist convention: `[x]` means the stated implementation or verification is
 complete; `[ ]` means work or verification remains. Split partially delivered
 features into separate items rather than leaving completed work unchecked.
@@ -26,7 +40,10 @@ retention. Go 1.26 is now the minimum version. Outages are segmented at
 edits, deletion, errors, shutdown/restart, and long observation gaps; interrupted
 records end at the last observation. Pauses now preserve the current outage within
 the application session, exclude the unobserved pause interval, and retain recovery
-alert eligibility after fresh checks. Writes are bounded and errors are visible.
+alert eligibility after fresh checks. The writer drains up to 64 queued events
+per transaction, publishes visual changes only after commit, and drains pending
+events at shutdown. The queue is bounded at 1,024; dropped-history warnings remain
+visible because previously lost observations cannot be reconstructed.
 
 This document is the working implementation plan. Check off milestones only when
 their acceptance criteria are met, and update decisions as implementation supplies
@@ -66,8 +83,8 @@ verify macOS/Linux support separately before claiming those platforms are suppor
 
 Defer DNS probes, certificate-chain expiry policies, degraded-state policies, MTR, dependency suppression,
 advanced dashboards, remote agents, and headless service operation until the core
-release is dependable. Tray integration is a separate platform feasibility task;
-it must not delay a working monitoring application.
+release is dependable. Windows tray integration is implemented; the remaining
+native lifecycle and hidden-monitoring checks are listed in milestone 5.
 
 ## Architecture and ownership
 
@@ -79,9 +96,8 @@ Use Wails v2, Vue 3, TypeScript, Vite, and the existing npm lockfile. The previe
 uses Vue composition state, component-local typed API declarations, view switching,
 and one-second snapshot polling; Pinia, a shared API adapter, routing, and sequenced
 events below are proposed architecture, not implemented prerequisites. Introduce
-them when shared state or navigation complexity warrants it. Select a chart
-library after testing a small latency-chart prototype; avoid installing a broad
-UI stack before the first working probe.
+them when shared state or navigation complexity warrants it. Charts use native
+SVG with accessible summaries/tables; no chart library is required currently.
 
 Suggested future structure (current Go implementation remains in package `main`,
 with frontend screens under `frontend/src/components`):
@@ -161,7 +177,10 @@ UI detects a gap. Bound frontend logs and chart buffers.
 ## Milestone 0 — Baseline and technical spikes
 
 - [x] Verify frontend production/type-check build and Windows desktop build.
-- [ ] Complete a recorded `wails dev` desktop smoke test (startup, bindings, shutdown).
+- [x] User verified local `wails dev` startup and live UI/backend interaction,
+  including monitor operations and Ctrl+Q window close (2026-10-12).
+- [ ] Complete the recorded end-to-end desktop smoke checklist, including native
+  lifecycle/cleanup checks beyond ordinary startup and window close.
 - [x] Establish Go formatting, Go tests/vet, and frontend component tests/type checks.
 - [x] Add Windows GitHub Actions and a shared fail-fast local verification script
   for formatting, Go tests/vet, package helper tests, frontend tests/build, and Wails build.
@@ -186,7 +205,7 @@ elevating the whole desktop app. Confirm library versions at implementation time
 - [x] Add target create/edit/delete, aliases, groups, and bulk paste with validation previews.
 - [x] Validate addresses, ports, intervals, timeouts, and threshold ranges in Go.
 - [x] Provide common TCP service-port choices with custom-port entry.
-- [ ] Introduce shared frontend state/API adapters when complexity warrants them; Pinia remains optional.
+- Deferred architecture: introduce shared frontend state/API adapters when complexity warrants them; Pinia remains optional.
 - [x] Show readable status labels and color-independent indicators.
 - [ ] Audit keyboard navigation, focus management, and screen-reader behavior across screens.
 
@@ -203,9 +222,12 @@ real monitoring is connected.
   and saved concurrency limits (1–128, default 32), applied after a full restart.
   HTTP previews share the active limit. Intervals begin after completion; checks
   wait for capacity without overlap or catch-up bursts.
-- [ ] Measure supported target capacity and verify scheduling controls in the desktop UI.
+- [x] Measure an initial 200-monitor loopback workload and desktop responsiveness;
+  see milestone 6 and `LOAD_VERIFICATION.md` for measured scope and limitations.
+- [ ] Verify scheduling-control edits/restart application in the desktop UI;
+  record desktop CPU/working set before making supported-capacity claims.
 - [x] Implement tested failure/recovery state decisions and backend incident/alert transitions.
-- [ ] Implement sequenced frontend transition events if replacing snapshot polling.
+- Deferred architecture: implement sequenced frontend reconciliation if replacing snapshot polling.
 - [x] Wire per-target and filtered bulk pause/resume into the live UI.
 - [x] Show last check, latency, and diagnostic errors; show incident durations in history.
 - [x] Add bounded, session-only recent failed-check statistics to monitor cards:
@@ -315,6 +337,9 @@ limits are configurable and failures do not stall unrelated targets.
   User confirmed all remaining listed checks passed on 2026-10-12.
 - [x] Store data in the OS application-data directory and display the configuration location.
 - [x] Surface database/queue failures and interrupt unfinished incidents after restart.
+- [x] Batch up to 64 queued history events per transaction, preserving order,
+  rollback, post-commit visual alerts, and shutdown draining. Automated regressions
+  and the 30-minute desktop follow-up passed; larger/longer soak remains open.
 
 Acceptance: targets survive restart; incidents remain consistent across crashes;
 retention bounds database growth; migrations preserve existing data. Shutdown and
@@ -339,9 +364,9 @@ selection, and cooldown rules remain future work.
 
 - [x] Configure named generic JSON destinations, global/group/monitor scopes, and test delivery.
 - [x] Support bearer authentication and HMAC request headers.
-- [ ] Add arbitrary custom headers and configurable transition selection.
+- Deferred, high priority: custom headers and transition selection; see roadmap track 1.
 - [x] Encrypt endpoint URLs, bearer tokens, and signing keys with current-user Windows DPAPI.
-- [ ] Evaluate credential-store references and non-Windows secret adapters before cross-platform support.
+- Deferred: credential-store references/non-Windows secret adapters before cross-platform support.
 - [x] Create a durable delivery queue transactionally with recorded transitions.
 - [x] Add stable event IDs, schema version, timestamps, target metadata, and outage duration.
 - [x] Deliver asynchronously with request timeouts and bounded concurrency.
@@ -349,9 +374,9 @@ selection, and cooldown rules remain future work.
   with capped exponential backoff and jitter; honor bounded `Retry-After` values.
 - [x] Treat permanent failures explicitly, cap attempts/age, and show delivery history.
 - [x] Add per-monitor alert snoozing and one-time scheduled maintenance, with visible suppression and no replay.
-- [ ] Define cooldown behavior without dropping the final recovery notification.
+- Deferred, high priority: cooldowns that preserve the final recovery; see roadmap track 1.
 - [x] Support optional HMAC signing and redact secrets from logs and exports.
-- [ ] Add provider payload presets after generic delivery works.
+- Deferred, high priority: provider payload presets; see roadmap track 1.
 
 Acceptance: an outage and recovery each create one logical event, including across
 restart. Delivery is at least once: retries may reach the receiver more than once,
@@ -381,6 +406,8 @@ Tests cover retries, restart recovery, timeouts, redaction, and terminal failure
   Keep File/Help and tray actions; show General settings sections without collapsed
   controls, with responsive section links and keyboard-focusable scroll targets.
 - [ ] Verify native menu navigation/shortcuts and the reorganized pages in Wails.
+  Ctrl+Q and keyboard interaction were user-confirmed; remaining menu commands
+  and settings-section navigation are not individually recorded.
 
 - [x] Add saved dark-default/light themes and card-density preferences.
 - [x] Add a consistent vector Hostlight logo, sidebar/favicon branding, and generated multi-resolution Windows executable icons.
@@ -390,7 +417,7 @@ Tests cover retries, restart recovery, timeouts, redaction, and terminal failure
 - [x] Preserve same-session outages across pause/resume with excluded time and recovery routing.
 - [x] Add named local saved views for search, status, and group filters with explicit
   updates, rename/delete controls, validation, and persistence tests.
-- [ ] Add customizable layout beyond card density.
+- Deferred: customizable layout beyond card density; saved views are already implemented.
 - [ ] Manually verify saved-view switching, restart persistence, and missing-group behavior.
 - [x] Explain recognized platform check errors in cards/popups using plain-language
   reasons, retaining original diagnostics in expandable technical details. Cover
@@ -401,8 +428,10 @@ Tests cover retries, restart recovery, timeouts, redaction, and terminal failure
   Partial user verification (2026-10-12): screenshot confirms a refused localhost
   TCP check displays the explanation, failed-latency dash, and collapsed Technical
   details control. User reports keyboard interaction works as expected and Ctrl+Q
-  closes the window. Popup, theme/density, and pause/recovery checks remain open.
-- [ ] Add desktop notifications and mute controls where supported.
+  closes the window. Later checks established both-theme session/chart layouts,
+  pause/recovery behavior, and dark-theme outage/recovery popup content. A full
+  diagnostic-control audit across both themes/densities remains unrecorded.
+- Deferred: Windows desktop notifications and mute controls; existing popups are in-app only.
 - [x] Add session-only in-app outage/recovery popups with four corner positions,
   persisted enable/duration controls, preview, dismissal, and bounded transition feed.
   Respect maintenance/snoozing; suppress initial discovery and orphan recoveries.
@@ -410,10 +439,10 @@ Tests cover retries, restart recovery, timeouts, redaction, and terminal failure
   include observed outage duration (excluding pauses) in recovery popups.
 - [ ] Manually verify in-app popups in both themes, persistent dismissal, timing,
   pause/resume recovery, and silence windows using the running Wails application.
-- [ ] Add polished outage/recovery visual notifications with configurable screen
-  position, auto-close duration, and a persistent-until-dismissed option. Keep
-  notification health/initial-discovery semantics aligned with webhook transitions;
-  investigate desktop overlay feasibility rather than claiming background popups work.
+- [x] Implement configurable corner position and auto-close/persistent dismissal
+  for in-app outage/recovery popups. These are delivered by `VisualAlerts.vue`.
+- Deferred: investigate background desktop overlays/native notifications;
+  in-app popups do not establish visibility while the app is hidden.
 - [x] Implement Windows tray Show/Quit controls, explicit hide, persisted opt-in
   close-to-tray, single-instance restore, icon availability fallback, and cleanup.
   Native smoke covers add/remove, activation, and icon-loss recovery without
@@ -424,7 +453,7 @@ Tests cover retries, restart recovery, timeouts, redaction, and terminal failure
   This does not establish the remaining hidden-monitoring and lifecycle checks.
 - [x] Add versioned monitor configuration import/export with preview and validation.
 - [x] Exclude credentials and live history from configuration exports by default.
-- [ ] Offer explicit portable mode with writable-path checks and clear credential behavior.
+- Deferred: portable mode with writable-path checks and explicit credential behavior.
 - [x] Add support information and an explicit sanitized JSON diagnostic export:
   allowlisted runtime/platform, health flags, aggregate counts, and queue sizes;
   no monitor addresses, names, secrets, paths, raw errors, or logs. Protect live
@@ -450,30 +479,25 @@ continues when minimized. Closing behavior is explicit and platform-tested.
 
 ## Milestone 6 — First release verification
 
-Release-readiness follow-up (2026-10-12): user observed a full history queue
-during desktop testing. Treat this as a release blocker pending repeat testing.
-The writer now drains up to 64 queued events per transaction, preserving event
-order and publishing visual transitions only after commit. Regression coverage
-checks pause/recovery ordering, full rollback without popup publication, and
-draining 1,000 queued samples on shutdown. Queue capacity remains bounded at
-1,024 and dropped-observation warnings remain visible. Desktop soak after this
-change, remaining platform checks, and release documentation must pass before
-release qualification. Build the post-release roadmap after those gates close.
-Automated follow-up passed: full shared verification and 11,904 checks in a
-60-second backend repeat, 20 resolved incidents/40 delivered webhooks, no history
-errors, and zero queue length at one-second samples. Desktop repeat remains open.
-User desktop repeat subsequently passed the 30-minute warning-free gate:
-200 monitors shown, visible cards at 1,827–1,828 checks, no reported error.
-Visible Load 001–003 were available with 117 failures each; controlled-outage
-attribution and resolved incident confirmation after batching remain pending.
-This does not close longer soak/retention or remaining release platform gates.
-Subsequent screenshot showed 20 matching incidents and visible recovered Load
-007/019 entries with expected connection-refused/recovery-threshold reasons.
-Controlled outage/recovery desktop follow-up after batching accepted as passed;
-the screenshot is supporting evidence rather than a full incident CSV audit.
+History queue follow-up (2026-10-12): a desktop queue-full warning prompted the
+committed batching fix. Full automated verification passed, including ordered
+pause/recovery, rollback without popup publication, and 1,000-sample shutdown
+draining tests. The backend repeat completed 11,904 checks in 60 seconds,
+resolved 20 incidents, delivered 40 webhooks, and reported no history errors;
+queue length at one-second samples peaked at zero (not a transient-peak measure).
+The user then completed approximately 30.5 minutes with 200 desktop monitors,
+1,827–1,828 checks on visible cards, and no history warning. Following the
+controlled outage, available cards and a screenshot of 20 matching incidents
+with visible recovered entries support passing the outage/recovery follow-up.
+This closes the requested short repeat; longer soak, retention/cleanup, and
+remaining platform/release checks remain open. See `LOAD_VERIFICATION.md`.
 
 - [ ] Exercise a target matrix: IP/hostname, IPv4/IPv6, reachable/unreachable,
   refused port, DNS failure, invalid settings, adapter loss, sleep/resume, and restart.
+  Existing evidence covers TCP/ICMP success, refused TCP, DNS/setup errors,
+  pause/restart, and user-confirmed network-change/sleep-gap handling. Complete
+  a recorded matrix for standard-user permissions and remaining IPv6/local
+  adapter cases rather than repeating already accepted feature checks.
 - [ ] Benchmark an initial 200-target workload at one-second intervals on a recorded
   Windows reference machine; measure CPU, memory, scheduling delay, and UI responsiveness.
 - [x] Add and run an isolated, opt-in 200-monitor Windows TCP loopback workload
@@ -484,8 +508,11 @@ the screenshot is supporting evidence rather than a full incident CSV audit.
   User's local repeat passed with 12,000 checks (60 per monitor), 40 delivered
   webhooks, queue peak 76/1,024, and snapshot API P95 4.008 ms. User reported
   normal browser/ticket-work responsiveness during the run (2026-10-12).
-  See `docs/LOAD_VERIFICATION.md`; this does not establish desktop responsiveness,
-  process working set, remote-network capacity, or an extended soak.
+  Later desktop follow-ups establish observed UI responsiveness, including the
+  30-minute batching repeat. They do not record desktop/WebView working set or
+  establish remote-network capacity or an extended soak.
+- [x] Complete a 30-minute, 200-monitor desktop queue-warning regression check
+  and controlled outage/recovery follow-up after batching (2026-10-12).
 - [ ] Run an extended soak and verify retention, queue bounds, and cleanup.
 - [x] Add manual-dispatch release automation: tested Windows ZIP, embedded version,
   SHA-256 checksums, draft-first upload/publication, and GitHub-created tags without
@@ -493,10 +520,13 @@ the screenshot is supporting evidence rather than a full incident CSV audit.
 - [x] Verify the first hosted publication and basic downloaded-package startup.
   User confirmed the 0.1.0 prerelease runs as expected from the extracted ZIP
   (2026-10-12). This does not establish checksum/version, fresh-machine, or soak checks.
-- [ ] Add an installer and curated release notes.
-- [ ] Revisit optional code signing when funding or a suitable free option is available;
+- [ ] Write curated release notes for the final release candidate.
+- Deferred: installer; ZIP distribution is the initial release format.
+- Deferred: revisit optional code signing when funding or a suitable free option is available;
   keep unsigned distribution explicitly labeled in the meantime.
-- [ ] Verify fresh-machine startup, WebView2 requirements, upgrade, and uninstall behavior.
+- [ ] Verify fresh-machine ZIP startup, WebView2 requirements, version/checksum,
+  and upgrade with existing settings/history. Document ZIP removal and retained
+  user data; installer-specific uninstall verification waits for an installer.
 - [x] Use standalone ZIP distribution for the initial prerelease; defer paid code
   signing while keeping Hostlight free and open source (2026-10-12).
 - [ ] Document supported platforms, configuration location, limits, and known issues.
@@ -539,26 +569,21 @@ follow `docs/LOAD_VERIFICATION.md` before marking the full benchmark complete.
 - [x] Keep certificate trust/hostname/time validation enabled and test trusted local TLS, expiry boundaries, expired/untrusted certificates, and portability.
 - [x] Add version-4 settings/backups with version-1/2/3 read compatibility and legacy certificate-policy rejection.
 - [ ] Manually verify expiry-policy failure/recovery and certificate displays in the Windows desktop UI.
-- [ ] Add optional authentication and certificate-chain expiry policies in later slices.
-- [ ] Reuse/extend request diagnostics for webhook response inspection without exposing secrets.
+- Deferred: authenticated HTTP and certificate-chain expiry policies; see roadmap.
+- Deferred: webhook response diagnostics that do not expose secrets; see roadmap track 1.
 
 ## Later milestones
 
-Prioritize these using actual usage after the first release:
-
-1. Extend HTTP checks with authentication and optional redirect policies; add DNS expected-answer checks and certificate-chain expiry diagnostics.
-2. Degraded-state latency/loss policies with rolling windows and hysteresis.
-3. Recurring and global/group maintenance, acknowledgments, and dependency suppression
-   (per-monitor timed silences and one-time windows are already implemented).
-4. Route diagnostics and MTR-style monitoring.
-5. Saved views, advanced tables, comparison charts, and customizable layouts.
-6. Release 2: optional Windows service using a shared core and secured local IPC;
-   keep standalone mode. Service owns probes/history/webhooks and the GUI attaches
-   without starting a second engine. Include boot startup, RMM health/heartbeat,
-   installation IDs for ticket correlation, and explicit service-account credential
-   provisioning. No service execution or account migration is part of release 1.
-7. Verified macOS/Linux packages and platform-specific probe/credential adapters.
-8. Signed automatic updates with rollback/recovery behavior.
+See [ROADMAP.md](ROADMAP.md) for the authoritative post-release priorities,
+delivery slices, and acceptance criteria. User-approved order: webhook presets/
+custom headers/event selection/cooldowns first, Windows service/start at boot
+second, dependency suppression third. Dependency suppression will keep downstream
+checks/history running while suppressing alerts during upstream outages, explain
+the cause in the UI, and avoid replay after recovery. Route diagnostics/MTR is
+also requested, without a fixed order after those three. Certificate-chain expiry
+is a lower-priority exploration. Other enhancements
+remain backlog items; saved views are already delivered. Initial release
+qualification takes precedence over roadmap implementation.
 
 Do not add a server, cloud accounts, remote agents, or plugin system without a
 separate product decision. Keep those possibilities from complicating v1.
@@ -574,11 +599,18 @@ slice extends the original first-release scope by explicit user direction.
 
 ## Verification strategy
 
+This section retains dated implementation evidence. Where later slices supersede
+earlier results, the milestone checklists and current checkpoint above define the
+current state. General “all checks passed” reports apply to the slice being tested;
+they do not automatically complete unrelated native platform or release gates.
+Documentation reconciliation adds no new runtime verification.
+
 Load-verification slice (2026-10-12): isolated 60-second 200-monitor TCP workload
 passed, including actual persistent summaries, bounded queue health, outage and
 recovery transitions, and 40 delivered local webhook events. The opt-in Windows
 test is skipped during ordinary verification. Measured backend results and their
-scope are recorded in `docs/LOAD_VERIFICATION.md`; desktop/load-soak gates remain open.
+scope are recorded in `docs/LOAD_VERIFICATION.md`; short desktop responsiveness
+and outage/recovery follow-ups passed, while extended soak/resource gates remain open.
 The shared `scripts/verify.ps1` pipeline also passed: formatting, 131 frontend
 tests, production/type checks, Go tests/vet, release-tool checks, and Windows
 desktop build. The load test is opt-in and skipped by the ordinary suite.
@@ -606,8 +638,8 @@ updates/capping, setup-error exclusion, pause/resume preservation, edit resets,
 and keyboard interaction on 2026-10-12. User also confirmed all remaining desktop
 checks passed: restart resets, mixed/all-failed windows, line breaks,
 successful-only averages, and both themes and densities.
-Samples are session-only;
-persistent sample storage and aggregation remain unfinished first-release work.
+Recent samples remain session-only. Persistent minute-summary storage and
+aggregation were subsequently delivered and verified in the saved-history slice.
 
 Observation-gap slice (2026-10-12): Go tests/vet and Windows Wails build
 (including frontend production/type checks) passed. Additional targeted tests
@@ -650,9 +682,9 @@ Recent-check statistics slice (2026-10-12): Go tests/vet, 105 frontend tests,
 the frontend production/type-check build, and the Windows Wails build passed. Coverage includes bounded
 window eviction, pause/resume continuity, reset on edit, excluded setup/cancelled
 results, and unavailable-versus-empty statistics. User confirmed pause behavior,
-increasing counts, and the 100-check cap (2026-10-12). Resume continuity,
-edit/restart resets, and theme/density layout verification remain open. Session
-totals were deferred from this rolling-window slice to the subsequent slice.
+increasing counts, and the 100-check cap (2026-10-12). Subsequent session-total
+checks confirmed resume continuity, edit/restart resets, and both-theme/density
+layouts. Session totals were subsequently delivered; they are no longer deferred.
 
 Failure-message slice (2026-10-12): 101 frontend tests and the frontend
 production/type-check build and Windows Wails build passed. Component coverage includes preserved raw
@@ -667,7 +699,7 @@ on 2026-10-12 and the app ran via `wails dev` and was verified locally.
 This records successful local use; individual startup/bindings/shutdown, menu,
 tray lifecycle, and release-matrix checks remain open until specifically recorded.
 
-Latest completed implementation-slice checks (2026-10-11): `go test ./...`,
+Earlier implementation-slice checks (2026-10-11): `go test ./...`,
 `go vet ./...`, 83 frontend tests, frontend production/type-check build, and
 `wails build` passed. This is a development verification record, not completion
 of milestone 6. The checklist reconciliation itself changes documentation only;
@@ -679,8 +711,8 @@ snoozing suppressed delivery with zero attempts; individual scoped destinations
 routed correctly; restart persistence, duplicate-skipping/paused import, and light
 theme passed. These are targeted checks, not a full release matrix. The subsequent
 fix pass adds automated pause/resume/deletion/migration coverage and UI regressions;
-the new paused-outage policy, denser cards, and amber silencing banner still need
-a desktop spot check after restarting the backend.
+later desktop slices confirmed pause/outage behavior and both-theme/density
+card layouts. A specific amber-silencing-banner desktop check is not recorded.
 
 - Unit-test state transitions, scheduling/cancellation, validation, retention, and
   retry decisions with fake clocks and controlled outcomes.

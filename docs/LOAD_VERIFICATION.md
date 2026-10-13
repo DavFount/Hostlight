@@ -50,7 +50,7 @@ activity when comparing runs.
 
 ## Desktop follow-up
 
-Release-blocking follow-up: the user subsequently observed a history queue-full
+History queue follow-up: the user subsequently observed a history queue-full
 warning. Earlier short passes do not establish sustained history reliability.
 The history writer now batches up to 64 already-queued events per transaction;
 the queue stays bounded and does not hide past dropped observations. Restart in
@@ -66,14 +66,14 @@ tests, Go tests/vet, release-tool checks, Windows Wails build) and a 60-second
 monitor), resolved 20 incidents, delivered 40 webhooks, and stored 400 minute
 summaries without reported history errors. Queue length at one-second samples
 peaked at zero; this does not measure transient peaks between samples. The run
-overlapped other verification work. Desktop repeat remains pending.
+overlapped other verification work. The completed desktop repeat is recorded below.
 
 Desktop batching repeat (2026-10-12): user reported no warning at 1,200 checks
 and no error at 1,827–1,828 checks per visible monitor (approximately 30.5 minutes
 at one-second intervals), with 200 monitors shown. Visible Load 001–003 cards
-were available, each with 117 failed session checks. Attribution of those
-failures to the controlled outage and confirmation of resolved incident records
-remain pending. The 30-minute warning-free desktop follow-up passed; longer soak,
+were available, each with 117 failed session checks following the outage test.
+Subsequent incident evidence is recorded below. The 30-minute warning-free
+desktop follow-up passed; longer soak,
 retention/cleanup verification, and other release checks remain open.
 
 The user then supplied incident-history evidence showing 20 matching incidents;
@@ -111,8 +111,8 @@ The helper stops when the script exits or after one hour (use `-Hours 8` for a
 longer session, maximum 24). After expiry endpoints stop responding; end the test
 before interpreting those failures. Temporary files are retained at the printed
 path for inspection. This fixture does not exercise webhook delivery; the backend
-workload above covers that. Desktop performance and extended soak remain pending
-until results are recorded.
+workload above covers that. Short desktop responsiveness and outage/recovery
+results are recorded here; extended soak and desktop resource measurements remain pending.
 
 ## Recorded baseline
 
