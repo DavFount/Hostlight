@@ -211,6 +211,11 @@ UI detects a gap. Bound frontend logs and chart buffers.
 - [x] Implement native Windows IP Helper ICMP and document the choice in README.
 - [x] Test cancellation, DNS/address selection, IPv4/IPv6 localhost, and error classification.
 - [ ] Record standard-user and adapter/permission failure checks on Windows.
+  Following the requested non-elevated check, user screenshot (2026-10-13)
+  confirms IPv4 loopback 127.0.0.1 and IPv6 loopback ::1 available with zero
+  failures; .invalid reports DNS Check error, 2 setup errors, 0 availability
+  checks, and no failure percentage. Elevation/account context is not visible
+  in the screenshot; explicit privilege/adapter failure injection is unrecorded.
 - [x] Select pure-Go `modernc.org/sqlite` with versioned transactional migrations.
 - [x] Verify native Windows tray feasibility with Shell_NotifyIcon and a dedicated
   message-pump thread, Wails OnBeforeClose, and explicit Quit lifecycle handling.
@@ -472,8 +477,11 @@ Tests cover retries, restart recovery, timeouts, redaction, and terminal failure
 - [x] User confirmed popup settings checks passed (2026-10-13): all four corner
   previews, five-second auto-close, until-dismissed behavior, saved settings after
   Quit/reopen, disabled previews, keyboard operation, narrow layout, and both themes.
-- [ ] Complete focused live popup verification for pause/resume recovery and
-  silence-window behavior; preview/settings checks do not establish these cases.
+- [x] User confirmed live popup checks 2–4 passed (2026-10-13): snooze and active
+  scheduled maintenance suppress outage/recovery popups while checks/history
+  continue, with no replay on cancellation/end. Pausing an alerted outage for
+  at least 30 seconds and resuming retains the incident, avoids duplicate outage
+  popups, excludes paused time, and produces recovery on the same incident.
 - [x] Implement configurable corner position and auto-close/persistent dismissal
   for in-app outage/recovery popups. These are delivered by `VisualAlerts.vue`.
 - Deferred: investigate background desktop overlays/native notifications;
