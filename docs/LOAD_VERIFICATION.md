@@ -50,6 +50,29 @@ activity when comparing runs.
 
 ## Desktop follow-up
 
+Tray follow-up (2026-10-13): user left the 200-monitor workspace hidden in the
+system tray and periodically restored it successfully. Visible cards reached
+6,121 checks: 3,538 passed and 2,583 failed, with approximately 43 minutes observed
+outage and connection-refused messages. At one-second intervals this represents
+approximately 102 minutes of checking; the transition after roughly 59 minutes
+of successes is consistent with expiry of the one-hour helper. It is not evidence
+of an unexpected probe failure or 102 minutes of successful endpoint availability.
+No history warning is visible in the screenshot. Hidden checking and repeated
+restore passed; hidden webhook delivery, process resource measurements, retention/
+cleanup, and remaining native lifecycle checks are not established by this run.
+
+The user subsequently confirmed explicit Quit and normal relaunch/restore work
+on repeat testing (2026-10-13). Record these functional lifecycle checks as passed;
+second-launch activation of a running instance, Explorer restart recovery, and
+hidden webhook delivery remain separate unverified cases.
+
+Hidden webhook delivery subsequently passed (2026-10-13): user supplied received
+down/up payloads while Hostlight was minimized to tray. Both reference incident
+407, have distinct event IDs, and span 18:28:31–18:29:01 UTC with 30 seconds
+reported recovery duration. An open-window test payload uses event `test` and
+incident ID 0, distinct from actual outage/recovery events. This is targeted
+hidden-delivery evidence, not part of the 200-monitor fixture workload.
+
 History queue follow-up: the user subsequently observed a history queue-full
 warning. Earlier short passes do not establish sustained history reliability.
 The history writer now batches up to 64 already-queued events per transaction;

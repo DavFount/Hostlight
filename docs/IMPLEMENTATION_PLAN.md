@@ -447,8 +447,21 @@ Tests cover retries, restart recovery, timeouts, redaction, and terminal failure
   close-to-tray, single-instance restore, icon availability fallback, and cleanup.
   Native smoke covers add/remove, activation, and icon-loss recovery without
   restarting Explorer. Other platforms retain ordinary close-to-exit behavior.
-- [ ] Manually verify Wails close/hide/restore, checks and webhook delivery while
-  hidden, second-launch restore, real Explorer restart, and explicit quit cleanup.
+- [x] User verified checks continue while hidden in the system tray and repeated
+  restore works (2026-10-13). Screenshot shows 200 monitors and 6,121 completed
+  checks on visible cards, approximately 102 minutes at one-second intervals.
+  Each visible card has 3,538 successes followed by 2,583 failures and about 43
+  minutes observed outage, consistent with the one-hour local fixture expiring.
+  This verifies continued checking/restore, not 102 minutes of endpoint uptime.
+- [x] User confirmed explicit Quit and normal relaunch/restore work on repeat
+  testing (2026-10-13). This is user-reported functional verification, not a
+  process-handle/resource-cleanup audit.
+- [x] User verified webhook outage/recovery delivery while hidden in the system
+  tray (2026-10-13). Supplied schema-1 payloads share incident ID 407 with distinct
+  event IDs; outage at 18:28:31 UTC and recovery at 18:29:01 UTC report 30 seconds
+  observed duration. Open-window test delivery also passed (event test, incident 0).
+- [ ] Manually verify second-launch activation of an already-running instance
+  and real Explorer restart recovery.
 - [x] User confirmed minimizing to the system tray works (2026-10-11).
   This does not establish the remaining hidden-monitoring and lifecycle checks.
 - [x] Add versioned monitor configuration import/export with preview and validation.
@@ -514,6 +527,10 @@ remaining platform/release checks remain open. See `LOAD_VERIFICATION.md`.
 - [x] Complete a 30-minute, 200-monitor desktop queue-warning regression check
   and controlled outage/recovery follow-up after batching (2026-10-12).
 - [ ] Run an extended soak and verify retention, queue bounds, and cleanup.
+  User's tray run reached 6,121 checks on visible cards (2026-10-13); fixture
+  expiry explains the later refused connections. No history warning is visible
+  in the supplied screenshot. Resource measurements, saved-summary reconciliation,
+  and retention/cleanup evidence remain unrecorded; this does not close this gate.
 - [x] Add manual-dispatch release automation: tested Windows ZIP, embedded version,
   SHA-256 checksums, draft-first upload/publication, and GitHub-created tags without
   local tag/push commands. Default to prerelease; never overwrite existing versions.
