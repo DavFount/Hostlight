@@ -612,8 +612,16 @@ follow `docs/LOAD_VERIFICATION.md` before marking the full benchmark complete.
 - [x] User verified certificate expiry display and minimum-validity preview
   failure/success, plus rejection of expired, untrusted, and hostname-mismatched
   certificates with distinct explanations (2026-10-13).
-- [ ] Manually verify saved-monitor certificate-policy failure/recovery and
-  certificate-policy preservation through backup/import.
+- [x] User confirmed saved HTTPS certificate-policy checks 1–5 passed
+  (2026-10-13): available with policy disabled, unavailable under an insufficient
+  validity policy, expiry display, restart persistence, version-4 backup/import
+  preserving the policy, paused import/resume, and available after disabling it.
+  Supplied backup preserves `tlsMinDays: 90`; incident screenshot shows the
+  minimum-validity failure and prior incident interrupted when Hostlight closed.
+- [ ] Verify same-incident recovery after an endpoint certificate change without
+  editing the monitor. Disabling/changing policy by edit interrupts observation
+  and does not establish this behavior. Distinguish automated TLS boundary
+  coverage from this remaining manual integration check.
 - Deferred: authenticated HTTP and certificate-chain expiry policies; see roadmap.
 - Deferred: webhook response diagnostics that do not expose secrets; see roadmap track 1.
 
