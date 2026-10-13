@@ -20,7 +20,11 @@ Add-Type -AssemblyName System.IO.Compression.FileSystem
 $zip = [IO.Compression.ZipFile]::OpenRead($archive)
 try {
     $entries = @($zip.Entries | ForEach-Object { $_.FullName.Replace('\','/') })
-    if ($entries.Count -ne 2 -or 'Hostlight/hostlight.exe' -notin $entries -or 'Hostlight/README.txt' -notin $entries) { throw "Unexpected archive entries: $entries" }
+    if ($entries.Count -ne 3 -or 'Hostlight/hostlight.exe' -notin $entries -or 'Hostlight/README.txt' -notin $entries -or 'Hostlight/LICENSE' -notin $entries) { throw "Unexpected archive entries: $entries" }
+    $licenseReader = [IO.StreamReader]::new($zip.GetEntry('Hostlight/LICENSE').Open())
+    try {
+        if ($licenseReader.ReadToEnd() -ne [IO.File]::ReadAllText((Join-Path (Split-Path -Parent $PSScriptRoot) 'LICENSE'))) { throw 'Packaged license differs from source.' }
+    } finally { $licenseReader.Dispose() }
 } finally { $zip.Dispose() }
 $rejected = $false
 try { New-ReleaseArchive -Binary $binary -Version '0.1.0' -OutputDirectory $output | Out-Null } catch { $rejected = $true }

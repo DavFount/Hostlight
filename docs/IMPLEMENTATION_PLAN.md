@@ -13,6 +13,13 @@ See [load evidence](LOAD_VERIFICATION.md) and the
 [prioritized roadmap](ROADMAP.md). The roadmap records user priorities; it does
 not add those features to the initial release or promise delivery dates.
 
+Public-project documentation update (2026-10-13): README is now a short user entry
+point, with detailed user, HTTP, alert/history, developer, and release guides.
+Added contribution/reporting/verification guidance and the user-selected
+GPL-3.0-only license. Release ZIPs include LICENSE and a matching tagged-source
+link in launch notes. Repository visibility remains a maintainer action; these
+documentation changes do not claim it is public or release-qualified.
+
 Remaining release qualification: record the outstanding Windows/manual checks
 below, desktop process/WebView resource measurements, extended soak with
 retention/cleanup verification, and final ZIP/fresh-machine/version/checksum
@@ -372,7 +379,7 @@ selection, and cooldown rules remain future work.
 
 - [x] Configure named generic JSON destinations, global/group/monitor scopes, and test delivery.
 - [x] Support bearer authentication and HMAC request headers.
-- Deferred, high priority: custom headers and transition selection; see roadmap track 1.
+- Deferred, high priority: custom headers and transition selection; see roadmap track 2.
 - [x] Encrypt endpoint URLs, bearer tokens, and signing keys with current-user Windows DPAPI.
 - Deferred: credential-store references/non-Windows secret adapters before cross-platform support.
 - [x] Create a durable delivery queue transactionally with recorded transitions.
@@ -382,9 +389,9 @@ selection, and cooldown rules remain future work.
   with capped exponential backoff and jitter; honor bounded `Retry-After` values.
 - [x] Treat permanent failures explicitly, cap attempts/age, and show delivery history.
 - [x] Add per-monitor alert snoozing and one-time scheduled maintenance, with visible suppression and no replay.
-- Deferred, high priority: cooldowns that preserve the final recovery; see roadmap track 1.
+- Deferred, high priority: cooldowns that preserve the final recovery; see roadmap track 2.
 - [x] Support optional HMAC signing and redact secrets from logs and exports.
-- Deferred, high priority: provider payload presets; see roadmap track 1.
+- Deferred, high priority: provider payload presets; see roadmap track 2.
 
 Acceptance: an outage and recovery each create one logical event, including across
 restart. Delivery is at least once: retries may reach the receiver more than once,
@@ -653,17 +660,18 @@ follow `docs/LOAD_VERIFICATION.md` before marking the full benchmark complete.
   The monitor began with zero successes, so initial outage/recovery notifications
   are intentionally silent; absence of webhooks/popups is expected for discovery.
 - Deferred: authenticated HTTP and certificate-chain expiry policies; see roadmap.
-- Deferred: webhook response diagnostics that do not expose secrets; see roadmap track 1.
+- Deferred: webhook response diagnostics that do not expose secrets; see roadmap track 2.
 
 ## Later milestones
 
 See [ROADMAP.md](ROADMAP.md) for the authoritative post-release priorities,
-delivery slices, and acceptance criteria. User-approved order: webhook presets/
-custom headers/event selection/cooldowns first, Windows service/start at boot
-second, dependency suppression third. Dependency suppression will keep downstream
+delivery slices, and acceptance criteria. Updated user-approved order (2026-10-13):
+Windows native notifications/desktop overlays first, webhook presets/custom
+headers/event selection/cooldowns second, Windows service/start at boot third,
+dependency suppression fourth. Dependency suppression will keep downstream
 checks/history running while suppressing alerts during upstream outages, explain
 the cause in the UI, and avoid replay after recovery. Route diagnostics/MTR is
-also requested, without a fixed order after those three. Certificate-chain expiry
+also requested, without a fixed order after those four. Certificate-chain expiry
 is a lower-priority exploration. Other enhancements
 remain backlog items; saved views are already delivered. Initial release
 qualification takes precedence over roadmap implementation.

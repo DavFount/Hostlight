@@ -18,6 +18,8 @@ function New-ReleaseArchive {
     $staging = Join-Path $OutputDirectory 'Hostlight'
     New-Item -ItemType Directory -Path $staging | Out-Null
     Copy-Item -LiteralPath $Binary -Destination (Join-Path $staging 'hostlight.exe')
+    $license = Join-Path (Split-Path -Parent $PSScriptRoot) 'LICENSE'
+    Copy-Item -LiteralPath $license -Destination (Join-Path $staging 'LICENSE')
     $readme = @"
 Hostlight $Version — Windows amd64 standalone build
 
@@ -32,6 +34,9 @@ This is a standalone desktop app, not a Windows service.
 Monitoring stops when you quit. Close-to-tray is opt-in under Desktop behavior.
 
 https://github.com/DavFount/Hostlight
+
+License: GNU GPL version 3 (GPL-3.0-only). See LICENSE.
+Matching source: https://github.com/DavFount/Hostlight/tree/v$Version
 "@
     [IO.File]::WriteAllText((Join-Path $staging 'README.txt'), $readme)
     $archive = Join-Path $OutputDirectory "hostlight-$Version-windows-amd64.zip"

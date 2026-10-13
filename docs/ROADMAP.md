@@ -1,6 +1,6 @@
 # Hostlight roadmap
 
-Reviewed: 2026-10-12. Free and open source; Windows first.
+Reviewed: 2026-10-13. Free and open source; Windows first.
 
 This roadmap records product direction, not delivery dates or implemented
 features. The initial release must pass the outstanding gates in
@@ -12,22 +12,56 @@ verification, and commit checkpoints.
 
 User-approved sequence:
 
-1. Webhook presets, custom headers, event selection, and cooldowns.
-2. Windows service and start at boot.
-3. Dependency suppression.
+1. Windows native notifications and desktop overlays.
+2. Webhook presets, custom headers, event selection, and cooldowns.
+3. Windows service and start at boot.
+4. Dependency suppression.
 
 Route diagnostics/MTR is also a major requested feature, but has no fixed order
-after those three. Certificate-chain expiry is interesting, lower-priority work.
+after those four. Certificate-chain expiry is interesting, lower-priority work.
 No provider selection, version number, or delivery date is committed yet.
 
 The service and dependency tracks support the same sysadmin workflow: monitor
 infrastructure continuously, then avoid a flood of downstream alerts when a VPN
 or upstream connection fails. Service operation alone does not provide dependency
-suppression; clearly disclose that until track 3 ships. Prepare stable monitor
+suppression; clearly disclose that until track 4 ships. Prepare stable monitor
 identities and policy/storage interfaces during service work so dependencies do
 not require a second monitoring engine later.
 
-## Track 1 — Webhook integrations
+## Track 1 — Windows notifications and desktop overlays
+
+Why: sysadmins need to notice an outage while working in another application or
+while Hostlight is hidden in the tray. Current in-app popups cannot provide that.
+The user moved this ahead of webhook/service/dependency work on 2026-10-13.
+
+Suggested delivery slices:
+
+- Add an explicit notification setting: Off, in-app only, Windows native, or
+  desktop overlay. Define whether additional channels can be combined; avoid
+  duplicate notifications by default. Keep the existing in-app option available.
+- Implement native Windows notifications with supported application identity,
+  activation back to Hostlight, and clear guidance when Windows notifications
+  are blocked or unavailable. Respect Windows notification settings; do not
+  bypass Do Not Disturb by silently switching to an overlay.
+- Add an overlay option with configurable corner, auto-close duration, and
+  until-dismissed behavior. It should appear above other applications without
+  stealing keyboard focus. Bound visible/queued alerts and define multi-monitor,
+  display scaling, full-screen, click-through, and dismissal behavior.
+- Reuse committed outage/recovery decisions and observed duration. Initial
+  discovery, maintenance/snoozing, and recovery eligibility must remain consistent
+  across webhook, in-app, native, and overlay channels. No stale replay on restart.
+- Persist preferences, provide a preview/test action, and explain differences:
+  Windows controls native delivery/placement/lifetime; Hostlight controls its
+  overlay. Unsupported modes should be reported rather than silently promised.
+
+Acceptance: outage/recovery alerts are visible while working in another app and
+while Hostlight is hidden; preview/disable/preferences persist; no focus theft,
+duplicates, orphan recoveries, or maintenance alerts. Test standard-user ZIP
+startup, Windows notification settings, display scaling/multiple monitors,
+activation, dismissal, restart, and Explorer recovery. Service mode later needs
+an interactive-user notification bridge, not a service-owned desktop window.
+
+## Track 2 — Webhook integrations
 
 Why: connect Hostlight to existing incident/ticket/chat workflows with less
 receiver-side translation. Existing generic JSON, scopes, bearer authentication,
@@ -51,7 +85,7 @@ payload/header previews redact secrets; scopes and selected events route
 correctly; retries preserve event identity; cooldown/recovery behavior is tested
 across restart, maintenance, destination edits, and rapid state changes.
 
-## Track 2 — Windows service and start at boot
+## Track 3 — Windows service and start at boot
 
 Why: infrastructure monitoring must survive closing the GUI and user logout,
 and start without an interactive login. Startup of the GUI at login is not a
@@ -80,7 +114,7 @@ unauthorized IPC clients cannot read secrets or change configuration; stop and
 upgrade drain writes; crash recovery avoids duplicate logical transitions;
 service and standalone migration is tested on a fresh Windows machine.
 
-## Track 3 — Dependency suppression
+## Track 4 — Dependency suppression
 
 Why: when a VPN fails, downstream infrastructure should not generate thousands
 of separate outage alerts. Service monitoring makes this especially valuable.
@@ -144,7 +178,7 @@ User request (2026-10-13): add a discoverable in-app keyboard-shortcut reference
 preferably under Help or a small help page. List shortcuts and their actions,
 explain context-specific keys where relevant, and keep the reference synchronized
 with native menus and actual bindings. This improves discoverability without
-changing the approved webhook/service/dependency priority order.
+changing the approved notification/webhook/service/dependency priority order.
 
 User request (2026-10-13): make version/build identification useful in support
 info. The current About report and diagnostic JSON already expose `release`,
@@ -153,14 +187,13 @@ and release packaging embeds the requested version; ordinary local builds show
 clean/modified source status where available), alongside release version, in
 About and sanitized diagnostics. Label development builds explicitly, avoid
 personal build paths, and verify release metadata matches the packaged artifact.
-Track this as release-support polish, separate from the three major feature tracks.
+Track this as release-support polish, separate from the four major feature tracks.
 
-No fixed ordering after the three priority tracks:
+No fixed ordering after the four priority tracks:
 
 - Authenticated HTTP probes and explicit redirect policies; DNS expected-answer checks.
 - Degraded-state latency/failure-rate policies with clear windows and hysteresis.
 - Recurring/group maintenance and acknowledgments.
-- Background Windows notifications; existing popups only appear inside Hostlight.
 - Advanced tables, comparison charts, customizable layouts. Saved views already exist.
 - Portable/full-workspace migration with explicit credential handling.
 - Installer and optional signing; unsigned ZIP releases remain acceptable.
