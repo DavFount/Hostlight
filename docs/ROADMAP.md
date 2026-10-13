@@ -188,6 +188,9 @@ clean/modified source status where available), alongside release version, in
 About and sanitized diagnostics. Label development builds explicitly, avoid
 personal build paths, and verify release metadata matches the packaged artifact.
 Track this as release-support polish, separate from the four major feature tracks.
+Sidebar release identification was implemented during 1.0 preparation: it uses
+the backend release value and labels unversioned builds as Development build.
+This does not implement the separate commit/build identifier requested above.
 
 No fixed ordering after the four priority tracks:
 

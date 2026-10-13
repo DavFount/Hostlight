@@ -1,6 +1,11 @@
 # Hostlight implementation plan
 
-Status reviewed: 2026-10-12. Implementation underway; not release-qualified.
+Status reviewed: 2026-10-13. Implementation underway; not release-qualified.
+
+1.0 preparation slice: dynamic sidebar release metadata and draft release/known-
+limitations documentation added. Shared verification passed: 135 frontend tests,
+production/type checks, Go tests/vet, packaging checks, and Windows desktop build.
+Final candidate artifact checks and the focused manual cases remain outstanding.
 The Windows preview includes ICMP/TCP/HTTP monitoring, target management and bulk paste,
 saved configuration, dark/light themes, incident history, scoped webhook delivery,
 per-monitor alert suppression, and reviewed monitor backup/import.
@@ -20,21 +25,27 @@ GPL-3.0-only license. Release ZIPs include LICENSE and a matching tagged-source
 link in launch notes. Repository visibility remains a maintainer action; these
 documentation changes do not claim it is public or release-qualified.
 
-Remaining release qualification: record the outstanding Windows/manual checks
-below, desktop process/WebView resource measurements, extended soak with
-retention/cleanup verification, and final ZIP/fresh-machine/version/checksum
-checks. Finish supported-platform/known-limit documentation and release notes.
+Remaining release qualification: finish focused Windows/manual checks below and
+verify the final 1.0.0 artifact. v0.2.0 startup/WebView2, data preservation,
+Quit/relaunch, About version, and checksum checks passed. Known limitations and
+candidate release notes are drafted in `KNOWN_LIMITATIONS.md` and
+`RELEASE_NOTES.md`. On 2026-10-13 the user agreed an additional long Threadripper
+soak is not a 1.0 blocker. Typical-workstation resource/capacity testing remains
+follow-up work, with no supported monitor-capacity or SLA claim.
 Installer, paid signing, service operation, and roadmap features are deferred.
 Requested support polish: a discoverable Help/keyboard-shortcut reference and
 clear version/build identity in About/diagnostics. Release version is already
 embedded by packaging; development builds currently show `early preview` and a
-separate build identifier is not yet implemented. See `ROADMAP.md` for scope.
+separate build identifier is not yet implemented. Sidebar release labels now use
+the same backend release metadata; unversioned builds show Development build.
+See `ROADMAP.md` for scope.
 
 Checklist convention: `[x]` means the stated implementation or verification is
 complete; `[ ]` means work or verification remains. Split partially delivered
 features into separate items rather than leaving completed work unchecked.
 Completed items do not imply that an entire milestone's acceptance criteria pass.
-Manual platform checks, load/soak tests, and release checks remain explicit gates.
+Manual platform and release checks remain explicit gates; user-approved
+deferrals are labeled rather than marked as passed.
 Update this checklist with each implementation slice before requesting a commit.
 
 Implementation note: target settings currently use an atomically replaced, versioned
@@ -218,7 +229,9 @@ elevating the whole desktop app. Confirm library versions at implementation time
 - [x] Provide common TCP service-port choices with custom-port entry.
 - Deferred architecture: introduce shared frontend state/API adapters when complexity warrants them; Pinia remains optional.
 - [x] Show readable status labels and color-independent indicators.
-- [ ] Audit keyboard navigation, focus management, and screen-reader behavior across screens.
+- Follow-up audit: comprehensive screen-reader coverage remains unverified and
+  documented as a limitation. Recorded keyboard/focus checks passed for tested
+  workflows; no comprehensive accessibility certification is claimed for 1.0.
 
 Acceptance: targets can be managed through the UI; invalid input produces useful
 messages; frontend build/type checks pass. Mock status is clearly marked until
@@ -240,7 +253,8 @@ real monitoring is connected.
   Quit/reopen activates persisted values, and restoring defaults works.
   This requires application restart, not a Windows reboot; it is a current
   scheduler design choice, not a Wails restriction.
-- [ ] Record desktop CPU/working set before making supported-capacity claims.
+- Deferred qualification: record typical-workstation CPU/working set before
+  making supported-capacity claims. Not a 1.0 gate; no capacity promise is made.
 - [x] Implement tested failure/recovery state decisions and backend incident/alert transitions.
 - Deferred architecture: implement sequenced frontend reconciliation if replacing snapshot polling.
 - [x] Wire per-target and filtered bulk pause/resume into the live UI.
@@ -542,8 +556,9 @@ remaining platform/release checks remain open. See `LOAD_VERIFICATION.md`.
   pause/restart, and user-confirmed network-change/sleep-gap handling. Complete
   a recorded matrix for standard-user permissions and remaining IPv6/local
   adapter cases rather than repeating already accepted feature checks.
-- [ ] Benchmark an initial 200-target workload at one-second intervals on a recorded
-  Windows reference machine; measure CPU, memory, scheduling delay, and UI responsiveness.
+- Deferred qualification: broader typical-PC capacity/resource measurements.
+  Recorded 200-monitor backend/desktop evidence is not a supported-capacity claim
+  or a requirement for another Threadripper run.
 - [x] Add and run an isolated, opt-in 200-monitor Windows TCP loopback workload
   with real SQLite storage, controlled failures/recoveries, delivered webhooks,
   process CPU, sampled Go heap/queue/goroutines, cadence overhead, and API timing.
@@ -557,12 +572,14 @@ remaining platform/release checks remain open. See `LOAD_VERIFICATION.md`.
   establish remote-network capacity or an extended soak.
 - [x] Complete a 30-minute, 200-monitor desktop queue-warning regression check
   and controlled outage/recovery follow-up after batching (2026-10-12).
-- [ ] Run an extended soak and verify retention, queue bounds, and cleanup.
+- Deferred, user-approved (2026-10-13): additional extended desktop soak is not
+  a 1.0 blocker. Retention, queue bounds, reconciliation, and shutdown tests passed.
   User's tray run reached 6,121 checks on visible cards (2026-10-13); fixture
   expiry explains the later refused connections. No history warning is visible
   in the supplied screenshot. Resource measurements, saved-summary reconciliation,
   and live desktop retention/cleanup evidence remain unrecorded; deterministic
-  storage coverage is recorded separately below. This does not close this gate.
+  storage coverage is recorded separately below. This is a deferral, not a claim
+  that an extended soak was completed.
 - [x] Automated storage qualification (2026-10-13): full Go suite/vet passed.
   Retention tests cover expired data, the exact seven-day probe-minute boundary,
   active incidents, pending deliveries, active-outage delivery markers, and
@@ -580,16 +597,40 @@ remaining platform/release checks remain open. See `LOAD_VERIFICATION.md`.
 - [x] Verify the first hosted publication and basic downloaded-package startup.
   User confirmed the 0.1.0 prerelease runs as expected from the extracted ZIP
   (2026-10-12). This does not establish checksum/version, fresh-machine, or soak checks.
-- [ ] Write curated release notes for the final release candidate.
+- [x] User reported the downloaded v0.2.0 prerelease functions as expected
+  (2026-10-13), including failure/recovery, monitor import/export, and notifications.
+  These are release-binary spot checks on the existing Windows workspace, not a
+  rerun of all release gates. Notification mode was not specified; this does not
+  establish the planned native Windows/desktop-overlay feature. Fresh-machine,
+  artifact checksum/embedded-version, resource, and extended-soak gates remain
+  separate. Existing-profile use alone does not fully verify upgrade migrations.
+- [x] Draft curated 1.0.0 candidate notes in `RELEASE_NOTES.md`; final artifact
+  verification and publication are still pending.
 - Deferred: installer; ZIP distribution is the initial release format.
 - Deferred: revisit optional code signing when funding or a suitable free option is available;
   keep unsigned distribution explicitly labeled in the meantime.
 - [ ] Verify fresh-machine ZIP startup, WebView2 requirements, version/checksum,
   and upgrade with existing settings/history. Document ZIP removal and retained
   user data; installer-specific uninstall verification waits for an installer.
+  User confirmed v0.2.0 startup without Wails/Go/Node, WebView2 download/install
+  prompt, preserved monitors/settings/history and popup preview, and clean
+  Quit/reopen (2026-10-13). An initial About snapshot displayed `early preview`;
+  after closing all instances and redownloading, the user screenshot confirms
+  Release `0.2.0`, Go 1.26.0/Wails v2.16.0, ready storage/configuration, and a
+  fresh empty profile. Earlier Go 1.27.2/early-preview evidence suggests a local
+  build was previously running; exact cause was not independently established.
+  Runtime About version verification passed. Deleting app data is not needed
+  to switch builds and is not part of the recommended upgrade process.
+  Downloaded ZIP SHA-256 reported by user:
+  `4ecbd08ca4c1243f5b4c59eb0bc57c10ddc72bcc8928e2e73978833cd164d80f`.
+  Published v0.2.0 SHA256SUMS.txt was retrieved and matches this hash; checksum
+  verification passed. Windows executable Properties version is not separately
+  user-recorded; packaging already validates its resource metadata automatically.
 - [x] Use standalone ZIP distribution for the initial prerelease; defer paid code
   signing while keeping Hostlight free and open source (2026-10-12).
-- [ ] Document supported platforms, configuration location, limits, and known issues.
+- [x] Document supported platform, configuration/data handling, ZIP removal,
+  upgrade precautions, and known/verification limits in `KNOWN_LIMITATIONS.md`,
+  user guides, README, and candidate release notes.
 
 Acceptance: release checks pass on the supported Windows platform, no critical
 monitoring/alerting defects remain, and the README reflects implemented behavior.

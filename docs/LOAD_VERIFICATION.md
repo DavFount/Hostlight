@@ -1,5 +1,12 @@
 # Windows load verification
 
+Qualification decision (2026-10-13): an additional long Threadripper desktop soak
+is deferred and is not a 1.0 blocker. Retain the short-run and deterministic
+storage evidence below, without claiming typical-PC capacity, GUI memory bounds,
+or an overnight soak. Typical-workstation/resource measurements remain follow-up
+work; older pending-soak statements below describe evidence limits, not a renewed
+requirement to run a long test on the same machine.
+
 This opt-in workload measures 200 TCP monitors at one-second intervals, using
 32 concurrent probes and a 250 ms start spread. It runs the real scheduler,
 loopback connections, SQLite history/minute summaries, snapshot APIs, and webhook

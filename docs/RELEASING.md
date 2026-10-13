@@ -2,6 +2,14 @@
 
 [Back to README](../README.md) · [Development](DEVELOPMENT.md)
 
+For stable release preparation, review the [candidate notes](RELEASE_NOTES.md)
+and [known limitations](KNOWN_LIMITATIONS.md). Finalize the notes and ensure the
+published release uses them; the current workflow's generic notes do not substitute
+for the curated 1.0 announcement. Test the actual final archive, including version,
+checksum, existing-data preservation, and Quit/relaunch, before stable publication.
+An additional long Threadripper soak is deferred by user decision; do not convert
+that deferral into a completed test or a supported-capacity claim.
+
 ## Automated checks and releases
 
 **Windows verification** runs formatting checks, backend tests/vet, packaging-helper

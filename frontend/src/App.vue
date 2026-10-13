@@ -11,6 +11,7 @@ import CertificateExpiry from './components/CertificateExpiry.vue'
 import VisualAlerts from './components/VisualAlerts.vue'
 import SavedViews from './components/SavedViews.vue'
 import SupportInfo from './components/SupportInfo.vue'
+import ReleaseLabel from './components/ReleaseLabel.vue'
 import DesktopControls from './components/DesktopControls.vue'
 import SchedulingControls from './components/SchedulingControls.vue'
 import HistoryPreferences from './components/HistoryPreferences.vue'
@@ -114,7 +115,7 @@ onUnmounted(()=>clearInterval(timer))
 </script>
 <template>
 <div class="shell" :class="density">
-<aside><div class="brand"><img :src="hostlightLogo" alt="" width="36" height="36"> Hostlight</div><div class="workspace"><small>WORKSPACE</small><strong>Local network</strong><span>Desktop monitoring</span></div><button class="nav" :aria-current="view==='monitors'?'page':undefined" @click="navigate('monitors')">▦ Monitors <span>{{targets.length}}</span></button><button class="nav" :aria-current="view==='history'?'page':undefined" @click="navigate('history')">◷ Incident history</button><p class="sidebar-note">● Checks run on this computer<br>Keep Hostlight running. Hiding to tray is OK.</p><footer>HOSTLIGHT · EARLY PREVIEW</footer></aside>
+<aside><div class="brand"><img :src="hostlightLogo" alt="" width="36" height="36"> Hostlight</div><div class="workspace"><small>WORKSPACE</small><strong>Local network</strong><span>Desktop monitoring</span></div><button class="nav" :aria-current="view==='monitors'?'page':undefined" @click="navigate('monitors')">▦ Monitors <span>{{targets.length}}</span></button><button class="nav" :aria-current="view==='history'?'page':undefined" @click="navigate('history')">◷ Incident history</button><p class="sidebar-note">● Checks run on this computer<br>Keep Hostlight running. Hiding to tray is OK.</p><ReleaseLabel /></aside>
  <main><header><div><small>{{view==='settings'?'PREFERENCES':view==='about'?'ABOUT HOSTLIGHT':view==='history'?'INCIDENT HISTORY':'NETWORK OVERVIEW'}}</small><h1 tabindex="-1" ref="pageHeading">{{view==='settings'?'Make Hostlight work your way.':view==='about'?'About Hostlight':view==='history'?'Every outage has a timeline.':'Your network, at a glance.'}}</h1><p>{{view==='settings'?'Manage alerts, appearance, monitoring, and desktop behavior.':view==='about'?'Local monitoring. Useful context when you need support.':view==='history'?'Review availability changes, recovery, and monitoring gaps.':'Watch availability. Catch changes. Stay in control.'}}</p></div><div v-if="view==='monitors'" class="header-actions"><button @click="editBulk()">Add multiple</button><button class="primary" @click="edit()">＋ Add monitor</button></div></header>
  <div class="notice">Ping, TCP &amp; HTTP monitoring · Targets and pause settings are saved automatically. Checks resume when you reopen Hostlight.</div><div v-if="configuration.error" class="error" role="alert">{{configuration.error}} Settings file: {{configuration.path}}</div><div v-if="!api()" class="notice">Browser preview. Launch through Wails for live checks.</div><div v-if="error&&!editing" class="error" role="alert">{{error}}</div>
  <div v-if="configuration.historyError" class="error" role="alert">{{configuration.historyError}}</div>

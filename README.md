@@ -43,6 +43,7 @@ Open **File → Settings** for appearance, alerts, scheduling, and backups. **He
 | [Alerts and history](docs/ALERTS_AND_HISTORY.md) | Incident semantics, webhooks, maintenance, delivery, and retention |
 | [Development](docs/DEVELOPMENT.md) | Prerequisites, local setup, builds, tests, and project layout |
 | [Release guide](docs/RELEASING.md) | Versioning, packaging, checksums, and publication |
+| [Known limitations](docs/KNOWN_LIMITATIONS.md) | Platform support, data handling, and verification limits |
 | [Implementation status](docs/IMPLEMENTATION_PLAN.md) | Delivered work, verification evidence, and remaining release gates |
 | [Roadmap](docs/ROADMAP.md) | Windows notifications, webhooks, service mode, then dependency suppression |
 
