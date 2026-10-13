@@ -73,6 +73,15 @@ reported recovery duration. An open-window test payload uses event `test` and
 incident ID 0, distinct from actual outage/recovery events. This is targeted
 hidden-delivery evidence, not part of the 200-monitor fixture workload.
 
+Second-launch activation passed (2026-10-13): following the packaged-executable
+test instructions, the user confirmed relaunching restored the existing UI with
+no duplicate window. This does not establish real Explorer restart recovery.
+
+Explorer recovery subsequently passed (2026-10-13): the user confirmed Hostlight
+survived a real Explorer restart during the requested tray-recovery check.
+The targeted tray lifecycle checklist is complete. Extended soak, resource
+measurements, retention/cleanup, and other release gates remain separate.
+
 History queue follow-up: the user subsequently observed a history queue-full
 warning. Earlier short passes do not establish sustained history reliability.
 The history writer now batches up to 64 already-queued events per transaction;

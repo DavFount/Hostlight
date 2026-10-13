@@ -460,8 +460,12 @@ Tests cover retries, restart recovery, timeouts, redaction, and terminal failure
   tray (2026-10-13). Supplied schema-1 payloads share incident ID 407 with distinct
   event IDs; outage at 18:28:31 UTC and recovery at 18:29:01 UTC report 30 seconds
   observed duration. Open-window test delivery also passed (event test, incident 0).
-- [ ] Manually verify second-launch activation of an already-running instance
-  and real Explorer restart recovery.
+- [x] User verified launching the packaged executable again while the existing
+  app was hidden restores its UI without a duplicate window (2026-10-13).
+- [x] User confirmed Hostlight survived a real Windows Explorer restart during
+  the tray-recovery verification (2026-10-13). This completes the recorded tray
+  lifecycle checks: hidden monitoring/delivery, restore, Quit/relaunch,
+  second-launch activation, and Explorer recovery.
 - [x] User confirmed minimizing to the system tray works (2026-10-11).
   This does not establish the remaining hidden-monitoring and lifecycle checks.
 - [x] Add versioned monitor configuration import/export with preview and validation.
