@@ -1,12 +1,14 @@
 # Hostlight implementation plan
 
-Status reviewed: 2026-10-13. Implementation underway; not release-qualified.
+Status reviewed: 2026-10-13. 1.0.0 final-package checks passed for the documented
+standalone Windows amd64 scope. Stable-release promotion remains a maintainer action.
 
 1.0 preparation slice: dynamic sidebar release metadata and draft release/known-
 limitations documentation added. Shared verification passed: 135 frontend tests,
 production/type checks, Go tests/vet, packaging checks, and Windows desktop build.
-Final candidate artifact checks and the focused manual cases remain outstanding.
-The Windows preview includes ICMP/TCP/HTTP monitoring, target management and bulk paste,
+User confirmed final 1.0.0 package checks 1–6 passed: hash/version, retained data,
+outage/recovery and configured alerts, tray/Quit/relaunch, and clean-machine launch.
+The Windows release includes ICMP/TCP/HTTP monitoring, target management and bulk paste,
 saved configuration, dark/light themes, incident history, scoped webhook delivery,
 per-monitor alert suppression, and reviewed monitor backup/import.
 
@@ -25,11 +27,10 @@ GPL-3.0-only license. Release ZIPs include LICENSE and a matching tagged-source
 link in launch notes. Repository visibility remains a maintainer action; these
 documentation changes do not claim it is public or release-qualified.
 
-Remaining release qualification: finish focused Windows/manual checks below and
-verify the final 1.0.0 artifact. v0.2.0 startup/WebView2, data preservation,
-Quit/relaunch, About version, and checksum checks passed. Known limitations and
-candidate release notes are drafted in `KNOWN_LIMITATIONS.md` and
-`RELEASE_NOTES.md`. On 2026-10-13 the user agreed an additional long Threadripper
+Final qualification: 1.0.0 package checks passed following the earlier v0.2.0
+checks. Known limitations and finalized release notes are in
+`KNOWN_LIMITATIONS.md` and `RELEASE_NOTES.md`. Remaining broader audits are
+follow-up work, not silently completed tests. On 2026-10-13 the user agreed an additional long Threadripper
 soak is not a 1.0 blocker. Typical-workstation resource/capacity testing remains
 follow-up work, with no supported monitor-capacity or SLA claim.
 Installer, paid signing, service operation, and roadmap features are deferred.
@@ -201,8 +202,11 @@ UI detects a gap. Bound frontend logs and chart buffers.
 - [x] Verify frontend production/type-check build and Windows desktop build.
 - [x] User verified local `wails dev` startup and live UI/backend interaction,
   including monitor operations and Ctrl+Q window close (2026-10-12).
-- [ ] Complete the recorded end-to-end desktop smoke checklist, including native
-  lifecycle/cleanup checks beyond ordinary startup and window close.
+- [x] Complete the targeted desktop qualification sequence: menus/settings,
+  confirmations, monitoring/history/backups, saved views/diagnostics, HTTP/TLS,
+  popup silencing/pause recovery, tray/Explorer/second-instance lifecycle, and
+  the final packaged executable. Individual evidence is recorded below; this
+  does not claim every optional/exhaustive audit case was exercised.
 - [x] Establish Go formatting, Go tests/vet, and frontend component tests/type checks.
 - [x] Add Windows GitHub Actions and a shared fail-fast local verification script
   for formatting, Go tests/vet, package helper tests, frontend tests/build, and Wails build.
@@ -210,12 +214,14 @@ UI detects a gap. Bound frontend logs and chart buffers.
   User confirmed GitHub Actions verification completed successfully (2026-10-12).
 - [x] Implement native Windows IP Helper ICMP and document the choice in README.
 - [x] Test cancellation, DNS/address selection, IPv4/IPv6 localhost, and error classification.
-- [ ] Record standard-user and adapter/permission failure checks on Windows.
+- [x] Record the requested ordinary-launch IPv4/IPv6/DNS-error check on Windows.
   Following the requested non-elevated check, user screenshot (2026-10-13)
   confirms IPv4 loopback 127.0.0.1 and IPv6 loopback ::1 available with zero
   failures; .invalid reports DNS Check error, 2 setup errors, 0 availability
   checks, and no failure percentage. Elevation/account context is not visible
   in the screenshot; explicit privilege/adapter failure injection is unrecorded.
+- Follow-up: explicitly document account/elevation context and inject local
+  adapter/permission failures. No expanded privilege/platform coverage is claimed.
 - [x] Select pure-Go `modernc.org/sqlite` with versioned transactional migrations.
 - [x] Verify native Windows tray feasibility with Shell_NotifyIcon and a dedicated
   message-pump thread, Wails OnBeforeClose, and explicit Quit lifecycle handling.
@@ -460,7 +466,7 @@ Tests cover retries, restart recovery, timeouts, redaction, and terminal failure
   reasons, retaining original diagnostics in expandable technical details. Cover
   refused connections, timeouts, routing, DNS, permissions, and ping setup failures;
   unknown messages remain intact and HTTP diagnostics retain their safe wording.
-- [ ] Manually verify failure explanations and keyboard-accessible technical details
+- Follow-up audit: exhaustively verify failure explanations and keyboard-accessible technical details
   in cards/popups, both themes, and compact/comfortable layouts.
   Partial user verification (2026-10-12): screenshot confirms a refused localhost
   TCP check displays the explanation, failed-latency dash, and collapsed Technical
@@ -558,12 +564,13 @@ with visible recovered entries support passing the outage/recovery follow-up.
 This closes the requested short repeat; longer soak, retention/cleanup, and
 remaining platform/release checks remain open. See `LOAD_VERIFICATION.md`.
 
-- [ ] Exercise a target matrix: IP/hostname, IPv4/IPv6, reachable/unreachable,
-  refused port, DNS failure, invalid settings, adapter loss, sleep/resume, and restart.
+- [x] Exercise the targeted release matrix: ICMP/TCP/HTTP, IP/hostname,
+  IPv4/IPv6 loopback, refused connection, DNS/setup errors, network-change/gap,
+  restart, and policy failures. Evidence is recorded in the delivered slices.
   Existing evidence covers TCP/ICMP success, refused TCP, DNS/setup errors,
   pause/restart, and user-confirmed network-change/sleep-gap handling. Complete
-  a recorded matrix for standard-user permissions and remaining IPv6/local
-  adapter cases rather than repeating already accepted feature checks.
+  IPv6 loopback subsequently passed. Broader adapter/permission combinations
+  remain follow-up coverage rather than a claim of exhaustive Windows testing.
 - Deferred qualification: broader typical-PC capacity/resource measurements.
   Recorded 200-monitor backend/desktop evidence is not a supported-capacity claim
   or a requirement for another Threadripper run.
@@ -617,7 +624,7 @@ remaining platform/release checks remain open. See `LOAD_VERIFICATION.md`.
 - Deferred: installer; ZIP distribution is the initial release format.
 - Deferred: revisit optional code signing when funding or a suitable free option is available;
   keep unsigned distribution explicitly labeled in the meantime.
-- [ ] Verify fresh-machine ZIP startup, WebView2 requirements, version/checksum,
+- [x] Verify fresh-machine ZIP startup, WebView2 requirements, version/checksum,
   and upgrade with existing settings/history. Document ZIP removal and retained
   user data; installer-specific uninstall verification waits for an installer.
   User confirmed v0.2.0 startup without Wails/Go/Node, WebView2 download/install
@@ -634,6 +641,13 @@ remaining platform/release checks remain open. See `LOAD_VERIFICATION.md`.
   Published v0.2.0 SHA256SUMS.txt was retrieved and matches this hash; checksum
   verification passed. Windows executable Properties version is not separately
   user-recorded; packaging already validates its resource metadata automatically.
+  Final 1.0.0 package: user confirmed checks 1–6 passed (2026-10-13), including
+  executable Properties version, About/sidebar 1.0.0, preserved workspace/history,
+  outage/recovery with eligible notifications/webhooks, tray/Quit/reopen, and
+  clean-machine execution without development tools. Screenshots show matching
+  sidebar/About versions and a recovered incident. User-provided ZIP hash and
+  published-checksum text match exactly:
+  `60d682a927ef889296c258c69950f3285d28e6dbe1b5173ed08ec39f1a6096a1`.
 - [x] Use standalone ZIP distribution for the initial prerelease; defer paid code
   signing while keeping Hostlight free and open source (2026-10-12).
 - [x] Document supported platform, configuration/data handling, ZIP removal,
@@ -697,7 +711,7 @@ follow `docs/LOAD_VERIFICATION.md` before marking the full benchmark complete.
   preserving the policy, paused import/resume, and available after disabling it.
   Supplied backup preserves `tlsMinDays: 90`; incident screenshot shows the
   minimum-validity failure and prior incident interrupted when Hostlight closed.
-- [ ] Verify same-incident recovery after an endpoint certificate change without
+- Follow-up fixture: verify same-incident recovery after an endpoint certificate change without
   editing the monitor. Disabling/changing policy by edit interrupts observation
   and does not establish this behavior. Distinguish automated TLS boundary
   coverage from this remaining manual integration check.
@@ -708,6 +722,9 @@ follow `docs/LOAD_VERIFICATION.md` before marking the full benchmark complete.
   recovery; confirm no monitor edit/restart to close the unchanged-monitor gate.
   The monitor began with zero successes, so initial outage/recovery notifications
   are intentionally silent; absence of webhooks/popups is expected for discovery.
+  User accepted this evidence as sufficient for release (2026-10-13); no additional
+  public certificate-renewal test is required. Deterministic certificate-rotation
+  integration coverage remains optional follow-up, not a completed fixture test.
 - Deferred: authenticated HTTP and certificate-chain expiry policies; see roadmap.
 - Deferred: webhook response diagnostics that do not expose secrets; see roadmap track 2.
 

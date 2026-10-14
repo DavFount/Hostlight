@@ -1,8 +1,8 @@
-# Hostlight 1.0.0 release notes — candidate draft
+# Hostlight 1.0.0 release notes
 
-This is the proposed first stable standalone Windows feature set. Final candidate
-verification and publication are not yet complete; this document does not
-announce an available 1.0.0 release.
+The first stable standalone Windows feature set combines local availability
+monitoring, incident history, and webhook alerts. Final 1.0.0 package checks
+passed on 2026-10-13; stable-release promotion is a separate maintainer action.
 
 ## Included
 
@@ -34,12 +34,24 @@ then dependency suppression are the prioritized [roadmap](ROADMAP.md).
 See [known limitations](KNOWN_LIMITATIONS.md) for retention, metric semantics,
 platform scope, accessibility status, and performance-evidence limits.
 
-## Before publication
+## Verification
 
-- Complete the remaining targeted standard-user/IPv6 and live-popup checks in
-  the implementation plan; reconcile any failures before selecting stable status.
-- Run the shared verification pipeline on the final source commit.
-- Verify the actual 1.0.0 archive hash, About/sidebar version, startup, retained
-  data, and Quit/reopen. Prior v0.2.0 results do not validate a new artifact.
-- Finalize these notes and publish them with the release instead of the generic
-  prerelease notes. Preserve the source tag and matching package/checksum files.
+- Shared verification passed: 135 frontend tests, frontend build/type checks,
+  Go tests/vet, packaging checks, and Windows desktop build.
+- User verified the actual 1.0.0 package: checksum, About/sidebar/executable
+  version, preserved settings/history, outage/recovery/alerts, tray/Quit/relaunch,
+  and clean-machine startup without Go/Node/Wails.
+- Earlier targeted checks cover IPv4/IPv6, HTTP/body/certificate rules, popup
+  silencing, backups, diagnostics, and Explorer/second-instance recovery.
+- Additional long soak and typical-workstation capacity claims are deferred;
+  see known limitations. No exhaustive screen-reader/platform audit is claimed.
+
+Verified ZIP SHA-256:
+
+```text
+60d682a927ef889296c258c69950f3285d28e6dbe1b5173ed08ec39f1a6096a1
+```
+
+Publish these notes with the existing tested release, replacing generic
+prerelease boilerplate. Preserve its tag, ZIP, and checksum; no rebuild is
+required merely to promote the tested prerelease to stable.

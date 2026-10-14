@@ -4,7 +4,7 @@
 
 Hostlight is a free, open-source Windows desktop tool for monitoring hosts and services. Inspired by [vmPing](https://github.com/r-smith/vmPing), it combines at-a-glance availability with useful history and webhook alerts.
 
-**Preview:** core workflows have been tested, but final release qualification is still in progress. Builds are unsigned. Hostlight must stay running to monitor; Windows service/start-at-boot support is planned.
+**1.0.0 package verification passed** for the standalone Windows release. Builds are unsigned. Hostlight must stay running to monitor; Windows service/start-at-boot support is planned. See the [release notes](docs/RELEASE_NOTES.md) and [known limitations](docs/KNOWN_LIMITATIONS.md).
 
 ## What it does
 
