@@ -11,6 +11,10 @@ on:
         description: 'Mark as a prerelease (recommended until release gates pass)'
         type: boolean
         default: true
+      macos_preview:
+        description: 'Include the macOS preview and keep the release in draft for download testing'
+        type: boolean
+        default: false
 
 permissions:
   contents: read
@@ -42,8 +46,13 @@ jobs:
           REQUESTED_VERSION: ${{ inputs.version }}
           GH_TOKEN: ${{ github.token }}
           GH_REPO: ${{ github.repository }}
+          MACOS_PREVIEW: ${{ inputs.macos_preview }}
+          PRERELEASE: ${{ inputs.prerelease }}
         run: |
           if ($env:GITHUB_REF -ne 'refs/heads/main') { throw 'Run Publish release from main.' }
+          if ($env:MACOS_PREVIEW -eq 'true' -and $env:PRERELEASE -ne 'true') {
+            throw 'Enable prerelease when including the macOS preview.'
+          }
           . ./scripts/release-tools.ps1
           $version = ConvertTo-ReleaseVersion $env:REQUESTED_VERSION
           $refs = gh api "repos/$env:GH_REPO/git/matching-refs/tags/v$version"
@@ -87,9 +96,18 @@ jobs:
           if-no-files-found: error
           retention-days: 14
 
-  publish:
-    name: Publish verified packages
+  macos:
+    name: Verify and package macOS preview
+    if: inputs.macos_preview
     needs: build
+    uses: ./.github/workflows/verify-macos.yml
+    with:
+      version: ${{ needs.build.outputs.version }}
+
+  publish:
+    name: Stage or publish verified packages
+    needs: [build, macos]
+    if: ${{ !cancelled() && needs.build.result == 'success' && (needs.macos.result == 'success' || (!inputs.macos_preview && needs.macos.result == 'skipped')) }}
     runs-on: ubuntu-latest
     timeout-minutes: 10
     permissions:
@@ -99,12 +117,18 @@ jobs:
         with:
           name: release-packages
           path: packages
-      - name: Create and publish release
+      - uses: actions/download-artifact@v4
+        if: inputs.macos_preview
+        with:
+          name: release-macos
+          path: packages
+      - name: Create release
         env:
           GH_TOKEN: ${{ github.token }}
           GH_REPO: ${{ github.repository }}
           RELEASE_VERSION: ${{ needs.build.outputs.version }}
           PRERELEASE: ${{ inputs.prerelease }}
+          MACOS_PREVIEW: ${{ inputs.macos_preview }}
         shell: bash
         run: |
           set -euo pipefail
@@ -122,6 +146,16 @@ jobs:
 
           Release gates, including fresh-machine, upgrade/uninstall, load/soak, and signing checks, remain separate from automated tests.
           NOTES
+          if [[ "$MACOS_PREVIEW" == 'true' ]]; then
+            test -f "packages/hostlight-$RELEASE_VERSION-macos-universal.zip"
+            (cd packages && sha256sum -- *.zip > SHA256SUMS.txt && sha256sum -c SHA256SUMS.txt)
+            cat >> release-notes.md <<'NOTES'
+
+          **macOS preview for Apple Silicon and Intel:** Extract the ZIP and open `Hostlight.app`. The app is ad-hoc signed and has no Apple Developer ID signature or notarization. Gatekeeper may block first launch. Verify the ZIP against `SHA256SUMS.txt` and see [Apple's instructions](https://support.apple.com/en-us/102445).
+
+          Use TCP or HTTP/HTTPS checks on macOS. ICMP ping, tray monitoring, and encrypted webhook credential storage are Windows-only.
+          NOTES
+          fi
           # Atomically create the tag on GitHub at the tested SHA. If another
           # publisher created it after our check, fail instead of reusing it.
           gh api --method POST "repos/$GH_REPO/git/refs" -f "ref=refs/tags/$tag" -f "sha=$GITHUB_SHA"
@@ -129,4 +163,6 @@ jobs:
           if [[ "$PRERELEASE" == 'true' ]]; then args+=(--prerelease); fi
           # Upload into a draft first. A failed upload must not publish partial assets.
           gh release create "$tag" packages/*.zip packages/SHA256SUMS.txt "${args[@]}"
-          gh release edit "$tag" --repo "$GH_REPO" --draft=false
+          if [[ "$MACOS_PREVIEW" != 'true' ]]; then
+            gh release edit "$tag" --repo "$GH_REPO" --draft=false
+          fi

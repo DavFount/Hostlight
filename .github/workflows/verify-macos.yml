@@ -1,0 +1,52 @@
+name: macOS verification
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+  workflow_call:
+    inputs:
+      version:
+        type: string
+        default: ''
+
+permissions:
+  contents: read
+
+jobs:
+  macos:
+    name: Tests and universal desktop build
+    runs-on: macos-15
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          persist-credentials: false
+      - uses: actions/setup-go@v6
+        with:
+          go-version-file: go.mod
+          cache: true
+      - uses: actions/setup-node@v6
+        with:
+          node-version: '24'
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+      - name: Install matching Wails CLI
+        run: |
+          wails_version=$(go list -m -f '{{.Version}}' github.com/wailsapp/wails/v2)
+          go install "github.com/wailsapp/wails/v2/cmd/wails@$wails_version"
+          echo "$(go env GOPATH)/bin" >> "$GITHUB_PATH"
+      - name: Verify and build Hostlight
+        env:
+          RELEASE_VERSION: ${{ inputs.version }}
+        run: bash scripts/verify-macos.sh "$RELEASE_VERSION"
+      - name: Check build metadata
+        run: git diff --exit-code -- wails.json go.mod go.sum frontend/package.json frontend/package-lock.json
+      - name: Upload macOS release package
+        if: inputs.version != ''
+        uses: actions/upload-artifact@v4
+        with:
+          name: release-macos
+          path: build/bin/release/${{ inputs.version }}/hostlight-${{ inputs.version }}-macos-universal.zip
+          if-no-files-found: error
+          retention-days: 14

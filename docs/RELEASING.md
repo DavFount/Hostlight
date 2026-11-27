@@ -18,16 +18,25 @@ requests. It uses the Go version in `go.mod`, Node 24, and the Wails CLI version
 matching the module. Successful runs retain an unsigned verification executable
 for seven days. The badge reflects GitHub runs, not local results.
 
+**macOS verification** runs the frontend and Go checks on Apple Silicon, builds
+a universal app, and validates both Mach-O slices and the ad-hoc bundle signature.
+An Intel machine is needed to verify native Intel launch and behavior.
+
 To publish without creating or pushing a Git tag yourself:
 
 1. Push these workflows to `main`.
 2. Open **Actions → Publish release → Run workflow** and select `main`.
 3. Enter an unused three-part version such as `0.1.0` (no `v` prefix).
-4. Keep **prerelease** enabled while release acceptance checks remain incomplete.
+4. For macOS, enable **macos_preview** and **prerelease**. The workflow leaves
+   both platform ZIPs and a shared `SHA256SUMS.txt` in a draft release.
+5. For a draft, download the actual macOS ZIP from the release page in a browser,
+   verify its SHA-256, and run the Mac acceptance checks below before publishing
+   the draft as a prerelease.
 
-The action reruns verification, embeds the version in the executable/support
-screen, packages a Windows amd64 ZIP and `SHA256SUMS.txt`, and publishes a GitHub
-release. GitHub creates `v<version>` at the exact tested commit automatically.
+The action reruns verification, embeds the version in the app and About screen,
+and packages the Windows amd64 ZIP and optional macOS ZIP. Windows-only runs
+publish automatically after asset upload. GitHub creates `v<version>` at the
+exact tested commit automatically.
 Release tags are still used by GitHub, but no manual tag commands are needed.
 Existing tags/releases are not overwritten. Uploads happen into a draft before
 publication; an interrupted upload may leave a draft and tag requiring manual cleanup
@@ -55,3 +64,22 @@ Local verification (Go, Node/npm, Git, and the matching Wails CLI on PATH):
 See [the desktop smoke checklist](DESKTOP_SMOKE_TEST.md) for native manual
 checks that CI does not prove. Native tray interaction is intentionally excluded
 from hosted CI; its short local smoke requires `HOSTLIGHT_TRAY_SMOKE=1`.
+
+## macOS preview acceptance
+
+1. Run `bash scripts/verify-macos.sh 1.0.1` locally with Xcode Command Line
+   Tools, Git, Go, Node/npm, and the matching Wails CLI. Substitute the planned
+   version. The ZIP appears under `build/bin/release/<version>/`.
+2. On the draft downloaded from GitHub, compare `shasum -a 256 <zip>` with
+   the matching entry in `SHA256SUMS.txt`. Extract with Finder and open
+   `Hostlight.app`. Check the first-launch Gatekeeper behavior and the README
+   instructions on a Mac without an existing exception. Confirm the expected
+   version under **Help → About Hostlight**.
+3. Add a TCP monitor and an HTTP/HTTPS monitor against controlled endpoints.
+   Verify healthy checks, then stop and restart an endpoint and confirm the
+   failure, recovery, and incident history.
+4. Change a setting, quit using **File → Quit Hostlight**, and reopen the app.
+   Confirm the setting, monitors, and history persist. Test replacement of
+   an older preview against a backed-up profile when one exists.
+5. Repeat the launch and monitoring checks on Intel for native Intel coverage.
+   Record which macOS versions and architectures passed before publishing.
