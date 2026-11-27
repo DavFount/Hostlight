@@ -1,10 +1,11 @@
 # Hostlight
 
 [![Windows verification](https://github.com/DavFount/Hostlight/actions/workflows/verify.yml/badge.svg?branch=main)](https://github.com/DavFount/Hostlight/actions/workflows/verify.yml)
+[![macOS verification](https://github.com/DavFount/Hostlight/actions/workflows/verify-macos.yml/badge.svg?branch=main)](https://github.com/DavFount/Hostlight/actions/workflows/verify-macos.yml)
 
-Hostlight is a free, open-source Windows desktop tool for monitoring hosts and services. Inspired by [vmPing](https://github.com/r-smith/vmPing), it combines at-a-glance availability with useful history and webhook alerts.
+Hostlight is a free, open-source desktop tool for monitoring hosts and services. Inspired by [vmPing](https://github.com/r-smith/vmPing), it combines at-a-glance availability with useful history and webhook alerts.
 
-**1.0.0 package verification passed** for the standalone Windows release. Builds are unsigned. Hostlight must stay running to monitor; Windows service/start-at-boot support is planned. See the [release notes](docs/RELEASE_NOTES.md) and [known limitations](docs/KNOWN_LIMITATIONS.md).
+**Windows 1.0.0 package verification passed.** macOS packages are available as previews when included in a prerelease. Hostlight must stay running to monitor. See the [release notes](docs/RELEASE_NOTES.md) and [known limitations](docs/KNOWN_LIMITATIONS.md).
 
 ## What it does
 
@@ -17,13 +18,12 @@ Hostlight is a free, open-source Windows desktop tool for monitoring hosts and s
 
 ## Get started
 
-1. Download a Windows amd64 ZIP from [Releases](https://github.com/DavFount/Hostlight/releases).
-2. Extract it and run `Hostlight/hostlight.exe`. Microsoft Edge WebView2 Runtime is required.
-3. Choose **Add monitor** or **Add multiple**, select a check type, and enter your targets.
+Download the ZIP for your platform from [GitHub Releases](https://github.com/DavFount/Hostlight/releases). Verify the ZIP against the release's `SHA256SUMS.txt` before opening it.
 
-Packages include `SHA256SUMS.txt` for checksum verification. Unsigned builds may trigger a Windows SmartScreen warning; use this repository's release artifacts. The ZIP is not an installer or portable-data mode. Settings and history are saved under `%APPDATA%\Hostlight` and survive replacing the executable.
+- **Windows (amd64).** Extract the ZIP and run `Hostlight/hostlight.exe`. Microsoft Edge WebView2 Runtime is required. **The executable is unsigned, and Windows SmartScreen may warn.** Settings and history live in `%APPDATA%\Hostlight`.
+- **macOS preview (Apple Silicon and Intel, macOS 13 or later).** Extract the ZIP and open `Hostlight.app`. **The app is ad-hoc signed and lacks Apple Developer ID signing and notarization. Gatekeeper may block first launch.** If you've verified the official download and choose to proceed, try opening the app, then use **System Settings → Privacy & Security → Open Anyway** if offered. Settings and history live in `~/Library/Application Support/Hostlight`. [Apple's Gatekeeper guidance](https://support.apple.com/en-us/102445)
 
-Open **File → Settings** for appearance, alerts, scheduling, and backups. **Help → About Hostlight** contains support information and sanitized diagnostics. Close-to-tray is optional; use **Quit Hostlight** to stop monitoring explicitly.
+Choose **Add monitor** or **Add multiple**, select a check type, and enter your targets. Open **File → Settings** for appearance, alerts, scheduling, and backups. **Help → About Hostlight** contains support information and sanitized diagnostics. Windows offers optional close-to-tray monitoring. Use **Quit Hostlight** to stop monitoring.
 
 ## Things to know
 
@@ -32,7 +32,7 @@ Open **File → Settings** for appearance, alerts, scheduling, and backups. **He
 - Failed-check percentages describe observed checks, not SLA uptime or packet loss.
 - Saved probe summaries retain up to seven days, subject to a global record cap.
 - Monitor backups exclude credentials and history. Stored/exported URLs may be sensitive.
-- Windows is the tested preview platform; other platforms are not release-qualified.
+- The macOS preview supports TCP and HTTP/HTTPS checks. ICMP ping, tray monitoring, and encrypted webhook credential storage are Windows-only.
 
 ## Documentation
 

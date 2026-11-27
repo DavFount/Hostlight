@@ -1,15 +1,19 @@
 # Supported platform and known limitations
 
-This document describes the standalone Windows release scope. It does not claim
-that every platform or accessibility combination has been verified.
+This document covers the standalone Windows release and the macOS preview.
 
 ## Installation and local data
 
-- Windows amd64 is the tested package target. macOS, Linux, and Windows ARM64
-  packages are not release-qualified.
+- Windows amd64 is the verified 1.0.0 package target. The macOS universal preview
+  includes Apple Silicon and Intel binaries. Linux and Windows ARM64 lack release packages.
+- macOS supports TCP and HTTP/HTTPS checks. ICMP ping, tray monitoring, and
+  encrypted webhook credential storage require Windows.
+- The Mac preview uses ad-hoc signing and ships without Apple Developer ID
+  signing or notarization. Gatekeeper may block first launch.
+  Mac settings and history live in `~/Library/Application Support/Hostlight`.
 - Microsoft Edge WebView2 Runtime is required. The app can prompt to install it;
   restricted/offline environments may require an administrator to provision it.
-- ZIP packages are unsigned. Windows may display publisher/SmartScreen warnings.
+- The Windows executable is unsigned. Windows may display publisher/SmartScreen warnings.
 - There is no installer. Extract the entire ZIP before running the executable.
 - Settings/history live under `%APPDATA%\Hostlight`, not beside the executable.
   Development and release builds normally share this profile.
