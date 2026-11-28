@@ -147,13 +147,13 @@ jobs:
           Release gates, including fresh-machine, upgrade/uninstall, load/soak, and signing checks, remain separate from automated tests.
           NOTES
           if [[ "$MACOS_PREVIEW" == 'true' ]]; then
-            test -f "packages/hostlight-$RELEASE_VERSION-macos-universal.zip"
+            test -f "packages/hostlight-$RELEASE_VERSION-macos-arm64.zip"
             (cd packages && sha256sum -- *.zip > SHA256SUMS.txt && sha256sum -c SHA256SUMS.txt)
             cat >> release-notes.md <<'NOTES'
 
-          **macOS preview for Apple Silicon and Intel:** Extract the ZIP and open `Hostlight.app`. The app is ad-hoc signed and has no Apple Developer ID signature or notarization. Gatekeeper may block first launch. Verify the ZIP against `SHA256SUMS.txt` and see [Apple's instructions](https://support.apple.com/en-us/102445).
+          **macOS preview for Apple Silicon:** Extract the ZIP and open `Hostlight.app`. The app is ad-hoc signed and has no Apple Developer ID signature or notarization. Gatekeeper may block first launch. Verify the ZIP against `SHA256SUMS.txt` and see [Apple's instructions](https://support.apple.com/en-us/102445).
 
-          Use TCP or HTTP/HTTPS checks on macOS. ICMP ping, tray monitoring, and encrypted webhook credential storage are Windows-only.
+          macOS supports ICMP, TCP, and HTTP/HTTPS checks, optional menu bar monitoring, and encrypted webhook storage backed by macOS Keychain.
           NOTES
           fi
           # Atomically create the tag on GitHub at the tested SHA. If another

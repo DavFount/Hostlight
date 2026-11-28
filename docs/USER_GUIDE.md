@@ -23,11 +23,12 @@ Busy checks wait for capacity; HTTP previews share the same limit. Increasing
 concurrency increases network/CPU load, not a guaranteed supported target count.
 These application settings are not included in monitor backups.
 
-### Windows tray behavior
+### Windows tray and macOS menu bar
 
 Hostlight adds its icon to the Windows notification area while running (Windows
 may put it in the overflow area). Click it to show the window, or right-click for
-**Show Hostlight** and **Quit Hostlight (stop monitoring)**.
+**Show Hostlight** and **Quit Hostlight (stop monitoring)**. On macOS, click
+the Hostlight waveform icon in the menu bar for **Show Hostlight** and **Quit Hostlight**.
 
 Open **File → Settings → General → Desktop behavior** to enable **Close to tray**. It is off
 by default: closing normally quits. When enabled, the window’s close button hides
@@ -38,11 +39,12 @@ restores the existing instance rather than starting another monitor engine.
 
 The preference is saved with local settings, not monitor backups. Close-to-tray
 only hides while a reachable tray icon is available. If the icon disappears,
-Hostlight attempts to restore the window and re-add the icon. The native icon
-health check runs every five seconds. If tray setup fails, closing still quits.
+on Windows, Hostlight attempts to restore the window and re-add the icon.
+The Windows icon health check runs every five seconds. If tray setup fails,
+closing still quits.
 There is no start-hidden, login startup, service mode, or desktop-overlay alert
 behavior in this slice. In-app popups are not visible while hidden; use webhooks
-for unattended alerts. Other platforms do not yet have tray integration.
+for unattended alerts.
 
 Implementation references: [Wails lifecycle options](https://v2.wails.io/docs/reference/options/)
 and [Microsoft notification-area APIs](https://learn.microsoft.com/en-us/windows/win32/api/shellapi/nf-shellapi-shell_notifyicona).
@@ -121,16 +123,15 @@ and replacement, and unreadable configurations are preserved with a visible erro
 
 New monitors default to **Ping (ICMP)**, which requires only a hostname/IP address.
 Select **TCP service** to check a specific port. Existing saved TCP definitions
-retain their type and port. Windows ping uses the native IP Helper API for IPv4
-and IPv6, without spawning a command or parsing localized output. Dual-stack DNS
-names prefer IPv4; IPv6-only names and scoped IPv6 addresses are supported.
+retain their type and port. Windows uses the native IP Helper API. macOS uses
+the system IPv4 and IPv6 ping utilities. Dual-stack DNS names prefer IPv4.
+IPv6-only names and scoped IPv6 addresses are supported.
 
 An ICMP timeout can mean a firewall blocks echo requests, even when a service is
 available. Ping measures echo round-trip time; TCP measures connection-attempt time.
 Windows native ping calls finish within the configured timeout; pause, edits, and
 shutdown discard their results even if the native request is still finishing.
-ICMP on macOS/Linux remains unverified; Windows is the supported preview platform.
-This preview is intended for development and evaluation.
+macOS stops the system ping command when its deadline expires or the check is cancelled.
 
 Monitor cards and outage popups explain recognized connection, timeout, routing,
 DNS, permission, and ping setup failures in plain language. Expand **Technical

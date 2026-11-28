@@ -76,10 +76,11 @@ global scope; saved credentials and pending deliveries are preserved.
 - Initial discovery is silent, even if a monitor starts down. Pausing is not recovery;
   an existing outage remains eligible for recovery after resume. Edits, removals,
   local check errors, observation gaps, and restarts interrupt rather than recover it.
-- URLs, tokens, and signing keys are encrypted using current-user Windows DPAPI
-  before storage in SQLite. They are not returned to the webview. This is not a
-  portable credential backup or Windows Credential Manager entry; other platforms
-  cannot save webhook settings yet. See [Microsoft's DPAPI documentation](https://learn.microsoft.com/en-us/windows/win32/api/dpapi/nf-dpapi-cryptprotectdata).
+- Hostlight encrypts webhook URLs, tokens, and signing keys before saving them
+  in SQLite. Windows uses current-user DPAPI. macOS uses AES-GCM with an
+  encryption key in the user’s Keychain. macOS may ask you to approve Keychain
+  access, including after replacing an ad-hoc signed build. Set up credentials
+  again when moving to another platform or a profile without access to the key.
 - HTTPS verifies certificates. HTTP requires explicit permission and should only
   be used on trusted internal networks. Redirects are never followed.
 - Saving settings cancels pending deliveries for that destination only, including when disabling alerts.

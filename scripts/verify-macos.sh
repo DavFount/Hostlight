@@ -25,7 +25,7 @@ go test ./... -count=1 -timeout=3m
 go vet ./...
 
 # The frontend already built against the committed bindings.
-build_args=(-s -m -nosyncgomod -skipbindings -platform darwin/universal)
+build_args=(-s -m -nosyncgomod -skipbindings -platform darwin/arm64)
 if [[ -n "$version" ]]; then
     if [[ ! "$version" =~ ^(0|[1-9][0-9]{0,4})\.(0|[1-9][0-9]{0,4})\.(0|[1-9][0-9]{0,4})$ ]]; then
         echo 'Use a three-part version without a v prefix.' >&2
@@ -42,7 +42,7 @@ NODE
     build_args+=(-ldflags "-X main.applicationVersion=$version")
 fi
 
-# Match LSMinimumSystemVersion in build/darwin/Info.plist on both slices.
+# Match LSMinimumSystemVersion in build/darwin/Info.plist.
 CGO_CFLAGS="${CGO_CFLAGS:-} -mmacosx-version-min=13.0" \
 CGO_LDFLAGS="${CGO_LDFLAGS:-} -mmacosx-version-min=13.0" \
     wails build "${build_args[@]}"
@@ -51,8 +51,8 @@ plist="$bundle/Contents/Info.plist"
 binary="$bundle/Contents/MacOS/hostlight"
 plutil -lint "$plist"
 archs=$(lipo -archs "$binary")
-if [[ " $archs " != *" arm64 "* || " $archs " != *" x86_64 "* ]]; then
-    printf 'Expected arm64 and x86_64 in the app binary; found %s\n' "$archs" >&2
+if [[ "$archs" != arm64 ]]; then
+    printf 'Expected an arm64 app binary; found %s\n' "$archs" >&2
     exit 1
 fi
 codesign --force --sign - "$bundle"
@@ -62,7 +62,7 @@ if [[ -n "$version" ]]; then
     test "$(plutil -extract CFBundleVersion raw "$plist")" = "$version"
     test "$(plutil -extract CFBundleShortVersionString raw "$plist")" = "$version"
     output="build/bin/release/$version"
-    archive="$output/hostlight-$version-macos-universal.zip"
+    archive="$output/hostlight-$version-macos-arm64.zip"
     if [[ -e "$archive" ]]; then
         echo 'This Mac version is already packaged locally.' >&2
         exit 1
@@ -72,15 +72,15 @@ if [[ -n "$version" ]]; then
     ditto "$bundle" "$staging/Hostlight.app"
     cp LICENSE "$staging/"
     cat > "$staging/README.txt" <<NOTES
-Hostlight $version — macOS preview for Apple Silicon and Intel
+Hostlight $version — macOS preview for Apple Silicon
 
 Extract the ZIP and open Hostlight.app. The app is ad-hoc signed
 and has no Apple Developer ID signature or notarization. Gatekeeper
 may block the first launch. Verify the ZIP with SHA256SUMS.txt from
 the official release. See https://support.apple.com/en-us/102445.
 
-Use TCP or HTTP/HTTPS monitors on macOS. Tray monitoring, ICMP ping,
-and encrypted webhook credential storage are Windows-only.
+macOS supports ICMP, TCP, and HTTP/HTTPS checks, optional menu bar
+monitoring, and encrypted webhook storage backed by macOS Keychain.
 Monitoring stops when you quit Hostlight.
 
 License: GNU GPL version 3 (GPL-3.0-only). See LICENSE.

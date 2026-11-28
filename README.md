@@ -14,16 +14,16 @@ Hostlight is a free, open-source desktop tool for monitoring hosts and services.
 - Groups, bulk add, search, saved views, and individual or filtered pause/resume.
 - Session totals, recent charts, saved probe summaries, incident history, and CSV export.
 - Scoped outage/recovery webhooks, retries, delivery history, and maintenance silencing.
-- Dark/light themes, monitor backups, and Windows tray monitoring.
+- Dark/light themes, monitor backups, and Windows tray or macOS menu bar monitoring.
 
 ## Get started
 
 Download the ZIP for your platform from [GitHub Releases](https://github.com/DavFount/Hostlight/releases). Verify the ZIP against the release's `SHA256SUMS.txt` before opening it.
 
 - **Windows (amd64).** Extract the ZIP and run `Hostlight/hostlight.exe`. Microsoft Edge WebView2 Runtime is required. **The executable is unsigned, and Windows SmartScreen may warn.** Settings and history live in `%APPDATA%\Hostlight`.
-- **macOS preview (Apple Silicon and Intel, macOS 13 or later).** Extract the ZIP and open `Hostlight.app`. **The app is ad-hoc signed and lacks Apple Developer ID signing and notarization. Gatekeeper may block first launch.** If you've verified the official download and choose to proceed, try opening the app, then use **System Settings → Privacy & Security → Open Anyway** if offered. Settings and history live in `~/Library/Application Support/Hostlight`. [Apple's Gatekeeper guidance](https://support.apple.com/en-us/102445)
+- **macOS preview (Apple Silicon, macOS 13 or later).** Extract the ZIP and open `Hostlight.app`. **The app is ad-hoc signed and lacks Apple Developer ID signing and notarization. Gatekeeper may block first launch.** If you've verified the official download and choose to proceed, try opening the app, then use **System Settings → Privacy & Security → Open Anyway** if offered. Settings and history live in `~/Library/Application Support/Hostlight`. [Apple's Gatekeeper guidance](https://support.apple.com/en-us/102445)
 
-Choose **Add monitor** or **Add multiple**, select a check type, and enter your targets. Open **File → Settings** for appearance, alerts, scheduling, and backups. **Help → About Hostlight** contains support information and sanitized diagnostics. Windows offers optional close-to-tray monitoring. Use **Quit Hostlight** to stop monitoring.
+Choose **Add monitor** or **Add multiple**, select a check type, and enter your targets. Open **File → Settings** for appearance, alerts, scheduling, and backups. **Help → About Hostlight** contains support information and sanitized diagnostics. Windows and macOS offer optional close-to-tray monitoring. Use **Quit Hostlight** to stop monitoring.
 
 ## Things to know
 
@@ -32,7 +32,7 @@ Choose **Add monitor** or **Add multiple**, select a check type, and enter your 
 - Failed-check percentages describe observed checks, not SLA uptime or packet loss.
 - Saved probe summaries retain up to seven days, subject to a global record cap.
 - Monitor backups exclude credentials and history. Stored/exported URLs may be sensitive.
-- The macOS preview supports TCP and HTTP/HTTPS checks. ICMP ping, tray monitoring, and encrypted webhook credential storage are Windows-only.
+- macOS stores the webhook encryption key in your Keychain. Configure webhook credentials separately on each Mac or Windows profile.
 
 ## Documentation
 
