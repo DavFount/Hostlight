@@ -32,9 +32,12 @@ func (a *App) desktopReady(ctx context.Context) {
 		return
 	}
 	a.desktop.started = true
-	// Wails' Windows WindowShow restores minimized windows and brings them
-	// forward without unnecessarily restoring an already-maximized window.
-	a.desktop.show = func() { wruntime.WindowShow(ctx) }
+	a.desktop.show = func() {
+		if runtime.GOOS == "darwin" {
+			wruntime.WindowUnminimise(ctx)
+		}
+		wruntime.WindowShow(ctx)
+	}
 	a.desktop.hide = func() { wruntime.WindowHide(ctx) }
 	a.desktop.exit = func() { wruntime.Quit(ctx) }
 	a.mu.Unlock()
@@ -67,7 +70,7 @@ func (a *App) desktopReady(ctx context.Context) {
 func (a *App) GetDesktopStatus() DesktopStatus {
 	a.mu.Lock()
 	defer a.mu.Unlock()
-	return DesktopStatus{Supported: runtime.GOOS == "windows", Available: a.desktop.available, CloseToTray: a.desktop.closeToTray}
+	return DesktopStatus{Supported: (runtime.GOOS == "windows" || runtime.GOOS == "darwin"), Available: a.desktop.available, CloseToTray: a.desktop.closeToTray}
 }
 func (a *App) SetCloseToTray(enabled bool) error {
 	a.mu.Lock()
@@ -76,7 +79,7 @@ func (a *App) SetCloseToTray(enabled bool) error {
 		return fmt.Errorf("Hostlight is shutting down")
 	}
 	if enabled && !a.desktop.available {
-		return fmt.Errorf("The Windows tray is unavailable; close-to-tray was not enabled")
+		return fmt.Errorf("The tray or menu bar item is unavailable; close-to-tray was not enabled")
 	}
 	previous := a.desktop.closeToTray
 	a.desktop.closeToTray = enabled

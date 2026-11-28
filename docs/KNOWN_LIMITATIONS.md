@@ -4,10 +4,10 @@ This document covers the standalone Windows release and the macOS preview.
 
 ## Installation and local data
 
-- Windows amd64 is the verified 1.0.0 package target. The macOS universal preview
-  includes Apple Silicon and Intel binaries. Linux and Windows ARM64 lack release packages.
-- macOS supports TCP and HTTP/HTTPS checks. ICMP ping, tray monitoring, and
-  encrypted webhook credential storage require Windows.
+- Windows amd64 is the verified 1.0.0 package target. The macOS preview targets Apple Silicon.
+  Intel Macs, Linux, and Windows ARM64 lack release packages.
+- The macOS preview uses the system ping utilities and offers optional
+  close-to-tray monitoring through the menu bar.
 - The Mac preview uses ad-hoc signing and ships without Apple Developer ID
   signing or notarization. Gatekeeper may block first launch.
   Mac settings and history live in `~/Library/Application Support/Hostlight`.
@@ -48,7 +48,7 @@ This document covers the standalone Windows release and the macOS preview.
 - Webhooks are at least once; receivers should deduplicate using event IDs.
 - URLs/configuration/history can contain sensitive information. Monitor backups
   exclude history and webhook secrets but are not anonymized.
-- Webhook secrets use Windows current-user encryption and cannot be assumed
+- Webhook secrets use Windows current-user encryption or a macOS Keychain key and cannot be assumed
   portable to another account/machine. See [user guide](USER_GUIDE.md).
 
 ## Verification limits
