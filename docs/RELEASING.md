@@ -19,8 +19,7 @@ matching the module. Successful runs retain an unsigned verification executable
 for seven days. The badge reflects GitHub runs, not local results.
 
 **macOS verification** runs the frontend and Go checks on Apple Silicon, builds
-a universal app, and validates both Mach-O slices and the ad-hoc bundle signature.
-An Intel machine is needed to verify native Intel launch and behavior.
+an arm64 app, and validates the architecture and ad-hoc bundle signature.
 
 To publish without creating or pushing a Git tag yourself:
 
@@ -75,11 +74,12 @@ from hosted CI; its short local smoke requires `HOSTLIGHT_TRAY_SMOKE=1`.
    `Hostlight.app`. Check the first-launch Gatekeeper behavior and the README
    instructions on a Mac without an existing exception. Confirm the expected
    version under **Help → About Hostlight**.
-3. Add a TCP monitor and an HTTP/HTTPS monitor against controlled endpoints.
-   Verify healthy checks, then stop and restart an endpoint and confirm the
-   failure, recovery, and incident history.
-4. Change a setting, quit using **File → Quit Hostlight**, and reopen the app.
-   Confirm the setting, monitors, and history persist. Test replacement of
-   an older preview against a backed-up profile when one exists.
-5. Repeat the launch and monitoring checks on Intel for native Intel coverage.
-   Record which macOS versions and architectures passed before publishing.
+3. Verify IPv4 and IPv6 ICMP loopback checks on `127.0.0.1` and `::1`.
+   Check TCP and HTTP/HTTPS against controlled endpoints, including failure,
+   recovery, and incident history.
+4. Enable close-to-tray, close the window, and confirm checks continue.
+   Restore the window with **Show Hostlight** in the menu bar. Save a test
+   webhook, approve Keychain access if prompted, and verify delivery before
+   and after quitting from the menu bar and reopening the app. Test upgrades
+   against a backed-up profile when one exists.
+5. Record the macOS versions tested on Apple Silicon before publishing.
